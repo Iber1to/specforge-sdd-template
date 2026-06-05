@@ -17,6 +17,7 @@ REQUIRED_ROLES = {
     "architect",
     "implementer",
     "qa-reviewer",
+    "mutation-reviewer",
 }
 
 

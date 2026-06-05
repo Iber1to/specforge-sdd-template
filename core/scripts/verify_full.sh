@@ -5,27 +5,43 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-echo "── Lockfile ───────────────────────────────────────────"
-uv sync --locked
+export PATH="$HOME/.local/bin:$PATH"
 
-echo
+if command -v uv >/dev/null 2>&1; then
+  sync_command=(uv sync --locked)
+  run_python=(uv run python)
+  run_ruff=(uv run ruff)
+  run_pytest=(uv run pytest)
+else
+  sync_command=()
+  run_python=(.venv/bin/python)
+  run_ruff=(.venv/bin/ruff)
+  run_pytest=(.venv/bin/python -m pytest)
+fi
+
+if [ "${#sync_command[@]}" -gt 0 ]; then
+  echo "── Lockfile ───────────────────────────────────────────"
+  "${sync_command[@]}"
+  echo
+fi
+
 echo "── Política de agentes ─────────────────────────────────"
-uv run python scripts/validate_agent_budgets.py
+"${run_python[@]}" scripts/validate_agent_budgets.py
 echo
 echo "── Compilación Python ─────────────────────────────────"
-uv run python -m compileall -q scripts src tests
+PYTHONDONTWRITEBYTECODE=1 "${run_python[@]}" -m compileall -q scripts src tests
 
 echo
 echo "── Ruff lint ──────────────────────────────────────────"
-uv run ruff check .
+"${run_ruff[@]}" check .
 
 echo
 echo "── Ruff format ────────────────────────────────────────"
-uv run ruff format --check .
+"${run_ruff[@]}" format --check .
 
 echo
 echo "── Suite completa de tests ────────────────────────────"
-uv run pytest -q
+PYTHONDONTWRITEBYTECODE=1 "${run_pytest[@]}" -q -p no:cacheprovider
 
 echo
 echo "── Integridad Git ─────────────────────────────────────"
