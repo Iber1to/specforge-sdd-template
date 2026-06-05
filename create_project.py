@@ -159,7 +159,18 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
     Path(state["artifact_root"]).mkdir(parents=True, exist_ok=True)
 
 
+def write_python_smoke(output: Path) -> None:
+    (output / "src").mkdir(exist_ok=True)
+    (output / "tests" / "unit").mkdir(parents=True, exist_ok=True)
+    (output / "tests" / "unit" / "test_harness_smoke.py").write_text(
+        "def test_generated_project_has_harness() -> None:\n    assert True\n",
+        encoding="utf-8",
+    )
+
+
 def apply_profile(output: Path, profile: str) -> None:
+    write_python_smoke(output)
+
     if profile == "generic":
         (output / "README.md").write_text("# Generated Generic Project\n", encoding="utf-8")
         return
@@ -167,17 +178,16 @@ def apply_profile(output: Path, profile: str) -> None:
     if profile == "python":
         package = output.name.replace("-", "_")
         (output / "src" / package).mkdir(parents=True)
-        (output / "tests").mkdir()
         (output / "src" / package / "__init__.py").write_text('VERSION = "0.1.0"\n', encoding="utf-8")
-        (output / "tests" / "test_smoke.py").write_text(
+        (output / "tests" / "unit" / "test_profile_smoke.py").write_text(
             f"from src.{package} import VERSION\n\n\ndef test_version() -> None:\n    assert VERSION\n",
             encoding="utf-8",
         )
         return
 
     if profile == "node":
-        (output / "src").mkdir()
-        (output / "tests").mkdir()
+        (output / "src").mkdir(exist_ok=True)
+        (output / "tests").mkdir(exist_ok=True)
         (output / "package.json").write_text(
             json.dumps(
                 {
