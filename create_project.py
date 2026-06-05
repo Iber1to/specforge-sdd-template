@@ -71,15 +71,28 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def ignore_generated(directory: str, names: list[str]) -> set[str]:
+    return {
+        name
+        for name in names
+        if name == "__pycache__" or name.endswith(".pyc") or name in {".pytest_cache", ".ruff_cache"}
+    }
+
+
 def copy_core(output: Path) -> None:
     core = ROOT / "core"
 
     for child in core.iterdir():
         destination = output / child.name
         if child.is_dir():
-            shutil.copytree(child, destination)
+            shutil.copytree(child, destination, ignore=ignore_generated)
         else:
             shutil.copy2(child, destination)
+
+    (output / ".gitignore").write_text(
+        "__pycache__/\n*.pyc\n.pytest_cache/\n.ruff_cache/\n.venv/\nnode_modules/\n",
+        encoding="utf-8",
+    )
 
 
 def write_project_state(output: Path, config: dict[str, Any]) -> None:
