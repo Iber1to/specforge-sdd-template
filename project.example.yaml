@@ -1,0 +1,5 @@
+project_id: example-project
+name: Example Project
+output_path: /tmp/example-project
+profile: python
+capabilities: [mutation-testing]

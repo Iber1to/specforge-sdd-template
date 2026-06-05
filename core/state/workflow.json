@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "workflow": "spec-driven-development",
+  "states": [
+    "DRAFT",
+    "SPEC_READY",
+    "DESIGN_READY",
+    "READY_FOR_DEVELOPMENT",
+    "IN_PROGRESS",
+    "READY_FOR_QA",
+    "CHANGES_REQUESTED",
+    "APPROVED",
+    "DONE",
+    "BLOCKED"
+  ],
+  "transitions": {
+    "DRAFT": ["SPEC_READY", "BLOCKED"],
+    "SPEC_READY": ["DRAFT", "DESIGN_READY", "BLOCKED"],
+    "DESIGN_READY": ["SPEC_READY", "READY_FOR_DEVELOPMENT", "BLOCKED"],
+    "READY_FOR_DEVELOPMENT": ["IN_PROGRESS", "BLOCKED"],
+    "IN_PROGRESS": ["READY_FOR_QA", "BLOCKED"],
+    "READY_FOR_QA": ["CHANGES_REQUESTED", "APPROVED", "BLOCKED"],
+    "CHANGES_REQUESTED": ["IN_PROGRESS", "BLOCKED"],
+    "APPROVED": ["CHANGES_REQUESTED", "DONE", "BLOCKED"],
+    "DONE": [],
+    "BLOCKED": [
+      "DRAFT",
+      "SPEC_READY",
+      "DESIGN_READY",
+      "READY_FOR_DEVELOPMENT",
+      "IN_PROGRESS",
+      "READY_FOR_QA",
+      "APPROVED"
+    ]
+  },
+  "terminal_states": ["DONE"],
+  "finalization_rule": "Only scripts/finalize_feature.py may transition a feature to DONE."
+}

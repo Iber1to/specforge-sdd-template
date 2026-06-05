@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "mode": "autonomous_with_critical_escalation",
+  "description": "El Spec Partner resuelve autónomamente ambigüedades no críticas y bloquea únicamente cuando una decisión crítica no puede inferirse de forma segura.",
+  "ambiguity_policy": {
+    "noncritical": "resolve_as_documented_assumption",
+    "critical": "block_and_escalate"
+  },
+  "requirements": {
+    "structured_assumptions": true,
+    "structured_decisions": true,
+    "structured_open_questions": true,
+    "structured_scenarios": true,
+    "scenario_coverage_for_required_criteria": true
+  },
+  "minimums": {
+    "criteria": 1,
+    "scenarios": 1
+  },
+  "identifiers": {
+    "assumption_prefix": "ASM",
+    "decision_prefix": "DEC",
+    "question_prefix": "Q",
+    "scenario_prefix": "SCN",
+    "criterion_prefix": "AC"
+  },
+  "default_acceptance_schema_version": 2,
+  "legacy_v1_features": [
+    "F-001"
+  ]
+}

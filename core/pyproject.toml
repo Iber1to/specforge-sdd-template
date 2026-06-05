@@ -1,0 +1,48 @@
+[project]
+name = "desktop-overlay-assistant"
+version = "0.1.0"
+description = "Asistente local para analizar el escritorio Windows y superponer respuestas."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "jsonschema>=4.26.0",
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.16",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+  "-ra",
+  "--strict-config",
+  "--strict-markers",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [
+  ".git",
+  ".venv",
+  "state",
+]
+
+[tool.ruff.lint]
+select = [
+  "E4",
+  "E7",
+  "E9",
+  "F",
+  "I",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

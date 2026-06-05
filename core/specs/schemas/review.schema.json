@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review.schema.json",
+  "title": "Desktop Overlay Assistant QA review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "feature_id",
+    "run_id",
+    "reviewer_id",
+    "verdict",
+    "reviewed_commit",
+    "verification",
+    "summary",
+    "required_changes",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "feature_id": {
+      "type": "string",
+      "pattern": "^F-[0-9]{3,}$"
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^RUN-[0-9]{8}T[0-9]{6}Z-[a-f0-9]{8}$"
+    },
+    "reviewer_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "APPROVED",
+        "CHANGES_REQUESTED"
+      ]
+    },
+    "reviewed_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,64}$"
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "command",
+        "exit_code",
+        "log"
+      ],
+      "properties": {
+        "command": {
+          "type": "string",
+          "minLength": 3
+        },
+        "exit_code": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "log": {
+          "type": "string",
+          "pattern": "^/"
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "required_changes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5
+      },
+      "uniqueItems": true
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 10
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "APPROVED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "required_changes": {
+            "maxItems": 0
+          },
+          "verification": {
+            "properties": {
+              "exit_code": {
+                "const": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "CHANGES_REQUESTED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "required_changes": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

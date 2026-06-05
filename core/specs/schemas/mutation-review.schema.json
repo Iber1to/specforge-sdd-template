@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mutation-review.schema.json",
+  "title": "Mutation Reviewer evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "feature_id",
+    "reviewer_id",
+    "mutation_evidence",
+    "survivor_classifications",
+    "summary",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "feature_id": {
+      "type": "string",
+      "pattern": "^F-[0-9]{3,}$"
+    },
+    "reviewer_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "mutation_evidence": {
+      "type": "string",
+      "minLength": 3
+    },
+    "survivor_classifications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/classification"
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 10
+    }
+  },
+  "$defs": {
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mutant_id",
+        "classification",
+        "rationale"
+      ],
+      "properties": {
+        "mutant_id": {
+          "type": "string",
+          "pattern": "^MUT-[0-9]{3,}$"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "equivalent",
+            "out_of_scope",
+            "invalid",
+            "test_gap"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    }
+  }
+}

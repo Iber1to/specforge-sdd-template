@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "description": "Quality Gates base del harness. Los logs pesados se escriben fuera de Git en artifact_root.",
+  "gates": [
+    {
+      "id": "GATE-001",
+      "phase": "implementation_fast",
+      "command": ["bash", "scripts/verify_fast.sh"],
+      "blocking": true,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "GATE-002",
+      "phase": "qa_full",
+      "command": ["bash", "scripts/verify_full.sh"],
+      "blocking": true,
+      "timeout_seconds": 1800
+    },
+    {
+      "id": "GATE-003",
+      "phase": "finalization",
+      "command": ["bash", "scripts/verify_full.sh"],
+      "blocking": true,
+      "timeout_seconds": 1800
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+schema_version: 2
+feature_id: F-XXX
+title: Replace with the exact feature title
+
+specification:
+  mode: autonomous_with_critical_escalation
+
+  assumptions:
+    - id: ASM-001
+      statement: Replace with a documented non-critical assumption
+      rationale: Explain why the assumption is reasonable
+      risk: low
+
+  decisions:
+    - id: DEC-001
+      question: Replace with the decision that had to be resolved
+      decision: Replace with the selected decision
+      rationale: Explain why this decision was selected
+
+  open_questions: []
+
+scenarios:
+  - id: SCN-001
+    title: Replace with an observable scenario
+    given:
+      - Replace with the initial observable conditions
+    when:
+      - Replace with the triggering action
+    then:
+      - Replace with the expected observable outcome
+    criteria:
+      - AC-001
+
+criteria:
+  - id: AC-001
+    statement: Replace with an objectively verifiable acceptance criterion
+    category: functional
+    verification: integration
+    required: true

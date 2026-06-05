@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "acceptance-v2.schema.json",
+  "title": "Spec Partner acceptance contract v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "feature_id",
+    "title",
+    "specification",
+    "scenarios",
+    "criteria"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "feature_id": {
+      "type": "string",
+      "pattern": "^F-[0-9]{3,}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3
+    },
+    "specification": {
+      "$ref": "#/$defs/specification"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/criterion"
+      }
+    }
+  },
+  "$defs": {
+    "specification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "assumptions",
+        "decisions",
+        "open_questions"
+      ],
+      "properties": {
+        "mode": {
+          "const": "autonomous_with_critical_escalation"
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assumption"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decision"
+          }
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/open_question"
+          }
+        }
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "rationale",
+        "risk"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ASM-[0-9]{3,}$"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 10
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        },
+        "risk": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "question",
+        "decision",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^DEC-[0-9]{3,}$"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 10
+        },
+        "decision": {
+          "type": "string",
+          "minLength": 5
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    },
+    "open_question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "question",
+        "blocking",
+        "impact"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^Q-[0-9]{3,}$"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 10
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "impact": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "given",
+        "when",
+        "then",
+        "criteria"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^SCN-[0-9]{3,}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 5
+        },
+        "given": {
+          "$ref": "#/$defs/steps"
+        },
+        "when": {
+          "$ref": "#/$defs/steps"
+        },
+        "then": {
+          "$ref": "#/$defs/steps"
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^AC-[0-9]{3,}$"
+          }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 3
+      }
+    },
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "category",
+        "verification",
+        "required"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^AC-[0-9]{3,}$"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 10
+        },
+        "category": {
+          "type": "string",
+          "minLength": 3
+        },
+        "verification": {
+          "type": "string",
+          "minLength": 3
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

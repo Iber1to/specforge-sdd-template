@@ -1,0 +1,1 @@
+Optional Windows validation capability.

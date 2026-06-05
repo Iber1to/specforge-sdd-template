@@ -1,0 +1,61 @@
+schema_version: 1
+feature_id: F-001
+title: CLI local de health check
+criteria:
+  - id: AC-001
+    statement: >-
+      Existe un comando de health check ejecutable a través del entorno uv que
+      finaliza su ejecución produciendo salida en stdout.
+    category: functional
+    verification: integration
+    required: true
+  - id: AC-002
+    statement: >-
+      Al ejecutar el comando, stdout contiene un único documento JSON
+      sintácticamente válido y parseable.
+    category: functional
+    verification: integration
+    required: true
+  - id: AC-003
+    statement: >-
+      El documento JSON emitido incluye los campos obligatorios status,
+      application, version y python_version.
+    category: functional
+    verification: integration
+    required: true
+  - id: AC-004
+    statement: >-
+      En una ejecución correcta, el campo status del JSON tiene exactamente el
+      valor "ok".
+    category: functional
+    verification: integration
+    required: true
+  - id: AC-005
+    statement: >-
+      El comando finaliza con código de salida 0 cuando el estado de health
+      check es correcto.
+    category: functional
+    verification: integration
+    required: true
+  - id: AC-006
+    statement: >-
+      Durante su ejecución el comando no realiza accesos a red, base de datos
+      ni componentes específicos de Windows.
+    category: compatibility
+    verification: inspection
+    required: true
+  - id: AC-007
+    statement: >-
+      Existen tests unitarios que validan la construcción del documento de
+      health check, incluyendo los campos obligatorios y el valor "ok" del
+      campo status.
+    category: functional
+    verification: unit
+    required: true
+  - id: AC-008
+    statement: >-
+      Existen tests de integración que ejecutan el comando completo y verifican
+      el JSON de stdout y el código de salida 0 en estado correcto.
+    category: functional
+    verification: integration
+    required: true

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "mode": "observe",
+  "description": "Presupuestos iniciales de observación. Solo max_turns se aplica como límite estricto mediante Claude Code.",
+  "roles": {
+    "leader": {
+      "model": "opus",
+      "effort": "high",
+      "max_turns": 160,
+      "max_duration_seconds": 3600,
+      "max_total_tokens": 250000
+    },
+    "specifier": {
+      "model": "opus",
+      "effort": "high",
+      "max_turns": 45,
+      "max_duration_seconds": 300,
+      "max_total_tokens": 35000
+    },
+    "architect": {
+      "model": "opus",
+      "effort": "high",
+      "max_turns": 60,
+      "max_duration_seconds": 600,
+      "max_total_tokens": 55000
+    },
+    "implementer": {
+      "model": "opus",
+      "effort": "high",
+      "max_turns": 120,
+      "max_duration_seconds": 900,
+      "max_total_tokens": 70000
+    },
+    "qa-reviewer": {
+      "model": "opus",
+      "effort": "high",
+      "max_turns": 80,
+      "max_duration_seconds": 600,
+      "max_total_tokens": 55000
+    },
+    "mutation-reviewer": {
+      "model": "opus",
+      "effort": "high",
+      "max_turns": 60,
+      "max_duration_seconds": 600,
+      "max_total_tokens": 55000
+    }
+  }
+}
