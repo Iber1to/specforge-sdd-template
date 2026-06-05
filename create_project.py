@@ -212,6 +212,41 @@ def apply_profile(output: Path, profile: str) -> None:
             "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { version } from '../src/index.js';\n\ntest('exports version', () => {\n  assert.equal(version, '0.1.0');\n});\n",
             encoding="utf-8",
         )
+        gates_path = output / "state" / "quality-gates.json"
+        gates = json.loads(gates_path.read_text(encoding="utf-8"))
+        gates["gates"].extend(
+            [
+                {
+                    "id": "GATE-004",
+                    "phase": "implementation_fast",
+                    "command": ["npm", "test"],
+                    "blocking": True,
+                    "timeout_seconds": 300,
+                },
+                {
+                    "id": "GATE-005",
+                    "phase": "qa_full",
+                    "command": ["npm", "test"],
+                    "blocking": True,
+                    "timeout_seconds": 300,
+                },
+                {
+                    "id": "GATE-006",
+                    "phase": "qa_full",
+                    "command": ["npm", "run", "lint"],
+                    "blocking": True,
+                    "timeout_seconds": 300,
+                },
+                {
+                    "id": "GATE-007",
+                    "phase": "finalization",
+                    "command": ["npm", "test"],
+                    "blocking": True,
+                    "timeout_seconds": 300,
+                },
+            ]
+        )
+        gates_path.write_text(json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def initialize_git(output: Path) -> None:
