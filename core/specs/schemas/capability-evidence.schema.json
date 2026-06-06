@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Capability Evidence",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "feature_id",
+    "gate_id",
+    "status",
+    "started_at",
+    "completed_at",
+    "duration_seconds",
+    "scope",
+    "summary",
+    "checks",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "feature_id": {
+      "type": "string",
+      "pattern": "^F-[0-9]{3,}$"
+    },
+    "gate_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["PASSED", "FAILED", "BLOCKED", "SKIPPED"]
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": "string"
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "scope": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "checks": {
+      "type": "array"
+    },
+    "artifacts": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

@@ -69,6 +69,9 @@ Capacidades soportadas:
 - `mutation-testing`: habilita flujo de mutation testing para features que lo declaren.
 - `windows-validation`: marca el proyecto como preparado para evidencia opcional de Windows.
 - `git-publish`: habilita publicacion local/remota auditada de features finalizadas.
+- `external-runtime`: ejecuta o normaliza jobs externos con evidencia estructurada.
+- `performance-testing`: mide comandos repetibles y registra estadisticas de rendimiento.
+- `security-scanning`: detecta secretos y ficheros sensibles en modo observe.
 
 ## Perfiles
 

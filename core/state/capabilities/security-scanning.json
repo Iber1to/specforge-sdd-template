@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "mode": "observe",
+  "required_for_done": false,
+  "required_for_qa_approval": false,
+  "checks": {
+    "secrets": {
+      "enabled": true,
+      "fail_on": ["critical"]
+    },
+    "dependencies": {
+      "enabled": false,
+      "fail_on": ["critical"]
+    },
+    "static": {
+      "enabled": true,
+      "fail_on": []
+    }
+  },
+  "fail_on": ["critical"],
+  "exclude_globs": [
+    "data/**",
+    "artifacts/**",
+    "worktrees/**",
+    "*.png",
+    "*.jpg",
+    "*.jpeg"
+  ],
+  "max_file_bytes": 1000000
+}

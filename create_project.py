@@ -12,7 +12,14 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 PROFILES = {"generic", "python", "node"}
-CAPABILITIES = {"git-publish", "mutation-testing", "windows-validation"}
+CAPABILITIES = {
+    "external-runtime",
+    "git-publish",
+    "mutation-testing",
+    "performance-testing",
+    "security-scanning",
+    "windows-validation",
+}
 GIT_PUBLICATION_MODES = {"disabled", "local", "dry_run", "push"}
 
 

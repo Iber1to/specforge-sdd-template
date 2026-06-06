@@ -129,6 +129,69 @@ Regla de bloqueo:
 - Si hay `test_gap`, QA debe emitir `CHANGES_REQUESTED`.
 - Si sobreviven mutantes relevantes sin justificacion, no se debe aprobar.
 
+## Capability: External Runtime
+
+Activacion de proyecto o feature:
+
+```yaml
+capabilities: [external-runtime]
+```
+
+Runner:
+
+```bash
+python3 scripts/run_external_runtime.py \
+  --feature F-001 \
+  --target local \
+  --command python3 --version
+```
+
+Validador:
+
+```bash
+python3 scripts/validate_external_runtime_result.py \
+  --feature F-001 \
+  --evidence <artifact_root>/capabilities/external-runtime/F-001/latest.json \
+  --require-pass
+```
+
+El MVP incluye target `local` y `manual-drop`. SSH queda como extension futura.
+
+## Capability: Performance Testing
+
+Activacion:
+
+```yaml
+capabilities: [performance-testing]
+```
+
+Runner:
+
+```bash
+python3 scripts/run_performance_gate.py \
+  --feature F-001 \
+  --benchmark python-smoke \
+  --measured-runs 3
+```
+
+Produce estadisticas `min_ms`, `median_ms`, `p95_ms` y `max_ms`. El modo inicial es `observe`; `enforce` puede bloquear cuando se estabilicen benchmarks criticos.
+
+## Capability: Security Scanning
+
+Activacion:
+
+```yaml
+capabilities: [security-scanning]
+```
+
+Runner:
+
+```bash
+python3 scripts/run_security_scan.py --feature F-001
+```
+
+El MVP detecta secretos por regex, ficheros sensibles como `.env`, claves privadas y tokens comunes. Redacta muestras sensibles en la evidencia.
+
 ## Capability: Windows Validation
 
 Activacion de proyecto:

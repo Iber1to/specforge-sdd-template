@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "External Runtime Result",
+  "allOf": [
+    {
+      "$ref": "capability-evidence.schema.json"
+    }
+  ],
+  "properties": {
+    "gate_id": {
+      "const": "external-runtime"
+    },
+    "target": {
+      "type": "string"
+    },
+    "job_id": {
+      "type": "string"
+    }
+  }
+}

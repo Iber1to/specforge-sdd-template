@@ -6,7 +6,7 @@ Repositorio template: `/srv/agentic/workspace/agentic-sdd-template`
 
 ## Estado Ejecutivo
 
-Roadmap cerrado. El harness ya soporta Spec Partner v2, mantenimiento controlado del propio harness, revision semantica de arquitectura, quality gates versionados, mutation testing determinista, mutation reviewer y extraccion de template con perfiles `generic`, `python` y `node`.
+Roadmap cerrado. El harness ya soporta Spec Partner v2, mantenimiento controlado del propio harness, revision semantica de arquitectura, quality gates versionados, mutation testing determinista, mutation reviewer, external runtime, performance testing, security scanning, publicacion Git auditada y extraccion de template con perfiles `generic`, `python` y `node`.
 
 La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este documento conserva el roadmap original y lo completa con el estado final, evidencias y decisiones tecnicas aplicadas.
 
@@ -24,6 +24,9 @@ La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este
 | `31F` Validacion end-to-end | Completado | proyectos `test-generic-project`, `test-python-project`, `test-node-project` con `F-001` en `DONE` |
 | Template extraction | Completado | `/srv/agentic/workspace/agentic-sdd-template` con `core/`, `profiles/`, `capabilities/`, `generator/`, `tests/` |
 | `32A` Git Publish Capability | Completado | `scripts/publish_feature.py`, agente `repository-publisher`, tests `test_git_publish.py` |
+| `32B` External Runtime Capability | Completado | `scripts/run_external_runtime.py`, `state/capabilities/external-runtime.json`, evidencia smoke |
+| `32C` Performance Testing Capability | Completado | `scripts/run_performance_gate.py`, `state/capabilities/performance-testing.json`, evidencia smoke |
+| `32D` Security Scanning Capability | Completado | `scripts/run_security_scan.py`, `state/capabilities/security-scanning.json`, evidencia smoke |
 
 ## Cambios Implementados
 
@@ -217,7 +220,7 @@ Resultado final:
 - `compileall` OK
 - `ruff check` OK
 - `ruff format --check` OK
-- `pytest`: `105 passed`
+- `pytest`: `114 passed`
 - `git diff --check` OK
 
 Template:
@@ -232,7 +235,8 @@ Resultado final:
 - `test_generates_generic_project`: OK
 - `test_generates_python_project`: OK
 - `test_generates_node_project`: OK
-- `Ran 3 tests`: OK
+- `test_generates_pending_capability_policies`: OK
+- `Ran 5 tests`: OK
 
 Proyectos generados:
 
@@ -265,16 +269,14 @@ Esta matriz convierte las capacidades del harness en un backlog mantenible. Incl
 
 | ID | Capability | Estado | Prioridad | Resultado |
 | --- | --- | --- | --- | --- |
-| `CAP-001` | Spec Partner v2 | Completado | Alta | Specs v2 estructuradas y validadas antes de desarrollo |
-| `CAP-002` | Semantic Architect Review | Completado | Alta | Arquitectura bloquea contradicciones o criterios no verificables |
-| `CAP-003` | Quality Gates Framework | Completado | Alta | Gates versionados por fase con evidencia estructurada |
-| `CAP-004` | Mutation Testing | Completado | Alta | Runner Python determinista con mutation reviewer |
-| `CAP-005` | Windows Validation | Completado | Media | Evidencia Windows opcional validada por schema |
-| `CAP-006` | Template Generator | Completado | Alta | Perfiles `generic`, `python`, `node` generables y validados |
-| `CAP-007` | Git Publish | Completado | Alta | Publicacion local/remota auditada mediante `repository-publisher` |
-| `CAP-008` | Remote PR Publishing | Propuesto | Media | Crear PRs en vez de push directo a rama canonica cuando el equipo lo requiera |
-| `CAP-009` | Release Tagging | Propuesto | Media | Etiquetar releases tras features o milestones aprobados |
-| `CAP-010` | Additional Stack Profiles | Propuesto | Baja | Perfiles futuros para `frontend`, `go`, `rust` segun demanda real |
+| `CAP-001` | Quality Gates Framework | Completado | Alta | Gates versionados por fase con evidencia estructurada |
+| `CAP-002` | External Runtime | Completado | Alta | Target local/manual-drop, runner, validador, schema y evidencia |
+| `CAP-003` | Windows Validation | Completado | Alta | Evidencia Windows opcional validada por schema y bloqueante cuando se requiere |
+| `CAP-004` | Performance Testing | Completado | Media | Runner local con warmup, mediciones, p95 y validador |
+| `CAP-005` | Security Scanning | Completado | Media | Scanner determinista de secretos/ficheros sensibles en modo observe |
+| `CAP-006` | Mutation Testing | Completado | Alta | Runner Python determinista con mutation reviewer |
+| `CAP-007` | Template Generator | Completado | Alta | Perfiles `generic`, `python`, `node` generables y validados |
+| `CAP-008` | Git Publish | Completado | Alta | Publicacion local/remota auditada mediante `repository-publisher` |
 
 ### 32A Git Publish Capability
 
@@ -310,9 +312,79 @@ Respuesta a la duda operativa:
 
 Si, el montaje ya trabaja con Git local mediante ramas, worktrees y merges deterministas. Con `git-publish`, tambien puede trabajar con Git remoto: un agente especializado puede subir tareas completadas al repositorio configurado, pero no mediante comandos libres, sino mediante un script auditado que valida estado, commit, rama, limpieza del repo y remote.
 
+### 32B External Runtime Capability
+
+Implementado:
+
+- Politica versionada `state/capabilities/external-runtime.json`.
+- Schema `specs/schemas/external-runtime-result.schema.json`.
+- Helper comun `scripts/capability_common.py`.
+- Runner `scripts/run_external_runtime.py`.
+- Validador `scripts/validate_external_runtime_result.py`.
+- Target `local` para ejecucion determinista.
+- Target `manual-drop` para normalizar resultados externos.
+- Tests unitarios en `tests/unit/test_capability_runners.py`.
+
+Evidencia smoke real:
+
+- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- feature: `F-001`
+- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/external-runtime/F-001/latest.json`
+- estado: `PASSED`
+
+### 32C Performance Testing Capability
+
+Implementado:
+
+- Politica versionada `state/capabilities/performance-testing.json`.
+- Schema `specs/schemas/performance-result.schema.json`.
+- Runner `scripts/run_performance_gate.py`.
+- Validador `scripts/validate_performance_result.py`.
+- Warmup configurable.
+- Runs medidos.
+- Timeout.
+- Estadisticas `min_ms`, `median_ms`, `p95_ms`, `max_ms`.
+- Modo inicial `observe`.
+- Tests unitarios en `tests/unit/test_capability_runners.py`.
+
+Evidencia smoke real:
+
+- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- feature: `F-001`
+- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/performance-testing/F-001/latest.json`
+- estado: `PASSED`
+
+### 32D Security Scanning Capability
+
+Implementado:
+
+- Politica versionada `state/capabilities/security-scanning.json`.
+- Schema `specs/schemas/security-result.schema.json`.
+- Runner `scripts/run_security_scan.py`.
+- Validador `scripts/validate_security_result.py`.
+- Scanner determinista de secretos y ficheros sensibles.
+- Redaccion de muestras sensibles.
+- Modo inicial `observe`.
+- Tests unitarios en `tests/unit/test_capability_runners.py`.
+
+Evidencia smoke real:
+
+- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- feature: `F-001`
+- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/security-scanning/F-001/latest.json`
+- estado: `PASSED`
+
+## Extensiones Futuras No Incluidas En Esta Ejecucion
+
+Estas ideas quedan documentadas como evolucion posterior, no como capabilities pendientes del cierre actual:
+
+- Remote PR Publishing: crear PRs reales con provider concreto cuando exista repositorio remoto y credenciales de plataforma.
+- Release Tagging: etiquetar milestones o releases cuando el template tenga politica de versionado.
+- Perfiles adicionales: `frontend`, `go`, `rust` segun demanda real de proyectos.
+
 ## Estado Residual
 
-No quedan bloques abiertos del roadmap original ni de `CAP-007 Git Publish`. Los siguientes pasos ya no son cierre del roadmap, sino mejora continua:
+No quedan bloques abiertos del roadmap original, del documento de capabilities pendientes ni de `CAP-008 Git Publish`. Los siguientes pasos ya no son cierre del roadmap, sino mejora continua:
 
 - Publicar version/tag del template.
 - Crear mas perfiles (`go`, `rust`, `frontend`) si aparecen proyectos reales.

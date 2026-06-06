@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "mode": "observe",
+  "required_for_done": false,
+  "required_for_qa_approval": false,
+  "benchmarks": [
+    {
+      "id": "python-smoke",
+      "command": ["python3", "--version"],
+      "warmup_runs": 0,
+      "measured_runs": 3,
+      "timeout_seconds": 10,
+      "max_p95_ms": 5000
+    }
+  ]
+}

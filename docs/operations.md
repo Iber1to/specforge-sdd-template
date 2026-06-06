@@ -197,6 +197,48 @@ evidence/mutation-reviews/F-001.json
 
 La aprobacion requiere cero mutantes supervivientes relevantes sin justificar. Cualquier `test_gap` debe producir `CHANGES_REQUESTED`.
 
+## External Runtime
+
+```bash
+python3 scripts/run_external_runtime.py \
+  --feature F-001 \
+  --target local \
+  --command python3 --version
+```
+
+Evidencia:
+
+```text
+artifact_root/capabilities/external-runtime/<feature>/latest.json
+```
+
+## Performance Testing
+
+```bash
+python3 scripts/run_performance_gate.py \
+  --feature F-001 \
+  --benchmark python-smoke \
+  --measured-runs 3
+```
+
+Evidencia:
+
+```text
+artifact_root/capabilities/performance-testing/<feature>/latest.json
+```
+
+## Security Scanning
+
+```bash
+python3 scripts/run_security_scan.py --feature F-001
+```
+
+Evidencia:
+
+```text
+artifact_root/capabilities/security-scanning/<feature>/latest.json
+```
+
 ## Evidencias
 
 Versionadas en Git:

@@ -78,6 +78,12 @@ LEADER_HARNESS_SCRIPTS = {
     "start_review.py",
     "finalize_feature.py",
     "publish_feature.py",
+    "run_external_runtime.py",
+    "run_performance_gate.py",
+    "run_security_scan.py",
+    "validate_external_runtime_result.py",
+    "validate_performance_result.py",
+    "validate_security_result.py",
 }
 
 IMPLEMENTER_HARNESS_SCRIPTS = {

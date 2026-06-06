@@ -58,6 +58,20 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue(state["git_publication"]["enabled"])
         self.assertEqual("local", state["git_publication"]["mode"])
 
+    def test_generates_pending_capability_policies(self) -> None:
+        output = self.generate(
+            "generic",
+            "[external-runtime, performance-testing, security-scanning]",
+        )
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        self.assertIn("external-runtime", state["capabilities"])
+        self.assertTrue((output / "state" / "capabilities" / "external-runtime.json").is_file())
+        self.assertTrue(
+            (output / "state" / "capabilities" / "performance-testing.json").is_file()
+        )
+        self.assertTrue((output / "state" / "capabilities" / "security-scanning.json").is_file())
+
     def test_generates_python_project(self) -> None:
         output = self.generate("python", "[mutation-testing]")
         self.assertTrue((output / "pyproject.toml").is_file())

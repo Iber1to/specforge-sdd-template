@@ -37,7 +37,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--capability",
         action="append",
-        choices=["mutation-testing"],
+        choices=[
+            "external-runtime",
+            "git-publish",
+            "mutation-testing",
+            "performance-testing",
+            "security-scanning",
+            "windows-validation",
+        ],
         default=[],
         help="Capability opcional requerida por la feature.",
     )
