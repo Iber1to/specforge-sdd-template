@@ -18,6 +18,7 @@ REQUIRED_ROLES = {
     "implementer",
     "qa-reviewer",
     "mutation-reviewer",
+    "repository-publisher",
 }
 
 

@@ -23,6 +23,7 @@ La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este
 | Mutation Reviewer bloqueante | Completado | `scripts/mutation_review_validation.py`, `specs/schemas/mutation-review.schema.json`, bloqueo en QA |
 | `31F` Validacion end-to-end | Completado | proyectos `test-generic-project`, `test-python-project`, `test-node-project` con `F-001` en `DONE` |
 | Template extraction | Completado | `/srv/agentic/workspace/agentic-sdd-template` con `core/`, `profiles/`, `capabilities/`, `generator/`, `tests/` |
+| `32A` Git Publish Capability | Completado | `scripts/publish_feature.py`, agente `repository-publisher`, tests `test_git_publish.py` |
 
 ## Cambios Implementados
 
@@ -255,12 +256,66 @@ Resultado final:
 - Logs pesados quedan en `artifact_root`; Git conserva evidencias pequenas y revisables.
 - Windows validation queda como capability opcional, no dependencia core.
 - Node es el primer perfil no Python y usa `npm`, ESM y `node:test`.
+- La publicacion Git remota queda separada de `finalize_feature.py`: primero se integra localmente y luego `repository-publisher` ejecuta `scripts/publish_feature.py`.
+- Role Guard bloquea `git push` directo; el push real solo puede ocurrir dentro del script determinista de publicacion.
+
+## Roadmap De Capabilities
+
+Esta matriz convierte las capacidades del harness en un backlog mantenible. Incluye capacidades ya cerradas, nuevas capacidades incorporadas y extensiones recomendadas.
+
+| ID | Capability | Estado | Prioridad | Resultado |
+| --- | --- | --- | --- | --- |
+| `CAP-001` | Spec Partner v2 | Completado | Alta | Specs v2 estructuradas y validadas antes de desarrollo |
+| `CAP-002` | Semantic Architect Review | Completado | Alta | Arquitectura bloquea contradicciones o criterios no verificables |
+| `CAP-003` | Quality Gates Framework | Completado | Alta | Gates versionados por fase con evidencia estructurada |
+| `CAP-004` | Mutation Testing | Completado | Alta | Runner Python determinista con mutation reviewer |
+| `CAP-005` | Windows Validation | Completado | Media | Evidencia Windows opcional validada por schema |
+| `CAP-006` | Template Generator | Completado | Alta | Perfiles `generic`, `python`, `node` generables y validados |
+| `CAP-007` | Git Publish | Completado | Alta | Publicacion local/remota auditada mediante `repository-publisher` |
+| `CAP-008` | Remote PR Publishing | Propuesto | Media | Crear PRs en vez de push directo a rama canonica cuando el equipo lo requiera |
+| `CAP-009` | Release Tagging | Propuesto | Media | Etiquetar releases tras features o milestones aprobados |
+| `CAP-010` | Additional Stack Profiles | Propuesto | Baja | Perfiles futuros para `frontend`, `go`, `rust` segun demanda real |
+
+### 32A Git Publish Capability
+
+Motivacion:
+
+El harness ya podia trabajar con Git local: los implementadores trabajan en worktrees, QA revisa ramas de feature y `finalize_feature.py` integra en la rama canonica local. Faltaba una capacidad explicita, segura y auditable para publicar tareas completadas en un remote.
+
+Implementado:
+
+- Nuevo script `scripts/publish_feature.py`.
+- Nuevo agente `repository-publisher`.
+- Nuevo presupuesto en `state/agent-budgets.json`.
+- Role Guard reconoce `repository-publisher`.
+- Role Guard bloquea `git push` directo y solo permite publicacion mediante script.
+- Configuracion `git_publication` en `state/project.json`.
+- Generador acepta capability `git-publish`.
+- Template genera `git_publication` en proyectos nuevos.
+- Tests unitarios cubren modo local, push a remote bare, rechazo de features no `DONE` y bloqueo de `git push` directo.
+- Ejecucion operativa sobre proyecto generado:
+  - proyecto: `/srv/agentic/workspace/test-generic-project`
+  - feature: `F-001`
+  - resultado: `LOCAL_RECORDED`
+  - evidencia: `/srv/agentic/workspace/data/test-generic-project/artifacts/git-publish/F-001/latest.json`
+
+Modos soportados:
+
+- `disabled`
+- `local`
+- `dry_run`
+- `push`
+
+Respuesta a la duda operativa:
+
+Si, el montaje ya trabaja con Git local mediante ramas, worktrees y merges deterministas. Con `git-publish`, tambien puede trabajar con Git remoto: un agente especializado puede subir tareas completadas al repositorio configurado, pero no mediante comandos libres, sino mediante un script auditado que valida estado, commit, rama, limpieza del repo y remote.
 
 ## Estado Residual
 
-No quedan bloques abiertos del roadmap original. Los siguientes pasos ya no son cierre del roadmap, sino mejora continua:
+No quedan bloques abiertos del roadmap original ni de `CAP-007 Git Publish`. Los siguientes pasos ya no son cierre del roadmap, sino mejora continua:
 
 - Publicar version/tag del template.
 - Crear mas perfiles (`go`, `rust`, `frontend`) si aparecen proyectos reales.
 - Ampliar mutation testing a mas lenguajes cuando exista necesidad.
 - Anadir documentacion de ejemplos end-to-end con capturas de salida reales si se quiere usar como onboarding.
+- Implementar `Remote PR Publishing` si se prefiere abrir pull requests en vez de push directo a rama canonica.

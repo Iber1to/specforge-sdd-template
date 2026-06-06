@@ -171,6 +171,25 @@ Artefactos pesados:
 
 - `artifact_root/quality-gates/<feature>/`
 - `artifact_root/mutation-tests/<feature>/`
+- `artifact_root/git-publish/<feature>/`
+
+## Publicacion Git
+
+La publicacion Git es una capability opcional (`git-publish`) que opera despues de `DONE`.
+
+Componentes:
+
+- `scripts/publish_feature.py`
+- agente `repository-publisher`
+- configuracion `state/project.json::git_publication`
+- evidencia en `artifact_root/git-publish/<feature>/`
+
+El diseño separa integracion local de publicacion remota:
+
+- `finalize_feature.py` integra la feature aprobada en la rama canonica local.
+- `publish_feature.py` valida que la feature esta en `DONE` y registra o sube el commit.
+
+Role Guard bloquea `git push` directo. Un push real solo puede ocurrir dentro del script determinista, con repo limpio, feature finalizada y remote configurado.
 
 ## Modelo De Sincronizacion
 

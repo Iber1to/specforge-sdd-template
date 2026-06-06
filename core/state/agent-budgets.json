@@ -44,6 +44,13 @@
       "max_turns": 60,
       "max_duration_seconds": 600,
       "max_total_tokens": 55000
+    },
+    "repository-publisher": {
+      "model": "opus",
+      "effort": "high",
+      "max_turns": 40,
+      "max_duration_seconds": 300,
+      "max_total_tokens": 25000
     }
   }
 }

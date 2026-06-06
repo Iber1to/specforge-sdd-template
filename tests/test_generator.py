@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -48,6 +49,14 @@ class GeneratorTests(unittest.TestCase):
         output = self.generate("generic")
         self.assertTrue((output / "scripts" / "project_status.py").is_file())
         self.assertTrue((output / "state" / "project.json").is_file())
+
+    def test_generates_git_publish_capability_config(self) -> None:
+        output = self.generate("generic", "[git-publish]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        self.assertIn("git-publish", state["capabilities"])
+        self.assertTrue(state["git_publication"]["enabled"])
+        self.assertEqual("local", state["git_publication"]["mode"])
 
     def test_generates_python_project(self) -> None:
         output = self.generate("python", "[mutation-testing]")

@@ -151,6 +151,56 @@ Archivos principales:
 
 La validacion Windows es opcional en el template core. No bloquea proyectos que no la activen.
 
+## Capability: Git Publish
+
+Activacion de proyecto:
+
+```yaml
+capabilities: [git-publish]
+git_publish_mode: local
+git_publish_remote: origin
+git_publish_branch: main
+git_publish_auto: false
+```
+
+Objetivo:
+
+- registrar o publicar features ya finalizadas (`DONE`) en Git local o remoto
+- impedir `git push` directo desde agentes
+- guardar evidencia auditada de la publicacion
+
+Script:
+
+```bash
+uv run python scripts/publish_feature.py --feature F-001
+```
+
+Agente:
+
+- `repository-publisher`
+
+Modos:
+
+- `local`: registra que el merge local quedo integrado.
+- `dry_run`: valida el push remoto con `git push --dry-run`.
+- `push`: sube `HEAD` a `refs/heads/<branch>` del remote configurado.
+- `disabled`: no publica.
+
+Evidencia:
+
+```text
+artifact_root/git-publish/<feature>/<operation>.json
+artifact_root/git-publish/<feature>/latest.json
+```
+
+Reglas de bloqueo:
+
+- La feature debe estar en `DONE`.
+- El repo canonico debe estar limpio.
+- El `merged_commit` de la feature debe pertenecer al `HEAD`.
+- Por defecto, `merged_commit` debe ser exactamente `HEAD` para evitar publicar commits posteriores por accidente.
+- `dry_run` y `push` requieren un remote Git existente.
+
 ## Perfil Node Y Gates Adicionales
 
 El perfil `node` agrega gates especificos:

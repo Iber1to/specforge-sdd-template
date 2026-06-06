@@ -12,7 +12,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent
 PROFILES = {"generic", "python", "node"}
-CAPABILITIES = {"mutation-testing", "windows-validation"}
+CAPABILITIES = {"git-publish", "mutation-testing", "windows-validation"}
+GIT_PUBLICATION_MODES = {"disabled", "local", "dry_run", "push"}
 
 
 def parse_scalar(value: str) -> Any:
@@ -68,6 +69,10 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
         "output_path": str(config["output_path"]),
         "profile": profile,
         "capabilities": capabilities,
+        "git_publish_mode": str(config.get("git_publish_mode", "local")),
+        "git_publish_remote": str(config.get("git_publish_remote", "origin")),
+        "git_publish_branch": str(config.get("git_publish_branch", "main")),
+        "git_publish_auto": bool(config.get("git_publish_auto", False)),
     }
 
 
@@ -98,6 +103,14 @@ def copy_core(output: Path) -> None:
 def write_project_state(output: Path, config: dict[str, Any]) -> None:
     project_id = config["project_id"]
     data_root = output.parent / "data" / project_id
+    git_publish_enabled = "git-publish" in config["capabilities"]
+    git_publish_mode = config["git_publish_mode"]
+
+    if git_publish_mode not in GIT_PUBLICATION_MODES:
+        raise ValueError(f"Unsupported git_publish_mode: {git_publish_mode}")
+
+    if not git_publish_enabled:
+        git_publish_mode = "disabled"
 
     state = {
         "schema_version": 1,
@@ -118,6 +131,14 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
         "lease_ttl_minutes": 720,
         "profile": config["profile"],
         "capabilities": config["capabilities"],
+        "git_publication": {
+            "enabled": git_publish_enabled,
+            "mode": git_publish_mode,
+            "remote": config["git_publish_remote"],
+            "branch": config["git_publish_branch"],
+            "auto_publish_on_done": config["git_publish_auto"],
+            "require_merged_head": True,
+        },
     }
 
     (output / "state" / "project.json").write_text(

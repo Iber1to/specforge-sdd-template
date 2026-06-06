@@ -2,4 +2,8 @@ project_id: example-project
 name: Example Project
 output_path: /tmp/example-project
 profile: python
-capabilities: [mutation-testing]
+capabilities: [mutation-testing, git-publish]
+git_publish_mode: local
+git_publish_remote: origin
+git_publish_branch: main
+git_publish_auto: false

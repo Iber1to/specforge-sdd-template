@@ -26,6 +26,7 @@ KNOWN_ROLES = {
     "implementer",
     "qa-reviewer",
     "mutation-reviewer",
+    "repository-publisher",
 }
 
 SPECIALIZED_AGENTS = {
@@ -34,6 +35,7 @@ SPECIALIZED_AGENTS = {
     "implementer",
     "qa-reviewer",
     "mutation-reviewer",
+    "repository-publisher",
 }
 
 MUTATING_TOOLS = {
@@ -75,6 +77,7 @@ LEADER_HARNESS_SCRIPTS = {
     "start_implementation.py",
     "start_review.py",
     "finalize_feature.py",
+    "publish_feature.py",
 }
 
 IMPLEMENTER_HARNESS_SCRIPTS = {
@@ -85,6 +88,11 @@ IMPLEMENTER_HARNESS_SCRIPTS = {
 QA_HARNESS_SCRIPTS = {
     "heartbeat_lease.py",
     "complete_review.py",
+}
+
+PUBLISHER_HARNESS_SCRIPTS = {
+    "project_status.py",
+    "publish_feature.py",
 }
 
 READ_ONLY_COMMAND_PREFIXES = (
@@ -660,6 +668,31 @@ def validate_leader_bash(root: Path, command: str) -> tuple[bool, str]:
     return False, "Comando Bash no incluido en la allowlist del leader"
 
 
+def validate_repository_publisher_bash(root: Path, command: str) -> tuple[bool, str]:
+    redirection = shell_redirection_operator(command)
+
+    if redirection is not None:
+        return False, f"Redirección Bash prohibida para repository-publisher: {redirection}"
+
+    forbidden = contains_forbidden_command(command)
+    if forbidden:
+        return False, f"Patrón Bash prohibido para repository-publisher: {forbidden}"
+
+    if str(control_root(root)) in command:
+        return False, "El plano de control no puede modificarse directamente"
+
+    script_name = script_name_from_command(command)
+    if script_name is not None:
+        if script_name in PUBLISHER_HARNESS_SCRIPTS:
+            return True, ""
+        return False, f"Script no autorizado para repository-publisher: {script_name}"
+
+    if starts_read_only(command.strip()):
+        return True, ""
+
+    return False, "Repository publisher solo puede leer estado y ejecutar scripts de publicación"
+
+
 def validate_worktree_bash(
     root: Path, event: dict[str, Any], role: str, command: str
 ) -> tuple[bool, str]:
@@ -751,6 +784,9 @@ def validate_bash(root: Path, event: dict[str, Any], role: str) -> tuple[bool, s
 
     if role == "leader":
         return validate_leader_bash(root, command)
+
+    if role == "repository-publisher":
+        return validate_repository_publisher_bash(root, command)
 
     if role in {"implementer", "qa-reviewer"}:
         return validate_worktree_bash(root, event, role, command)

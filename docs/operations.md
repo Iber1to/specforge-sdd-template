@@ -144,6 +144,38 @@ python3 scripts/finalize_feature.py \
 
 La finalizacion ejecuta gates `finalization`, integra la feature aprobada y mueve el estado a `DONE`.
 
+## Publicacion Git
+
+Si el proyecto tiene `git_publication.enabled: true`, una feature finalizada puede publicarse con:
+
+```bash
+uv run python scripts/publish_feature.py --feature F-001
+```
+
+El agente recomendado es `repository-publisher`. El agente no debe ejecutar `git push` directamente; Role Guard lo bloquea.
+
+Modos soportados:
+
+- `local`: registra evidencia de integracion local.
+- `dry_run`: verifica que el push remoto seria posible.
+- `push`: sube la rama canonica al remote configurado.
+- `disabled`: desactiva publicacion.
+
+La evidencia queda en:
+
+```text
+artifact_root/git-publish/<feature>/
+```
+
+Para activar push remoto en un proyecto generado, configura `state/project.json` o `project.yaml`:
+
+```yaml
+capabilities: [git-publish]
+git_publish_mode: push
+git_publish_remote: origin
+git_publish_branch: main
+```
+
 ## Mutation Testing
 
 Para features con capability `mutation-testing`:
@@ -218,3 +250,14 @@ Comprueba:
 - que el worktree no haya cambiado desde `reviewed_commit`
 - gates `qa_full`
 - evidencia mutation si la feature requiere `mutation-testing`
+
+### Git Publish Falla
+
+Comprueba:
+
+- la feature esta en `DONE`
+- el repositorio canonico esta limpio
+- la rama actual es la canonica
+- `merged_commit` coincide con `HEAD` si `require_merged_head` esta activo
+- existe el remote configurado para `dry_run` o `push`
+- las credenciales Git del host permiten escribir en el remote

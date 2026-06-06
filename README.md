@@ -68,6 +68,7 @@ Capacidades soportadas:
 
 - `mutation-testing`: habilita flujo de mutation testing para features que lo declaren.
 - `windows-validation`: marca el proyecto como preparado para evidencia opcional de Windows.
+- `git-publish`: habilita publicacion local/remota auditada de features finalizadas.
 
 ## Perfiles
 
@@ -146,6 +147,8 @@ Para el cierre del roadmap se validaron proyectos reales generados:
 - `/srv/agentic/workspace/test-node-project`
 
 Cada uno completo una feature `F-001` hasta `DONE`.
+
+La capability `git-publish` se valida con tests unitarios del harness y pruebas del generador. Para push remoto real, configura `git_publish_mode: push` y un remote accesible.
 
 ## Origen Y Sincronizacion
 
