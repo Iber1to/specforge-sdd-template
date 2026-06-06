@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "mode": "observe",
+  "required_for_done": false,
+  "required_for_qa_approval": false,
+  "runner": {
+    "id": "windows-runner-minimal",
+    "require_windows": true,
+    "checks": [
+      "platform",
+      "python",
+      "workspace",
+      "artifact-write"
+    ]
+  }
+}

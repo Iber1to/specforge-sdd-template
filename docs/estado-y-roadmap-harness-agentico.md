@@ -271,7 +271,7 @@ Esta matriz convierte las capacidades del harness en un backlog mantenible. Incl
 | --- | --- | --- | --- | --- |
 | `CAP-001` | Quality Gates Framework | Completado | Alta | Gates versionados por fase con evidencia estructurada |
 | `CAP-002` | External Runtime | Completado | Alta | Target local/manual-drop, runner, validador, schema y evidencia |
-| `CAP-003` | Windows Validation | Completado | Alta | Evidencia Windows opcional validada por schema y bloqueante cuando se requiere |
+| `CAP-003` | Windows Validation | Completado | Alta | Policy, runner minimo, evidencia Windows validada por schema y bloqueo cuando se requiere |
 | `CAP-004` | Performance Testing | Completado | Media | Runner local con warmup, mediciones, p95 y validador |
 | `CAP-005` | Security Scanning | Completado | Media | Scanner determinista de secretos/ficheros sensibles en modo observe |
 | `CAP-006` | Mutation Testing | Completado | Alta | Runner Python determinista con mutation reviewer |
@@ -331,6 +331,25 @@ Evidencia smoke real:
 - feature: `F-001`
 - evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/external-runtime/F-001/latest.json`
 - estado: `PASSED`
+
+### 32B.1 Windows Validation Runner
+
+Implementado:
+
+- Politica versionada `state/capabilities/windows-validation.json`.
+- Runner minimo `scripts/collect_windows_evidence.py`.
+- Validador `scripts/validate_windows_evidence.py`.
+- Schema `specs/schemas/windows-evidence.schema.json`.
+- Integracion de finalizacion: `finalize_feature.py` bloquea `DONE` si una feature requiere Windows y falta evidencia valida.
+- Tests unitarios en `tests/unit/test_windows_validation.py`.
+
+Evidencia smoke real:
+
+- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- feature: `F-001`
+- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/windows-tests/F-001/latest.json`
+- estado: `PASS`
+- nota: ejecutado en Jarvis con `--allow-non-windows` para validar infraestructura; en workstation Windows real el check de plataforma no necesita override.
 
 ### 32C Performance Testing Capability
 

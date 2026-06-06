@@ -207,12 +207,21 @@ Efecto:
 
 Archivos principales:
 
+- `scripts/collect_windows_evidence.py`
 - `scripts/windows_validation.py`
 - `scripts/validate_windows_evidence.py`
 - `specs/schemas/windows-evidence.schema.json`
 - `docs/windows-runner/evidence-contract.md`
 
 La validacion Windows es opcional en el template core. No bloquea proyectos que no la activen.
+
+Runner minimo:
+
+```bash
+python3 scripts/collect_windows_evidence.py --feature F-001 --commit <commit>
+```
+
+En Jarvis puede ejecutarse un smoke de infraestructura con `--allow-non-windows`; en Windows real el check de plataforma debe pasar sin override.
 
 ## Capability: Git Publish
 

@@ -22,6 +22,7 @@ en `state/project.json`.
 
 ## Componentes
 
+- `scripts/collect_windows_evidence.py`
 - `scripts/windows_validation.py`
 - `scripts/validate_windows_evidence.py`
 - `specs/schemas/windows-evidence.schema.json`
@@ -33,6 +34,22 @@ La evidencia Windows debe seguir el contrato documentado en:
 
 ```text
 docs/windows-runner/evidence-contract.md
+```
+
+Runner minimo:
+
+```bash
+python3 scripts/collect_windows_evidence.py \
+  --feature F-001 \
+  --commit <commit>
+```
+
+Smoke no Windows para validar infraestructura en Jarvis:
+
+```bash
+python3 scripts/collect_windows_evidence.py \
+  --feature F-001 \
+  --allow-non-windows
 ```
 
 ## Nota Operativa

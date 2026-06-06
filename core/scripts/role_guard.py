@@ -78,6 +78,7 @@ LEADER_HARNESS_SCRIPTS = {
     "start_review.py",
     "finalize_feature.py",
     "publish_feature.py",
+    "collect_windows_evidence.py",
     "run_external_runtime.py",
     "run_performance_gate.py",
     "run_security_scan.py",
