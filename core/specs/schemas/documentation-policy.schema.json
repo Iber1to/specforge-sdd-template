@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "documentation-policy.schema.json",
+  "title": "Documentation Pack Policy",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "enabled",
+    "required",
+    "generated_docs_are_authoritative",
+    "required_sections"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "required": {
+      "type": "boolean"
+    },
+    "generated_docs_are_authoritative": {
+      "type": "boolean",
+      "const": false
+    },
+    "required_sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]{2}-[a-z0-9-]+$"
+      },
+      "uniqueItems": true
+    },
+    "generated_outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "source_of_truth": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

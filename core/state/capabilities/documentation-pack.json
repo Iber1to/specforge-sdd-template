@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "required": true,
+  "generated_docs_are_authoritative": false,
+  "required_sections": [
+    "00-project",
+    "10-architecture",
+    "20-runtime",
+    "30-quality",
+    "40-operations",
+    "50-releases",
+    "90-generated"
+  ],
+  "generated_outputs": [
+    "docs/README.md",
+    "docs/90-generated/project-status.md",
+    "docs/90-generated/feature-index.md",
+    "docs/90-generated/quality-summary.md",
+    "docs/90-generated/metrics-summary.md"
+  ],
+  "source_of_truth": [
+    "state/",
+    "control_root",
+    "specs/features/",
+    "evidence/",
+    "git"
+  ]
+}

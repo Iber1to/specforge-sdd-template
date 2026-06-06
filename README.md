@@ -8,7 +8,7 @@ Estado actual: extraido y validado en `jarvis:/srv/agentic/workspace/agentic-sdd
 
 - `core/`: harness comun que se copia a cada proyecto generado.
 - `profiles/`: adaptadores de stack para `generic`, `python` y `node`.
-- `capabilities/`: capacidades opcionales como `mutation-testing` y `windows-validation`.
+- `capabilities/`: capacidades como `documentation-pack`, `mutation-testing` y `windows-validation`.
 - `generator/`: notas del generador determinista.
 - `tests/`: pruebas del template y de generacion.
 - `create_project.py`: entrypoint para crear un proyecto nuevo desde `project.yaml`.
@@ -66,6 +66,7 @@ Campos opcionales:
 
 Capacidades soportadas:
 
+- `documentation-pack`: activa por defecto; genera estructura documental tecnica y scripts de refresco.
 - `mutation-testing`: habilita flujo de mutation testing para features que lo declaren.
 - `windows-validation`: marca el proyecto como preparado para evidencia opcional de Windows.
 - `git-publish`: habilita publicacion local/remota auditada de features finalizadas.
@@ -117,6 +118,40 @@ python3 scripts/finalize_feature.py --feature F-001 --reason "feature aprobada e
 Los comandos de implementacion y QA deben ejecutarse desde el worktree asignado por el harness cuando corresponda.
 
 ## Documentacion Tecnica
+
+El template genera dos niveles de documentacion:
+
+- Documentacion del harness/template: contratos de agentes, scripts, workflow, quality gates y capabilities.
+- Documentacion tecnica del proyecto generado: estructura numerada bajo `docs/`.
+
+Regla de organizacion del proyecto generado:
+
+- `docs/`: documentacion viva y estable del proyecto.
+- `specs/features/`: documentacion trazable de cada feature concreta.
+- `evidence/`: evidencias ligeras versionadas.
+- `control_root` y `artifact_root`: estado operativo, evidencias pesadas, artefactos y metricas.
+
+La capability `documentation-pack` viene activa por defecto en `generic`, `python` y `node`. Genera:
+
+- `docs/00-project/`
+- `docs/10-architecture/`
+- `docs/20-runtime/`
+- `docs/30-quality/`
+- `docs/40-operations/`
+- `docs/50-releases/`
+- `docs/90-generated/`
+
+Scripts de refresco en proyectos generados:
+
+```bash
+python3 scripts/refresh_project_docs.py
+python3 scripts/generate_docs_index.py
+python3 scripts/refresh_feature_index.py
+python3 scripts/refresh_quality_summary.py
+python3 scripts/refresh_metrics_summary.py
+```
+
+`docs/90-generated/` no es fuente de verdad. Se puede borrar y regenerar.
 
 - `docs/estado-y-roadmap-harness-agentico.md`: roadmap original completado, matriz de cumplimiento, commits y evidencias.
 - `docs/architecture.md`: arquitectura del template, capas, control plane y contratos principales.

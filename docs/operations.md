@@ -252,6 +252,36 @@ Fuera de Git:
 - `artifact_root/quality-gates/<feature>/`
 - `artifact_root/mutation-tests/<feature>/`
 
+## Documentacion Del Proyecto
+
+Los proyectos generados tienen una estructura tecnica estable bajo `docs/`:
+
+- `docs/00-project/`
+- `docs/10-architecture/`
+- `docs/20-runtime/`
+- `docs/30-quality/`
+- `docs/40-operations/`
+- `docs/50-releases/`
+- `docs/90-generated/`
+
+Las specs concretas de features viven en `specs/features/`. Los resumenes
+regenerables viven en `docs/90-generated/` y no son fuente de verdad.
+
+Para refrescar los documentos derivados:
+
+```bash
+python3 scripts/refresh_project_docs.py
+```
+
+Scripts individuales:
+
+```bash
+python3 scripts/generate_docs_index.py
+python3 scripts/refresh_feature_index.py
+python3 scripts/refresh_quality_summary.py
+python3 scripts/refresh_metrics_summary.py
+```
+
 ## Recuperacion
 
 Si un lease queda colgado:

@@ -85,6 +85,11 @@ LEADER_HARNESS_SCRIPTS = {
     "validate_external_runtime_result.py",
     "validate_performance_result.py",
     "validate_security_result.py",
+    "generate_docs_index.py",
+    "refresh_project_docs.py",
+    "refresh_feature_index.py",
+    "refresh_quality_summary.py",
+    "refresh_metrics_summary.py",
 }
 
 IMPLEMENTER_HARNESS_SCRIPTS = {

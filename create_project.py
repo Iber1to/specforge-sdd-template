@@ -13,6 +13,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 PROFILES = {"generic", "python", "node"}
 CAPABILITIES = {
+    "documentation-pack",
     "external-runtime",
     "git-publish",
     "mutation-testing",
@@ -20,6 +21,7 @@ CAPABILITIES = {
     "security-scanning",
     "windows-validation",
 }
+DEFAULT_CAPABILITIES = {"documentation-pack"}
 GIT_PUBLICATION_MODES = {"disabled", "local", "dry_run", "push"}
 
 
@@ -70,12 +72,17 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     if unknown:
         raise ValueError("Unsupported capabilities: " + ", ".join(unknown))
 
+    enabled_capabilities: list[str] = []
+    for capability in [*sorted(DEFAULT_CAPABILITIES), *capabilities]:
+        if capability not in enabled_capabilities:
+            enabled_capabilities.append(str(capability))
+
     return {
         "project_id": str(config["project_id"]),
         "name": str(config["name"]),
         "output_path": str(config["output_path"]),
         "profile": profile,
-        "capabilities": capabilities,
+        "capabilities": enabled_capabilities,
         "git_publish_mode": str(config.get("git_publish_mode", "local")),
         "git_publish_remote": str(config.get("git_publish_remote", "origin")),
         "git_publish_branch": str(config.get("git_publish_branch", "main")),
@@ -196,6 +203,654 @@ def write_python_smoke(output: Path) -> None:
     )
 
 
+def write_doc(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content.strip() + "\n", encoding="utf-8")
+
+
+def format_capabilities(config: dict[str, Any]) -> str:
+    capabilities = config.get("capabilities", [])
+    if not capabilities:
+        return "none"
+    return ", ".join(str(capability) for capability in capabilities)
+
+
+def apply_documentation_pack(output: Path, config: dict[str, Any]) -> None:
+    if "documentation-pack" not in config["capabilities"]:
+        return
+
+    project_name = config["name"]
+    project_id = config["project_id"]
+    profile = config["profile"]
+    capabilities = format_capabilities(config)
+
+    docs = output / "docs"
+    directories = [
+        "00-project",
+        "10-architecture/adr",
+        "20-runtime",
+        "30-quality",
+        "40-operations",
+        "50-releases/release-notes",
+        "90-generated",
+    ]
+
+    for directory in directories:
+        (docs / directory).mkdir(parents=True, exist_ok=True)
+
+    write_doc(
+        docs / "README.md",
+        f"""
+# Project Documentation
+
+This project separates stable project documentation from traceable feature
+documentation and operational evidence.
+
+- `docs/00-project/`: product context, goals, glossary and roadmap.
+- `docs/10-architecture/`: consolidated architecture and accepted ADRs.
+- `docs/20-runtime/`: local development, configuration and runtime matrix.
+- `docs/30-quality/`: test strategy, quality gates and capabilities.
+- `docs/40-operations/`: runbook, troubleshooting, recovery and maintenance.
+- `docs/50-releases/`: changelog and release notes.
+- `docs/90-generated/`: regenerated summaries. These files are not authoritative.
+
+Feature-specific documentation lives under `specs/features/`. Lightweight
+versioned evidence lives under `evidence/`. Heavy artifacts and control-plane
+state live under the configured `artifact_root` and `control_root`.
+
+The non-numbered directories copied under `docs/`, such as `docs/architecture`
+or `docs/conventions`, are harness contracts used by the agentic workflow.
+""",
+    )
+
+    write_doc(
+        docs / "00-project" / "overview.md",
+        f"""
+# Project Overview
+
+## Name
+
+{project_name}
+
+## Identifier
+
+`{project_id}`
+
+## Profile
+
+`{profile}`
+
+## Capabilities
+
+{capabilities}
+
+## Problem
+
+Document the problem this project solves before the first product feature is
+approved.
+
+## Users Or Consumers
+
+Document the people, systems or agents that consume this project.
+
+## Current Scope
+
+The generated baseline includes the agentic SDD harness, project state,
+quality gates and documentation structure.
+
+## Out Of Scope
+
+Anything not declared in `docs/00-project/goals-and-scope.md` or in an
+approved feature specification remains out of scope.
+
+## Status
+
+Bootstrap generated. Product status is derived from `state/`, `control_root`,
+`specs/features/` and Git.
+""",
+    )
+
+    write_doc(
+        docs / "00-project" / "goals-and-scope.md",
+        """
+# Goals And Scope
+
+## Functional Goals
+
+- Define functional goals through approved feature specifications.
+
+## Non-Functional Goals
+
+- Keep the workflow auditable.
+- Keep quality gates deterministic.
+- Keep generated summaries reproducible from source state.
+
+## System Boundaries
+
+The repository contains product code, specs, lightweight evidence and stable
+documentation. Heavy artifacts and operational control files live outside Git.
+
+## Known Constraints
+
+- State transitions must go through harness scripts.
+- Feature documentation must remain traceable under `specs/features/`.
+
+## External Dependencies
+
+List external services, runtimes, repositories or operators here when they
+become required.
+""",
+    )
+
+    write_doc(
+        docs / "00-project" / "glossary.md",
+        """
+# Glossary
+
+| Term | Definition | Context | Related Terms |
+| --- | --- | --- | --- |
+| Feature | A traceable unit of product or harness change. | SDD workflow | Spec, QA, evidence |
+| Quality gate | Deterministic validation command attached to a workflow phase. | Quality | Evidence, artifact |
+| Artifact root | External location for heavy logs and generated evidence. | Operations | control_root |
+| Control root | External location for queue, leases, runtime and metrics. | Operations | state/project.json |
+""",
+    )
+
+    write_doc(
+        docs / "00-project" / "roadmap.md",
+        """
+# Roadmap
+
+## Current Phase
+
+Bootstrap.
+
+## Planned Features
+
+Register planned work through `scripts/register_feature.py`.
+
+## Open Risks
+
+- Product risks should be documented here once known.
+- Harness and capability risks should be tied to feature specs or ADRs.
+
+## Dependencies
+
+Use this section to record dependencies between roadmap blocks.
+""",
+    )
+
+    write_doc(
+        docs / "10-architecture" / "system-context.md",
+        """
+# System Context
+
+## System
+
+Describe the concrete system being built with this generated harness.
+
+## Actors And External Systems
+
+List users, external services, automation agents and runtime targets.
+
+## Inputs And Outputs
+
+Document commands, APIs, files, events and generated artifacts.
+
+## Boundaries
+
+Separate repository state, feature specs, versioned evidence and external
+artifacts.
+""",
+    )
+
+    write_doc(
+        docs / "10-architecture" / "architecture-overview.md",
+        """
+# Architecture Overview
+
+## Overview
+
+The generated baseline provides a spec-driven workflow, control-plane scripts,
+quality gates and project documentation. Product architecture must be
+consolidated here as approved features land.
+
+## Main Components
+
+See `components.md`.
+
+## Architectural Decisions
+
+Accepted decisions live under `docs/10-architecture/adr/`.
+""",
+    )
+
+    write_doc(
+        docs / "10-architecture" / "components.md",
+        """
+# Components
+
+| Component | Responsibility | Inputs | Outputs | Dependencies | Tests |
+| --- | --- | --- | --- | --- | --- |
+| Agentic harness | Controls feature lifecycle and gates. | Specs, state, commands | Evidence, transitions | Python scripts | Harness tests |
+| Product code | Implements project behavior. | Product inputs | Product outputs | Profile stack | Product tests |
+""",
+    )
+
+    write_doc(
+        docs / "10-architecture" / "data-model.md",
+        """
+# Data Model
+
+## Persistent Files
+
+- `state/project.json`: project configuration.
+- `state/workflow.json`: lifecycle transitions and roles.
+- `state/quality-gates.json`: versioned gate configuration.
+- `specs/features/`: feature specifications and plans.
+- `evidence/`: lightweight versioned evidence.
+
+## External State
+
+- `control_root`: queue, runtime, leases, locks and metrics.
+- `artifact_root`: heavy logs and capability evidence.
+
+## Retention
+
+Keep Git-tracked docs and evidence. Rotate heavy artifacts according to the
+project operations policy.
+""",
+    )
+
+    write_doc(
+        docs / "10-architecture" / "interfaces.md",
+        """
+# Interfaces
+
+## CLI
+
+The harness exposes deterministic scripts under `scripts/`.
+
+## Files
+
+Contracts are represented as JSON, YAML and Markdown files under `state/`,
+`specs/`, `docs/` and `evidence/`.
+
+## Events
+
+Lifecycle transitions are explicit script calls recorded in the control plane.
+
+## External Protocols
+
+Document project-specific APIs, events or remote runtimes here when introduced.
+""",
+    )
+
+    write_doc(
+        docs / "10-architecture" / "deployment.md",
+        """
+# Deployment
+
+## Execution Model
+
+The generated project runs locally or on the configured canonical host.
+
+## Requirements
+
+- Git
+- Python runtime for harness scripts
+- Profile-specific toolchain
+
+## Configuration
+
+Runtime paths and publication settings are stored in `state/project.json`.
+""",
+    )
+
+    write_doc(
+        docs / "10-architecture" / "adr" / "ADR-0001-template-baseline.md",
+        f"""
+# ADR-0001 - Template Baseline
+
+## Status
+
+Accepted
+
+## Context
+
+The project was generated from the Agentic SDD template using profile
+`{profile}`.
+
+## Decision
+
+Use the generated harness as the baseline for feature specification,
+architecture review, implementation, QA, finalization, quality gates,
+capabilities and documentation.
+
+## Consequences
+
+- Feature work is traceable through `specs/features/`.
+- Operational state is controlled by deterministic scripts.
+- Project documentation is maintained under numbered `docs/` sections.
+
+## Alternatives Considered
+
+- Manual repository setup without the harness.
+- Documentation added after implementation instead of as a project contract.
+
+## Related Features
+
+Bootstrap.
+""",
+    )
+
+    write_doc(
+        docs / "20-runtime" / "local-development.md",
+        """
+# Local Development
+
+## Harness Validation
+
+```bash
+bash scripts/verify_fast.sh
+bash scripts/verify_full.sh
+python3 scripts/project_status.py
+```
+
+## Feature Workflow
+
+Use the harness scripts to register, implement, review and finalize features.
+""",
+    )
+
+    write_doc(
+        docs / "20-runtime" / "configuration.md",
+        """
+# Configuration
+
+## Versioned Configuration
+
+- `state/project.json`
+- `state/workflow.json`
+- `state/quality-gates.json`
+- `state/capabilities/*.json`
+
+## Secrets
+
+Do not commit secrets, tokens, private keys or `.env` files.
+
+## Defaults
+
+Project defaults are created by `create_project.py` and can be changed through
+reviewed features.
+""",
+    )
+
+    write_doc(
+        docs / "20-runtime" / "external-runtimes.md",
+        """
+# External Runtimes
+
+| target_id | Type | Platform | Capabilities | Connection | Expected Artifacts |
+| --- | --- | --- | --- | --- | --- |
+| local | Local process | Current host | Harness checks | Direct command | JSON evidence |
+
+Add remote workstations, containers, VMs, GPU hosts or cloud runners when they
+become part of the project.
+""",
+    )
+
+    write_doc(
+        docs / "20-runtime" / "environment-matrix.md",
+        """
+# Environment Matrix
+
+| Environment | System | Runtime | Dependencies | Use |
+| --- | --- | --- | --- | --- |
+| Canonical host | Generated | Python harness | Git, Python | Development and validation |
+| Workstation | Operator-defined | Profile-specific | Project tools | Optional validation |
+""",
+    )
+
+    write_doc(
+        docs / "30-quality" / "test-strategy.md",
+        """
+# Test Strategy
+
+## Unit Tests
+
+Validate isolated product and harness behavior.
+
+## Integration Tests
+
+Validate interactions between scripts, state, specs and evidence.
+
+## End To End Tests
+
+Validate full feature flow when required.
+
+## Minimum Before QA
+
+Blocking `implementation_fast` gates must pass before `READY_FOR_QA`.
+""",
+    )
+
+    write_doc(
+        docs / "30-quality" / "quality-gates.md",
+        """
+# Quality Gates
+
+Quality gates are configured in `state/quality-gates.json`.
+
+## Phases
+
+- `implementation_fast`
+- `qa_full`
+- `finalization`
+- `optional_capability`
+
+## Evidence
+
+Gate summaries are written as structured JSON. Heavy logs live under
+`artifact_root`.
+
+## Blocking Rule
+
+A failed gate with `blocking: true` blocks the corresponding transition.
+""",
+    )
+
+    write_doc(
+        docs / "30-quality" / "mutation-testing.md",
+        """
+# Mutation Testing
+
+Mutation testing is optional and feature-scoped. When enabled, surviving
+relevant mutants must be justified or fixed before approval.
+
+Evidence is produced under `artifact_root/mutation-tests/` and reviewed through
+`evidence/mutation-reviews/`.
+""",
+    )
+
+    write_doc(
+        docs / "30-quality" / "performance-testing.md",
+        """
+# Performance Testing
+
+Performance gates are capability-driven. Use `performance-testing` for
+repeatable benchmarks with structured evidence and baselines.
+""",
+    )
+
+    write_doc(
+        docs / "30-quality" / "security-scanning.md",
+        """
+# Security Scanning
+
+Security scanning is capability-driven. The baseline scanner detects secrets
+and sensitive files and records structured evidence.
+""",
+    )
+
+    write_doc(
+        docs / "40-operations" / "runbook.md",
+        """
+# Runbook
+
+## Status
+
+```bash
+python3 scripts/project_status.py
+```
+
+## Regenerate Documentation Summaries
+
+```bash
+python3 scripts/refresh_project_docs.py
+```
+
+## Validate
+
+```bash
+bash scripts/verify_full.sh
+```
+
+## Finalize Feature
+
+```bash
+python3 scripts/finalize_feature.py --feature F-001 --reason "Approved and integrated"
+```
+""",
+    )
+
+    write_doc(
+        docs / "40-operations" / "troubleshooting.md",
+        """
+# Troubleshooting
+
+| Symptom | Likely Cause | Diagnostic Command | Recommended Fix | Risk |
+| --- | --- | --- | --- | --- |
+| Lease expired | Agent stopped or timeout elapsed | `python3 scripts/project_status.py` | Recover stale leases | Lost active work |
+| QA blocked | Gate failure or invalid evidence | Inspect `artifact_root/quality-gates/` | Fix issue and rerun QA | Premature approval |
+| Metrics stale | Feature states changed | `python3 scripts/metrics_status.py` | Refresh metrics | Misleading dashboard |
+| Documentation stale | Generated summaries not refreshed | `python3 scripts/refresh_project_docs.py` | Regenerate summaries | Outdated docs |
+""",
+    )
+
+    write_doc(
+        docs / "40-operations" / "backup-and-restore.md",
+        """
+# Backup And Restore
+
+## Back Up
+
+- Git repository.
+- `control_root` if in-flight state matters.
+- `artifact_root` if historical heavy evidence matters.
+
+## Regenerable
+
+- `docs/90-generated/`
+- Metrics snapshots.
+- Quality summaries.
+
+## Restore
+
+Restore Git first, then restore the configured `control_root` and
+`artifact_root` paths from backup if needed.
+""",
+    )
+
+    write_doc(
+        docs / "40-operations" / "maintenance.md",
+        """
+# Maintenance
+
+## Periodic Tasks
+
+- Clean stale worktrees.
+- Rotate heavy logs in `artifact_root`.
+- Refresh metrics snapshots.
+- Regenerate documentation summaries.
+- Review dependency updates through normal features.
+""",
+    )
+
+    write_doc(
+        docs / "50-releases" / "changelog.md",
+        """
+# Changelog
+
+This file records human-readable release changes. Git remains the source of
+truth for exact diffs.
+
+## Unreleased
+
+- Generated project baseline.
+""",
+    )
+
+    (docs / "50-releases" / "release-notes" / ".gitkeep").write_text("", encoding="utf-8")
+    (docs / "90-generated" / ".gitkeep").write_text("", encoding="utf-8")
+
+    if profile == "python":
+        write_doc(
+            docs / "20-runtime" / "python-environment.md",
+            """
+# Python Environment
+
+## Commands
+
+```bash
+uv sync
+uv run pytest
+uv run ruff check .
+uv run python -m compileall -q scripts src tests
+```
+""",
+        )
+
+    if profile == "node":
+        write_doc(
+            docs / "20-runtime" / "node-environment.md",
+            """
+# Node Environment
+
+## Commands
+
+```bash
+npm ci
+npm test
+npm run lint
+npm run format:check
+```
+""",
+        )
+
+    if "windows-validation" in config["capabilities"]:
+        write_doc(
+            docs / "20-runtime" / "windows-runner.md",
+            """
+# Windows Runner
+
+Windows validation is optional and capability-scoped. Use the Windows evidence
+contract under `docs/windows-runner/evidence-contract.md` and validate evidence
+with `scripts/validate_windows_evidence.py`.
+""",
+        )
+        write_doc(
+            docs / "30-quality" / "windows-validation.md",
+            """
+# Windows Validation
+
+Windows validation evidence is accepted only when it matches
+`specs/schemas/windows-evidence.schema.json`. Non-Windows smoke collection is
+allowed only for infrastructure tests.
+""",
+        )
+
+
 def apply_profile(output: Path, profile: str) -> None:
     write_python_smoke(output)
 
@@ -294,6 +949,7 @@ def create_project(config: dict[str, Any]) -> Path:
     copy_core(output)
     write_project_state(output, config)
     apply_profile(output, config["profile"])
+    apply_documentation_pack(output, config)
     initialize_git(output)
     return output
 

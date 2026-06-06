@@ -6,7 +6,7 @@ Repositorio template: `/srv/agentic/workspace/agentic-sdd-template`
 
 ## Estado Ejecutivo
 
-Roadmap cerrado. El harness ya soporta Spec Partner v2, mantenimiento controlado del propio harness, revision semantica de arquitectura, quality gates versionados, mutation testing determinista, mutation reviewer, external runtime, performance testing, security scanning, publicacion Git auditada y extraccion de template con perfiles `generic`, `python` y `node`.
+Roadmap cerrado. El harness ya soporta Spec Partner v2, mantenimiento controlado del propio harness, revision semantica de arquitectura, quality gates versionados, mutation testing determinista, mutation reviewer, external runtime, performance testing, security scanning, publicacion Git auditada, documentation pack por defecto y extraccion de template con perfiles `generic`, `python` y `node`.
 
 La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este documento conserva el roadmap original y lo completa con el estado final, evidencias y decisiones tecnicas aplicadas.
 
@@ -27,6 +27,7 @@ La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este
 | `32B` External Runtime Capability | Completado | `scripts/run_external_runtime.py`, `state/capabilities/external-runtime.json`, evidencia smoke |
 | `32C` Performance Testing Capability | Completado | `scripts/run_performance_gate.py`, `state/capabilities/performance-testing.json`, evidencia smoke |
 | `32D` Security Scanning Capability | Completado | `scripts/run_security_scan.py`, `state/capabilities/security-scanning.json`, evidencia smoke |
+| `CAP-009` Documentation Pack | Completado | `state/capabilities/documentation-pack.json`, `docs/00-project/`, `scripts/refresh_project_docs.py`, tests del generador |
 
 ## Cambios Implementados
 
@@ -205,6 +206,45 @@ Commits principales del template:
 - `faf7f23 feat: add node quality gates to generated projects`
 - `52c35ef chore: sync mutation runner execution into core`
 
+### CAP-009 Documentation Pack
+
+Se convirtio la documentacion tecnica de los proyectos generados en contrato del
+template.
+
+Implementado:
+
+- Capability `documentation-pack` activa por defecto en perfiles `generic`, `python` y `node`.
+- Estructura base:
+  - `docs/00-project/`
+  - `docs/10-architecture/`
+  - `docs/20-runtime/`
+  - `docs/30-quality/`
+  - `docs/40-operations/`
+  - `docs/50-releases/`
+  - `docs/90-generated/`
+- ADR inicial `docs/10-architecture/adr/ADR-0001-template-baseline.md`.
+- Documentacion especifica de perfil:
+  - `docs/20-runtime/python-environment.md`
+  - `docs/20-runtime/node-environment.md`
+- Documentacion adicional cuando `windows-validation` esta activa:
+  - `docs/20-runtime/windows-runner.md`
+  - `docs/30-quality/windows-validation.md`
+- Scripts regenerables:
+  - `scripts/generate_docs_index.py`
+  - `scripts/refresh_project_docs.py`
+  - `scripts/refresh_feature_index.py`
+  - `scripts/refresh_quality_summary.py`
+  - `scripts/refresh_metrics_summary.py`
+- Politica versionada en `state/capabilities/documentation-pack.json`.
+- Schema `specs/schemas/documentation-policy.schema.json`.
+
+Decision:
+
+- `docs/` contiene documentacion viva y estable del proyecto.
+- `specs/features/` conserva la trazabilidad de features.
+- `docs/90-generated/` no es fuente de verdad.
+- No se agrega un agente `technical-writer`; cada agente mantiene la documentacion que corresponde a su responsabilidad y los resumenes se generan por scripts deterministas.
+
 ## Pruebas Ejecutadas
 
 Harness fuente:
@@ -220,7 +260,7 @@ Resultado final:
 - `compileall` OK
 - `ruff check` OK
 - `ruff format --check` OK
-- `pytest`: `114 passed`
+- `pytest`: `116 passed, 5 subtests passed`
 - `git diff --check` OK
 
 Template:
@@ -236,7 +276,10 @@ Resultado final:
 - `test_generates_python_project`: OK
 - `test_generates_node_project`: OK
 - `test_generates_pending_capability_policies`: OK
-- `Ran 5 tests`: OK
+- `test_generates_documentation_pack_structure`: OK
+- `test_refreshes_generated_documentation`: OK
+- `test_generates_windows_validation_documentation`: OK
+- `Ran 8 tests`: OK
 
 Proyectos generados:
 

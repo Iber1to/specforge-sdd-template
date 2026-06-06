@@ -223,6 +223,45 @@ python3 scripts/collect_windows_evidence.py --feature F-001 --commit <commit>
 
 En Jarvis puede ejecutarse un smoke de infraestructura con `--allow-non-windows`; en Windows real el check de plataforma debe pasar sin override.
 
+## Capability: Documentation Pack
+
+Activacion:
+
+```yaml
+capabilities: [documentation-pack]
+```
+
+Esta capability esta activa por defecto en todos los perfiles generados.
+
+Objetivo:
+
+- crear una estructura tecnica minima en `docs/`
+- separar documentacion estable de specs por feature
+- documentar runtime, arquitectura, calidad, operaciones y releases
+- regenerar indices y resumenes derivados en `docs/90-generated/`
+
+Scripts:
+
+```bash
+python3 scripts/refresh_project_docs.py
+python3 scripts/generate_docs_index.py
+python3 scripts/refresh_feature_index.py
+python3 scripts/refresh_quality_summary.py
+python3 scripts/refresh_metrics_summary.py
+```
+
+Politica:
+
+```text
+state/capabilities/documentation-pack.json
+specs/schemas/documentation-policy.schema.json
+```
+
+Regla de autoridad:
+
+- `docs/90-generated/` no es fuente de verdad.
+- La fuente de verdad sigue siendo `state/`, `control_root`, `specs/features/`, `evidence/` y Git.
+
 ## Capability: Git Publish
 
 Activacion de proyecto:
