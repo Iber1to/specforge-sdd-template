@@ -208,6 +208,8 @@ o calidad y el diff revisado por QA no incluye la documentacion correspondiente.
 - `docs/development.md`: guia para modificar, probar y publicar cambios del template.
 - `docs/operations.md`: operacion diaria del harness generado, lifecycle, evidencias y troubleshooting.
 - `docs/quality-and-capabilities.md`: quality gates, mutation testing, mutation reviewer y validacion Windows.
+- `docs/language-and-style.md`: convencion de idioma, acentos, naming, errores y commits.
+- `docs/naming-and-contracts.md`: vocabulario canonico de los contratos JSON.
 
 Tambien se copian al proyecto generado los documentos tecnicos del core en `docs/architecture`, `docs/conventions` y `docs/windows-runner`.
 
