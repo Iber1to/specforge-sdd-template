@@ -7,6 +7,7 @@ import argparse
 import fnmatch
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from capability_common import (
@@ -14,6 +15,7 @@ from capability_common import (
     capability_policy,
     duration_seconds,
     ensure_policy_enabled,
+    load_project_config,
     monotonic_seconds,
     operation_id,
     repo_root,
@@ -53,6 +55,21 @@ SENSITIVE_PATTERNS = (
     "*.pem",
     "*.key",
     "id_rsa",
+)
+
+# Adapters por perfil (T-009D). Las reglas se aplican solo al perfil del proyecto.
+PROFILE_CODE_PATTERNS = {
+    "python": (
+        ("SEC-PY-EVAL", "high", "code-exec", re.compile(r"(?<![\w.])eval\s*\(")),
+        ("SEC-PY-EXEC", "high", "code-exec", re.compile(r"(?<![\w.])exec\s*\(")),
+        ("SEC-PY-PICKLE", "medium", "deserialization", re.compile(r"\bpickle\.loads?\s*\(")),
+        ("SEC-PY-OS-SYSTEM", "high", "command-injection", re.compile(r"\bos\.system\s*\(")),
+        ("SEC-PY-SHELL-TRUE", "high", "command-injection", re.compile(r"shell\s*=\s*True\b")),
+    ),
+}
+
+NODE_INSTALL_HOOK = re.compile(
+    r"\"(?:preinstall|install|postinstall)\"\s*:\s*\"[^\"]*(?:curl|wget|\|\s*sh)[^\"]*\""
 )
 
 
@@ -149,6 +166,22 @@ def accepted_finding(policy: dict, item: dict) -> dict | None:
     return None
 
 
+def acceptance_expired(entry: dict) -> bool:
+    expires_at = entry.get("expires_at")
+    if not isinstance(expires_at, str) or not expires_at:
+        return False
+
+    try:
+        moment = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+    except ValueError:
+        return True
+
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+
+    return moment <= datetime.now(timezone.utc)
+
+
 def apply_baseline(policy: dict, findings: list[dict]) -> list[dict]:
     classified: list[dict] = []
 
@@ -158,8 +191,13 @@ def apply_baseline(policy: dict, findings: list[dict]) -> list[dict]:
 
         if accepted is None:
             result["baseline_status"] = "new"
+        elif acceptance_expired(accepted):
+            result["baseline_status"] = "expired"
+            result["classification"] = str(accepted.get("classification", "accepted"))
+            result["accepted_reason"] = str(accepted.get("reason", "expired baseline acceptance"))
         else:
             result["baseline_status"] = "accepted"
+            result["classification"] = str(accepted.get("classification", "accepted"))
             result["accepted_reason"] = str(accepted.get("reason", "accepted baseline finding"))
 
         classified.append(result)
@@ -167,7 +205,44 @@ def apply_baseline(policy: dict, findings: list[dict]) -> list[dict]:
     return classified
 
 
-def scan_file(path: Path, relative: Path) -> list[dict]:
+def profile_findings(profile: str, relative: Path, content: str) -> list[dict]:
+    results: list[dict] = []
+
+    if profile == "python" and relative.suffix == ".py" and relative.parts[:1] == ("src",):
+        for line_number, line in enumerate(content.splitlines(), start=1):
+            for finding_id, severity, category, pattern in PROFILE_CODE_PATTERNS["python"]:
+                if pattern.search(line):
+                    results.append(
+                        finding(
+                            finding_id=finding_id,
+                            severity=severity,
+                            category=category,
+                            path=relative,
+                            line=line_number,
+                            description="Profile-specific risky pattern detected",
+                            recommendation="Review and avoid the risky construct",
+                        )
+                    )
+
+    if profile == "node" and relative.name == "package.json":
+        for line_number, line in enumerate(content.splitlines(), start=1):
+            if NODE_INSTALL_HOOK.search(line):
+                results.append(
+                    finding(
+                        finding_id="SEC-NODE-INSTALL-HOOK",
+                        severity="high",
+                        category="supply-chain",
+                        path=relative,
+                        line=line_number,
+                        description="Suspicious npm lifecycle hook detected",
+                        recommendation="Review preinstall/install/postinstall scripts",
+                    )
+                )
+
+    return results
+
+
+def scan_file(path: Path, relative: Path, profile: str) -> list[dict]:
     findings: list[dict] = []
 
     if any(fnmatch.fnmatch(relative.name, pattern) for pattern in SENSITIVE_PATTERNS):
@@ -205,6 +280,8 @@ def scan_file(path: Path, relative: Path) -> list[dict]:
                     )
                 )
 
+    findings.extend(profile_findings(profile, relative, content))
+
     return findings
 
 
@@ -216,6 +293,7 @@ def summarize(findings: list[dict]) -> dict[str, int]:
         "low": 0,
         "accepted": 0,
         "new": 0,
+        "expired": 0,
     }
 
     for item in findings:
@@ -223,7 +301,7 @@ def summarize(findings: list[dict]) -> dict[str, int]:
         if severity in summary:
             summary[severity] += 1
         baseline_status = item.get("baseline_status")
-        if baseline_status in {"accepted", "new"}:
+        if baseline_status in {"accepted", "new", "expired"}:
             summary[baseline_status] += 1
 
     return summary
@@ -243,12 +321,13 @@ def main() -> int:
         if not scan_root.exists():
             raise CapabilityError(f"No existe el scope de security scan: {scan_root}")
 
+        profile = str(load_project_config().get("profile", "generic"))
         started_at = utc_now()
         started = monotonic_seconds()
         findings: list[dict] = []
 
         for path in text_files(root, scan_root, policy):
-            findings.extend(scan_file(path, path.relative_to(root)))
+            findings.extend(scan_file(path, path.relative_to(root), profile))
 
         findings = apply_baseline(policy, findings)
         summary = summarize(findings)

