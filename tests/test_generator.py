@@ -922,6 +922,62 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue((harness / "test_workflow_transitions.py").is_file())
         self.assertTrue((harness / "test_role_guard_basic.py").is_file())
 
+    # --- T-008 validaciones reales (partes offline) ---
+
+    def test_git_publish_dry_run_records_enriched_evidence(self) -> None:
+        output = self.run_generated_project_lifecycle("generic", "[git-publish]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        bare = self.root / "remote-dry.git"
+        subprocess.run(
+            ["git", "init", "--bare", str(bare)],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assert_command(output, "git", "remote", "add", "origin", str(bare))
+
+        self.harness_python(
+            output,
+            "scripts/publish_feature.py",
+            "--feature",
+            "F-001",
+            "--mode",
+            "dry_run",
+            "--remote",
+            "origin",
+            "--branch",
+            "main",
+        )
+
+        evidence_path = Path(state["artifact_root"]) / "git-publish" / "F-001" / "latest.json"
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        self.assertEqual("PASS", evidence["status"])
+        self.assertEqual("DRY_RUN", evidence["publication_status"])
+        self.assertEqual("main", evidence["source_branch"])
+        self.assertIn("started_at", evidence)
+        self.assertIn("completed_at", evidence)
+        self.assertIsNotNone(evidence["remote_url_hash"])
+
+    def test_git_publish_redacts_remote_credentials(self) -> None:
+        output = self.run_generated_project_lifecycle("generic", "[git-publish]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.assert_command(
+            output,
+            "git",
+            "remote",
+            "add",
+            "origin",
+            "https://user:s3cr3t@invalid.example/repo.git",
+        )
+        self.run_unchecked_harness(
+            output,
+            "scripts/publish_feature.py --feature F-001 --mode push --remote origin --branch main",
+        )
+        evidence_path = Path(state["artifact_root"]) / "git-publish" / "F-001" / "latest.json"
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        self.assertNotIn("s3cr3t", json.dumps(evidence))
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import shutil
 import sys
@@ -87,6 +88,14 @@ def redact_sensitive_text(value: str) -> str:
         redacted,
     )
     return redacted
+
+
+def hash_remote_url(value: str | None) -> str | None:
+    """Hash estable del remote para auditar sin exponer la URL ni credenciales."""
+
+    if not value:
+        return None
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:16]
 
 
 def publication_config(
@@ -228,6 +237,7 @@ def write_publication_evidence(
 def main() -> int:
     args = parse_arguments()
     operation_id = create_operation_id()
+    started_at = utc_now()
 
     try:
         project = load_project_config()
@@ -274,11 +284,13 @@ def main() -> int:
             "schema_version": 1,
             "operation_id": operation_id,
             "feature_id": args.feature,
+            "source_branch": canonical_branch,
             "status": status,
             "publication_status": status_for_mode(config["mode"]) if status == "PASS" else "FAILED",
             "mode": config["mode"],
             "remote": config["remote"],
             "remote_url": redact_sensitive_text(remote or "") if remote is not None else None,
+            "remote_url_hash": hash_remote_url(remote),
             "branch": config["branch"],
             "merged_commit": merged_commit,
             "published_commit": published_commit,
@@ -286,6 +298,8 @@ def main() -> int:
             "stdout": redact_sensitive_text(stdout),
             "stderr": redact_sensitive_text(stderr),
             "reason": args.reason,
+            "started_at": started_at,
+            "completed_at": timestamp,
             "created_at": timestamp,
         }
 
