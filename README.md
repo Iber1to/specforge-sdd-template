@@ -153,6 +153,10 @@ python3 scripts/refresh_metrics_summary.py
 
 `docs/90-generated/` no es fuente de verdad. Se puede borrar y regenerar.
 
+`acceptance.yaml` tambien puede declarar requirements documentales. La
+finalizacion bloquea `DONE` cuando una feature exige ADR, runtime, operaciones
+o calidad y el diff revisado por QA no incluye la documentacion correspondiente.
+
 - `docs/estado-y-roadmap-harness-agentico.md`: roadmap original completado, matriz de cumplimiento, commits y evidencias.
 - `docs/architecture.md`: arquitectura del template, capas, control plane y contratos principales.
 - `docs/development.md`: guia para modificar, probar y publicar cambios del template.

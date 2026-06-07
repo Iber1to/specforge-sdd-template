@@ -144,6 +144,15 @@ python3 scripts/finalize_feature.py \
 
 La finalizacion ejecuta gates `finalization`, integra la feature aprobada y mueve el estado a `DONE`.
 
+Si `acceptance.yaml` declara requirements documentales bajo `documentation`,
+la finalizacion valida que los cambios revisados por QA incluyan las
+actualizaciones requeridas. Ejemplos:
+
+- `requires_adr: true` requiere un cambio en `docs/10-architecture/adr/`.
+- `requires_runtime_update: true` requiere un cambio en `docs/20-runtime/`.
+- `requires_operations_update: true` requiere un cambio en `docs/40-operations/`.
+- `requires_quality_update: true` requiere un cambio en `docs/30-quality/`.
+
 ## Publicacion Git
 
 Si el proyecto tiene `git_publication.enabled: true`, una feature finalizada puede publicarse con:

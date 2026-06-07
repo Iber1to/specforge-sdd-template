@@ -23,6 +23,10 @@ from control_common import (
     save_runtime,
     utc_now,
 )
+from documentation_validation import (
+    DocumentationValidationError,
+    validate_documentation_requirements,
+)
 from feature_metrics_snapshot import (
     refresh_feature_metrics_snapshot,
     snapshot_path,
@@ -102,6 +106,21 @@ def commits_between(
     )
 
     return int(result.stdout.strip())
+
+
+def merge_base(
+    repository: Path,
+    left: str,
+    right: str,
+) -> str:
+    result = run_git(
+        repository,
+        "merge-base",
+        left,
+        right,
+    )
+
+    return result.stdout.strip()
 
 
 def changed_files(
@@ -415,6 +434,22 @@ def main() -> int:
 
         reviewed_commit = review["reviewed_commit"]
 
+        documentation_base = merge_base(
+            worktree,
+            canonical_branch,
+            reviewed_commit,
+        )
+        documentation_changes = changed_files(
+            worktree,
+            documentation_base,
+            reviewed_commit,
+        )
+        validate_documentation_requirements(
+            worktree,
+            feature,
+            changed_files=documentation_changes,
+        )
+
         branch_log = run_full_verification(
             repository=worktree,
             artifact_root=artifact_root,
@@ -550,6 +585,7 @@ def main() -> int:
     except (
         ControlPlaneError,
         FinalizationError,
+        DocumentationValidationError,
         ReviewValidationError,
         WindowsEvidenceValidationError,
     ) as exc:

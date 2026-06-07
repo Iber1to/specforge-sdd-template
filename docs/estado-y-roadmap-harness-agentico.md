@@ -6,7 +6,7 @@ Repositorio template: `/srv/agentic/workspace/agentic-sdd-template`
 
 ## Estado Ejecutivo
 
-Roadmap cerrado. El harness ya soporta Spec Partner v2, mantenimiento controlado del propio harness, revision semantica de arquitectura, quality gates versionados, mutation testing determinista, mutation reviewer, external runtime, performance testing, security scanning, publicacion Git auditada, documentation pack por defecto y extraccion de template con perfiles `generic`, `python` y `node`.
+Roadmap cerrado. El harness ya soporta Spec Partner v2, mantenimiento controlado del propio harness, revision semantica de arquitectura, quality gates versionados, mutation testing determinista, mutation reviewer, external runtime, performance testing, security scanning, publicacion Git auditada, documentation pack por defecto, gate documental de finalizacion y extraccion de template con perfiles `generic`, `python` y `node`.
 
 La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este documento conserva el roadmap original y lo completa con el estado final, evidencias y decisiones tecnicas aplicadas.
 
@@ -28,6 +28,7 @@ La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este
 | `32C` Performance Testing Capability | Completado | `scripts/run_performance_gate.py`, `state/capabilities/performance-testing.json`, evidencia smoke |
 | `32D` Security Scanning Capability | Completado | `scripts/run_security_scan.py`, `state/capabilities/security-scanning.json`, evidencia smoke |
 | `CAP-009` Documentation Pack | Completado | `state/capabilities/documentation-pack.json`, `docs/00-project/`, `scripts/refresh_project_docs.py`, tests del generador |
+| `CAP-010` Documentation Finalization Gate | Completado | `scripts/documentation_validation.py`, `scripts/finalize_feature.py`, `acceptance.yaml documentation`, tests unitarios |
 
 ## Cambios Implementados
 
@@ -244,6 +245,30 @@ Decision:
 - `specs/features/` conserva la trazabilidad de features.
 - `docs/90-generated/` no es fuente de verdad.
 - No se agrega un agente `technical-writer`; cada agente mantiene la documentacion que corresponde a su responsabilidad y los resumenes se generan por scripts deterministas.
+
+### CAP-010 Documentation Finalization Gate
+
+Se agrego enforcement documental en la finalizacion.
+
+Implementado:
+
+- `acceptance.yaml` soporta bloque opcional:
+  - `requires_adr`
+  - `requires_runtime_update`
+  - `requires_operations_update`
+  - `requires_quality_update`
+- Schema actualizado en `specs/schemas/acceptance-v2.schema.json`.
+- Template actualizado en `specs/templates/acceptance.yaml`.
+- Validador determinista `scripts/documentation_validation.py`.
+- `scripts/finalize_feature.py` valida el diff entre el `merge-base` y el commit revisado por QA.
+- Si una requirement documental esta marcada como `true` y no hay cambio correspondiente, la feature no avanza a `DONE`.
+
+Mapeo de requirements:
+
+- `requires_adr`: `docs/10-architecture/adr/*.md`
+- `requires_runtime_update`: `docs/20-runtime/*.md`
+- `requires_operations_update`: `docs/40-operations/*.md`
+- `requires_quality_update`: `docs/30-quality/*.md`
 
 ## Pruebas Ejecutadas
 

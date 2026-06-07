@@ -60,3 +60,19 @@ specs/schemas/documentation-policy.schema.json
 
 Generated documentation is explicitly non-authoritative. The source of truth
 remains `state/`, `control_root`, `specs/features/`, `evidence/` and Git.
+
+## Finalization Gate
+
+Features can declare documentation requirements in `acceptance.yaml`:
+
+```yaml
+documentation:
+  requires_adr: true
+  requires_runtime_update: false
+  requires_operations_update: true
+  requires_quality_update: false
+```
+
+`scripts/finalize_feature.py` validates the reviewed diff before moving a
+feature to `DONE`. Required documentation updates must be present in the
+reviewed changes, not added after QA.

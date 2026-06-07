@@ -12,7 +12,7 @@
     "scenarios",
     "criteria"
   ],
-  "properties": {
+    "properties": {
     "schema_version": {
       "const": 2
     },
@@ -26,6 +26,9 @@
     },
     "specification": {
       "$ref": "#/$defs/specification"
+    },
+    "documentation": {
+      "$ref": "#/$defs/documentation"
     },
     "scenarios": {
       "type": "array",
@@ -73,6 +76,30 @@
           "items": {
             "$ref": "#/$defs/open_question"
           }
+        }
+      }
+    },
+    "documentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requires_adr",
+        "requires_runtime_update",
+        "requires_operations_update",
+        "requires_quality_update"
+      ],
+      "properties": {
+        "requires_adr": {
+          "type": "boolean"
+        },
+        "requires_runtime_update": {
+          "type": "boolean"
+        },
+        "requires_operations_update": {
+          "type": "boolean"
+        },
+        "requires_quality_update": {
+          "type": "boolean"
         }
       }
     },

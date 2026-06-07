@@ -19,6 +19,12 @@ specification:
 
   open_questions: []
 
+documentation:
+  requires_adr: false
+  requires_runtime_update: false
+  requires_operations_update: false
+  requires_quality_update: false
+
 scenarios:
   - id: SCN-001
     title: Replace with an observable scenario

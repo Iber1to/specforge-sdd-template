@@ -262,6 +262,23 @@ Regla de autoridad:
 - `docs/90-generated/` no es fuente de verdad.
 - La fuente de verdad sigue siendo `state/`, `control_root`, `specs/features/`, `evidence/` y Git.
 
+Gate de finalizacion:
+
+`acceptance.yaml` puede declarar requirements documentales:
+
+```yaml
+documentation:
+  requires_adr: true
+  requires_runtime_update: false
+  requires_operations_update: true
+  requires_quality_update: false
+```
+
+`scripts/finalize_feature.py` valida los cambios revisados por QA antes de
+integrar la feature. Si una requirement documental esta marcada como `true` y
+el diff revisado no contiene el documento correspondiente, la feature no pasa a
+`DONE`.
+
 ## Capability: Git Publish
 
 Activacion de proyecto:
