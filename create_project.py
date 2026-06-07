@@ -177,6 +177,30 @@ def install_capability_files(output: Path, config: dict[str, Any]) -> None:
             shutil.copy2(source_path, target_path)
 
 
+def capability_quality_gates(config: dict[str, Any]) -> list[dict[str, Any]]:
+    gates: list[dict[str, Any]] = []
+
+    for capability in config["capabilities"]:
+        manifest_path = ROOT / "capabilities" / capability / "manifest.json"
+
+        if not manifest_path.is_file():
+            continue
+
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest_gates = manifest.get("quality_gates", [])
+
+        if not isinstance(manifest_gates, list):
+            raise ValueError(f"{capability} manifest quality_gates must be a list")
+
+        for gate in manifest_gates:
+            if not isinstance(gate, dict):
+                raise ValueError(f"{capability} manifest quality gate entries must be objects")
+
+            gates.append(dict(gate))
+
+    return gates
+
+
 def write_project_state(output: Path, config: dict[str, Any]) -> None:
     project_id = config["project_id"]
     data_root = (
@@ -273,6 +297,13 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
         encoding="utf-8",
     )
     artifact_root.mkdir(parents=True, exist_ok=True)
+
+    capability_gates = capability_quality_gates(config)
+    if capability_gates:
+        gates_path = output / "state" / "quality-gates.json"
+        gates = json.loads(gates_path.read_text(encoding="utf-8"))
+        gates.setdefault("gates", []).extend(capability_gates)
+        gates_path.write_text(json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def write_python_smoke(output: Path) -> None:
@@ -812,6 +843,21 @@ Blocking `implementation_fast` gates must pass before `READY_FOR_QA`.
 # Quality Gates
 
 Quality gates are configured in `state/quality-gates.json`.
+
+## Contract
+
+Each gate declares:
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Stable gate identifier. |
+| `phase` | Workflow phase such as `implementation_fast`, `qa_full`, `finalization` or `optional_capability`. |
+| `command` | Command list executed from the repository root. |
+| `blocking` | Whether a failure blocks the phase. |
+| `mode` | `enforce` for blocking gates, `observe` for non-blocking evidence. |
+| `timeout_seconds` | Maximum runtime before timeout. |
+
+Commands may use `{feature_id}`, `{run_id}` and `{artifact_root}` placeholders.
 
 ## Phases
 

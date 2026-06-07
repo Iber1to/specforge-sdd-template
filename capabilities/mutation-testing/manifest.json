@@ -1,6 +1,23 @@
 {
   "schema_version": 1,
   "capability": "mutation-testing",
+  "quality_gates": [
+    {
+      "id": "MUT-001",
+      "phase": "optional_capability",
+      "command": [
+        "python3",
+        "scripts/mutation_runner.py",
+        "--feature",
+        "{feature_id}",
+        "--output",
+        "{artifact_root}/mutation-tests/{feature_id}/{run_id}.json"
+      ],
+      "blocking": false,
+      "mode": "observe",
+      "timeout_seconds": 600
+    }
+  ],
   "files": [
     {
       "source": "scripts/mutation_runner.py",

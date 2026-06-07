@@ -539,8 +539,38 @@ class GeneratorTests(unittest.TestCase):
 
         return feature_root
 
-    def test_generated_generic_project_reaches_done_e2e(self) -> None:
-        output = self.generate("generic")
+    def apply_profile_lifecycle_change(self, worktree: Path, profile: str) -> tuple[str, str]:
+        if profile == "generic":
+            roadmap = worktree / "docs" / "00-project" / "roadmap.md"
+            roadmap.write_text(
+                roadmap.read_text(encoding="utf-8")
+                + "\n## Deterministic Lifecycle\n\nValidated by the generated-project E2E fixture.\n",
+                encoding="utf-8",
+            )
+            return "docs/00-project/roadmap.md", "docs(F-001): record deterministic lifecycle marker"
+
+        if profile == "python":
+            module_path = worktree / "src" / "test_python_project" / "__init__.py"
+            module_path.write_text(
+                module_path.read_text(encoding="utf-8")
+                + 'LIFECYCLE_STATUS = "validated"\n',
+                encoding="utf-8",
+            )
+            return "src/test_python_project/__init__.py", "feat(F-001): add python lifecycle marker"
+
+        if profile == "node":
+            module_path = worktree / "src" / "index.js"
+            module_path.write_text(
+                module_path.read_text(encoding="utf-8")
+                + "export const lifecycleStatus = 'validated';\n",
+                encoding="utf-8",
+            )
+            return "src/index.js", "feat(F-001): add node lifecycle marker"
+
+        raise AssertionError(f"Unsupported profile for lifecycle E2E: {profile}")
+
+    def run_generated_project_lifecycle(self, profile: str) -> Path:
+        output = self.generate(profile)
         feature_root = self.write_lifecycle_feature_documents(output)
 
         self.harness_python(
@@ -615,19 +645,14 @@ class GeneratorTests(unittest.TestCase):
 
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
         worktree = Path(state["worktree_root"]) / "F-001-deterministic-lifecycle"
-        roadmap = worktree / "docs" / "00-project" / "roadmap.md"
-        roadmap.write_text(
-            roadmap.read_text(encoding="utf-8")
-            + "\n## Deterministic Lifecycle\n\nValidated by the generated-project E2E fixture.\n",
-            encoding="utf-8",
-        )
-        self.assert_command(worktree, "git", "add", "docs/00-project/roadmap.md")
+        changed_path, commit_message = self.apply_profile_lifecycle_change(worktree, profile)
+        self.assert_command(worktree, "git", "add", changed_path)
         self.assert_command(
             worktree,
             "git",
             "commit",
             "-m",
-            "docs(F-001): record deterministic lifecycle marker",
+            commit_message,
         )
 
         self.harness_python(
@@ -676,6 +701,16 @@ class GeneratorTests(unittest.TestCase):
         self.assertFalse((Path(state["control_root"]) / "leases" / "F-001.json").exists())
         self.assertFalse(worktree.exists())
         self.assertEqual("", self.assert_command(output, "git", "status", "--porcelain").stdout)
+        return output
+
+    def test_generated_generic_project_reaches_done_e2e(self) -> None:
+        self.run_generated_project_lifecycle("generic")
+
+    def test_generated_python_project_reaches_done_e2e(self) -> None:
+        self.run_generated_project_lifecycle("python")
+
+    def test_generated_node_project_reaches_done_e2e(self) -> None:
+        self.run_generated_project_lifecycle("node")
 
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
@@ -692,6 +727,8 @@ class GeneratorTests(unittest.TestCase):
             "[external-runtime, performance-testing, security-scanning]",
         )
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        gates = json.loads((output / "state" / "quality-gates.json").read_text(encoding="utf-8"))
+        gates_by_id = {gate["id"]: gate for gate in gates["gates"]}
 
         self.assertIn("external-runtime", state["capabilities"])
         self.assertTrue((output / "state" / "capabilities" / "external-runtime.json").is_file())
@@ -702,6 +739,10 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue((output / "scripts" / "run_performance_gate.py").is_file())
         self.assertTrue((output / "state" / "capabilities" / "security-scanning.json").is_file())
         self.assertTrue((output / "scripts" / "run_security_scan.py").is_file())
+        self.assertEqual("observe", gates_by_id["PERF-001"]["mode"])
+        self.assertFalse(gates_by_id["PERF-001"]["blocking"])
+        self.assertEqual("observe", gates_by_id["SEC-001"]["mode"])
+        self.assertFalse(gates_by_id["SEC-001"]["blocking"])
 
     def test_generates_documentation_pack_structure(self) -> None:
         output = self.generate("generic")
@@ -832,11 +873,15 @@ terms:
 
     def test_generates_python_project(self) -> None:
         output = self.generate("python", "[mutation-testing]")
+        gates = json.loads((output / "state" / "quality-gates.json").read_text(encoding="utf-8"))
+        gates_by_id = {gate["id"]: gate for gate in gates["gates"]}
         self.assertTrue((output / "pyproject.toml").is_file())
         self.assertTrue((output / "docs" / "20-runtime" / "python-environment.md").is_file())
         self.assertTrue((output / "scripts" / "mutation_runner.py").is_file())
         self.assertTrue((output / "scripts" / "mutation_review_validation.py").is_file())
         self.assertTrue((output / "specs" / "schemas" / "mutation-review.schema.json").is_file())
+        self.assertEqual("optional_capability", gates_by_id["MUT-001"]["phase"])
+        self.assertEqual("observe", gates_by_id["MUT-001"]["mode"])
         subprocess.run(
             [sys.executable, "-m", "compileall", "-q", "scripts", "src", "tests"],
             cwd=output,

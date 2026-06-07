@@ -1,6 +1,23 @@
 {
   "schema_version": 1,
   "capability": "performance-testing",
+  "quality_gates": [
+    {
+      "id": "PERF-001",
+      "phase": "qa_full",
+      "command": [
+        "python3",
+        "scripts/run_performance_gate.py",
+        "--feature",
+        "{feature_id}",
+        "--benchmark",
+        "python-smoke"
+      ],
+      "blocking": false,
+      "mode": "observe",
+      "timeout_seconds": 120
+    }
+  ],
   "files": [
     {
       "source": "scripts/run_performance_gate.py",

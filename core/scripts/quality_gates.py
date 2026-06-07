@@ -95,9 +95,28 @@ def _validate_gate(gate: dict[str, Any]) -> None:
     if not isinstance(gate.get("blocking", True), bool):
         raise QualityGateError(f"{gate['id']} requiere blocking booleano")
 
+    mode = gate.get("mode", "enforce" if gate.get("blocking", True) else "observe")
+    if mode not in {"observe", "enforce"}:
+        raise QualityGateError(f"{gate['id']} requiere mode observe o enforce")
+
     timeout = gate.get("timeout_seconds", 900)
     if not isinstance(timeout, int) or timeout < 1:
         raise QualityGateError(f"{gate['id']} requiere timeout_seconds positivo")
+
+
+def _expand_command(
+    command: list[str],
+    *,
+    artifact_root: Path,
+    feature_id: str,
+    run_id: str,
+) -> list[str]:
+    values = {
+        "artifact_root": str(artifact_root),
+        "feature_id": feature_id,
+        "run_id": run_id,
+    }
+    return [part.format(**values) for part in command]
 
 
 def run_quality_gates(
@@ -123,10 +142,16 @@ def run_quality_gates(
         _validate_gate(gate)
         gate_id = gate["id"]
         log_path = output_root / f"{run_id}-{phase}-{gate_id}.log"
+        command = _expand_command(
+            gate["command"],
+            artifact_root=artifact_root,
+            feature_id=feature_id,
+            run_id=run_id,
+        )
 
         try:
             completed = subprocess.run(
-                gate["command"],
+                command,
                 cwd=root,
                 text=True,
                 capture_output=True,
@@ -149,8 +174,9 @@ def run_quality_gates(
             {
                 "id": gate_id,
                 "phase": phase,
-                "command": gate["command"],
+                "command": command,
                 "blocking": gate.get("blocking", True),
+                "mode": gate.get("mode", "enforce" if gate.get("blocking", True) else "observe"),
                 "exit_code": exit_code,
                 "timed_out": timed_out,
                 "log": str(log_path),

@@ -1,6 +1,25 @@
 {
   "schema_version": 1,
   "capability": "security-scanning",
+  "quality_gates": [
+    {
+      "id": "SEC-001",
+      "phase": "qa_full",
+      "command": [
+        "python3",
+        "scripts/run_security_scan.py",
+        "--feature",
+        "{feature_id}",
+        "--path",
+        ".",
+        "--scope",
+        "repository"
+      ],
+      "blocking": false,
+      "mode": "observe",
+      "timeout_seconds": 120
+    }
+  ],
   "files": [
     {
       "source": "scripts/run_security_scan.py",
