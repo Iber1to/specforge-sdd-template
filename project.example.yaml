@@ -3,6 +3,12 @@ name: Example Project
 output_path: /tmp/example-project
 profile: python
 capabilities: [mutation-testing, git-publish]
+# Optional operational roots. If omitted, the generator uses directories next to
+# output_path:
+# data_root: /tmp/data/example-project
+# worktree_root: /tmp/worktrees/example-project
+# control_root: /tmp/data/example-project/control
+# artifact_root: /tmp/data/example-project/artifacts
 git_publish_mode: local
 git_publish_remote: origin
 git_publish_branch: main

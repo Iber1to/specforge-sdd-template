@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -23,6 +24,10 @@ CAPABILITIES = {
 }
 DEFAULT_CAPABILITIES = {"documentation-pack"}
 GIT_PUBLICATION_MODES = {"disabled", "local", "dry_run", "push"}
+PROJECT_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+PROFILE_CAPABILITY_RULES = {
+    "mutation-testing": {"python"},
+}
 
 
 def parse_scalar(value: str) -> Any:
@@ -60,6 +65,12 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     if missing:
         raise ValueError("Missing required config keys: " + ", ".join(missing))
 
+    project_id = str(config["project_id"])
+    if not PROJECT_ID_PATTERN.fullmatch(project_id):
+        raise ValueError(
+            "project_id must match ^[a-z0-9]+(?:-[a-z0-9]+)*$: " + project_id
+        )
+
     profile = str(config["profile"])
     if profile not in PROFILES:
         raise ValueError(f"Unsupported profile: {profile}")
@@ -72,17 +83,33 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     if unknown:
         raise ValueError("Unsupported capabilities: " + ", ".join(unknown))
 
+    incompatible = sorted(
+        capability
+        for capability in capabilities
+        if capability in PROFILE_CAPABILITY_RULES
+        and profile not in PROFILE_CAPABILITY_RULES[capability]
+    )
+    if incompatible:
+        raise ValueError(
+            "Capabilities incompatible with profile "
+            f"{profile}: " + ", ".join(incompatible)
+        )
+
     enabled_capabilities: list[str] = []
     for capability in [*sorted(DEFAULT_CAPABILITIES), *capabilities]:
         if capability not in enabled_capabilities:
             enabled_capabilities.append(str(capability))
 
     return {
-        "project_id": str(config["project_id"]),
+        "project_id": project_id,
         "name": str(config["name"]),
         "output_path": str(config["output_path"]),
         "profile": profile,
         "capabilities": enabled_capabilities,
+        "data_root": str(config.get("data_root", "")),
+        "worktree_root": str(config.get("worktree_root", "")),
+        "control_root": str(config.get("control_root", "")),
+        "artifact_root": str(config.get("artifact_root", "")),
         "git_publish_mode": str(config.get("git_publish_mode", "local")),
         "git_publish_remote": str(config.get("git_publish_remote", "origin")),
         "git_publish_branch": str(config.get("git_publish_branch", "main")),
@@ -116,7 +143,26 @@ def copy_core(output: Path) -> None:
 
 def write_project_state(output: Path, config: dict[str, Any]) -> None:
     project_id = config["project_id"]
-    data_root = output.parent / "data" / project_id
+    data_root = (
+        Path(config["data_root"]).expanduser().resolve()
+        if config["data_root"]
+        else output.parent / "data" / project_id
+    )
+    worktree_root = (
+        Path(config["worktree_root"]).expanduser().resolve()
+        if config["worktree_root"]
+        else output.parent / "worktrees" / project_id
+    )
+    control_root = (
+        Path(config["control_root"]).expanduser().resolve()
+        if config["control_root"]
+        else data_root / "control"
+    )
+    artifact_root = (
+        Path(config["artifact_root"]).expanduser().resolve()
+        if config["artifact_root"]
+        else data_root / "artifacts"
+    )
     git_publish_enabled = "git-publish" in config["capabilities"]
     git_publish_mode = config["git_publish_mode"]
 
@@ -134,10 +180,10 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
         "lifecycle_phase": "BOOTSTRAP",
         "canonical_host": "generated",
         "canonical_repository": str(output),
-        "worktree_root": str(output.parent / "worktrees" / project_id),
+        "worktree_root": str(worktree_root),
         "data_root": str(data_root),
-        "control_root": str(data_root / "control"),
-        "artifact_root": str(data_root / "artifacts"),
+        "control_root": str(control_root),
+        "artifact_root": str(artifact_root),
         "maximum_active_implementers": 1,
         "windows_validation_required": "windows-validation" in config["capabilities"],
         "canonical_branch": "main",
@@ -160,7 +206,6 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
         encoding="utf-8",
     )
 
-    control_root = Path(state["control_root"])
     for directory in ("locks", "leases", "runs", "agent-metrics", "role-sessions"):
         (control_root / directory).mkdir(parents=True, exist_ok=True)
 
@@ -191,11 +236,12 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
         + "\n",
         encoding="utf-8",
     )
-    Path(state["artifact_root"]).mkdir(parents=True, exist_ok=True)
+    artifact_root.mkdir(parents=True, exist_ok=True)
 
 
 def write_python_smoke(output: Path) -> None:
     (output / "src").mkdir(exist_ok=True)
+    (output / "src" / ".gitkeep").write_text("", encoding="utf-8")
     (output / "tests" / "unit").mkdir(parents=True, exist_ok=True)
     (output / "tests" / "unit" / "test_harness_smoke.py").write_text(
         "def test_generated_project_has_harness() -> None:\n    assert True\n",
@@ -257,6 +303,10 @@ documentation and operational evidence.
 Feature-specific documentation lives under `specs/features/`. Lightweight
 versioned evidence lives under `evidence/`. Heavy artifacts and control-plane
 state live under the configured `artifact_root` and `control_root`.
+
+Agent context starts at `CLAUDE.md`. That router points agents to the smallest
+authoritative document for each question and defines which documents are always
+loaded, loaded on demand or human-oriented.
 
 The non-numbered directories copied under `docs/`, such as `docs/architecture`
 or `docs/conventions`, are harness contracts used by the agentic workflow.
@@ -583,6 +633,21 @@ Do not commit secrets, tokens, private keys or `.env` files.
 
 Project defaults are created by `create_project.py` and can be changed through
 reviewed features.
+
+## Generator Inputs
+
+| Key | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `project_id` | Yes | None | Must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`. |
+| `profile` | Yes | None | One of `generic`, `python`, `node`. |
+| `capabilities` | No | `[]` | Must be compatible with the selected profile. |
+| `data_root` | No | `<output_parent>/data/<project_id>` | Parent for generated operational data. |
+| `worktree_root` | No | `<output_parent>/worktrees/<project_id>` | Root for feature worktrees. |
+| `control_root` | No | `<data_root>/control` | Queue, leases, runs and metrics. |
+| `artifact_root` | No | `<data_root>/artifacts` | Heavy logs and external evidence. |
+
+Absolute operational paths are environment-specific and should be supplied by
+configuration, not hardcoded in core files.
 """,
     )
 
@@ -820,10 +885,8 @@ uv run python -m compileall -q scripts src tests
 ## Commands
 
 ```bash
-npm ci
 npm test
 npm run lint
-npm run format:check
 ```
 """,
         )
@@ -878,12 +941,7 @@ def apply_profile(output: Path, profile: str) -> None:
                     "scripts": {
                         "test": "node --test",
                         "lint": "node --check src/index.js tests/index.test.js",
-                        "format:check": "node --check src/index.js tests/index.test.js"
                     },
-                    "devDependencies": {
-                        "eslint": "^9.0.0",
-                        "prettier": "^3.0.0"
-                    }
                 },
                 indent=2,
             )

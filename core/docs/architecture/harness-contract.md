@@ -14,11 +14,11 @@ durante una sesión.
 |---|---|
 | Configuración del proyecto | `state/project.json` |
 | Flujo y transiciones permitidas | `state/workflow.json` |
-| Cola activa y estado de features | `/srv/data/desktop-overlay-assistant/control/queue.json` |
-| Asignaciones activas | `/srv/data/desktop-overlay-assistant/control/leases/` |
-| Ejecuciones activas e históricas | `/srv/data/desktop-overlay-assistant/control/runs/` |
+| Cola activa y estado de features | `<control_root>/queue.json` |
+| Asignaciones activas | `<control_root>/leases/` |
+| Ejecuciones activas e históricas | `<control_root>/runs/` |
 | Especificaciones y código | Repositorio Git |
-| Artefactos pesados | `/srv/data/desktop-overlay-assistant/artifacts/` |
+| Artefactos pesados | `<artifact_root>/` |
 
 Los agentes no deben editar directamente los archivos del plano de control.
 Toda modificación debe realizarse mediante scripts deterministas.
@@ -88,7 +88,7 @@ Toda modificación debe realizarse mediante scripts deterministas.
 | `specs/features/<feature>/architecture.md` | Architect |
 | `specs/features/<feature>/implementation-plan.md` | Architect |
 | `specs/features/<feature>/test-plan.md` | Architect |
-| `src/`, `tests/` y `runtime/windows-runner/` | Implementer |
+| `src/`, `tests/` y `runtime/external/` | Implementer |
 | `pyproject.toml` y `uv.lock` | Implementer, cuando lo requiera el diseño |
 | `evidence/implementations/` | `complete_implementation.py`, invocado por Implementer |
 | `evidence/reviews/` | `complete_review.py`, invocado por QA Reviewer |

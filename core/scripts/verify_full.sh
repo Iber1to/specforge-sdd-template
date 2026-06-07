@@ -10,8 +10,8 @@ export PATH="$HOME/.local/bin:$PATH"
 if command -v uv >/dev/null 2>&1; then
   sync_command=(uv sync --locked)
   run_python=(uv run python)
-  run_ruff=(uv run ruff)
-  run_pytest=(uv run pytest)
+  run_ruff=(uv run python -m ruff)
+  run_pytest=(uv run python -m pytest)
 else
   sync_command=()
   run_python=(.venv/bin/python)
@@ -23,6 +23,14 @@ if [ "${#sync_command[@]}" -gt 0 ]; then
   echo "── Lockfile ───────────────────────────────────────────"
   "${sync_command[@]}"
   echo
+fi
+
+if [ -d .venv ]; then
+  find .venv -type f \( \
+    -path "*/bin/ruff" -o \
+    -path "*/bin/pytest" -o \
+    -path "*/site-packages/ruff/ruff" \
+  \) -exec chmod +x {} + 2>/dev/null || true
 fi
 
 echo "── Política de agentes ─────────────────────────────────"

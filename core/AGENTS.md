@@ -9,7 +9,7 @@
 
 ## Reglas fundamentales
 
-- No edites directamente `/srv/data/desktop-overlay-assistant/control`.
+- No edites directamente el `control_root` configurado.
 - No cambies manualmente estados de features.
 - No marques ninguna feature como `DONE`.
 - No trabajes fuera del worktree asignado.
@@ -30,4 +30,4 @@
 | `scripts/` | Operaciones deterministas |
 | `src/` | Código de aplicación |
 | `tests/` | Pruebas automatizadas |
-| `runtime/windows-runner/` | Código del runner Windows |
+| `runtime/` | Adaptadores y runtimes opcionales |

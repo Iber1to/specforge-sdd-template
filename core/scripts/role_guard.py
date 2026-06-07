@@ -183,7 +183,7 @@ HARNESS_IMPLEMENTER_FILES = {
 }
 
 
-CONTROL_ROOT_DEFAULT = Path("/srv/data/desktop-overlay-assistant/control")
+CONTROL_ROOT_DEFAULT = Path("/tmp/agentic-sdd/control")
 
 
 class GuardError(RuntimeError):
@@ -514,10 +514,10 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
 
         if relative.parts and relative.parts[0] in allowed_roots:
             if relative.parts[0] == "runtime":
-                required_prefix = Path("runtime/windows-runner")
+                required_prefix = Path("runtime/external")
                 if relative == required_prefix or required_prefix in relative.parents:
                     return True, ""
-                return False, "Solo runtime/windows-runner está autorizado"
+                return False, "Solo runtime/external esta autorizado"
 
             return True, ""
 

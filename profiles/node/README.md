@@ -1,6 +1,8 @@
 # Perfil Node
 
 Perfil para proyectos Node.js ESM con `npm`, `node:test` y gates propios del stack.
+Para v1 usa un toolchain simple: no instala dependencias externas, no requiere
+lockfile y valida sintaxis con `node --check`.
 
 ## Incluye
 
@@ -11,7 +13,6 @@ Perfil para proyectos Node.js ESM con `npm`, `node:test` y gates propios del sta
 - Scripts npm:
   - `npm test`
   - `npm run lint`
-  - `npm run format:check`
 - Gates Node agregados a `state/quality-gates.json`.
 
 ## Validacion
@@ -21,6 +22,8 @@ npm test
 npm run lint
 bash scripts/verify_full.sh
 ```
+
+`npm run lint` ejecuta `node --check src/index.js tests/index.test.js`.
 
 ## Gates Agregados
 

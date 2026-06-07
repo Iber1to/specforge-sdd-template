@@ -66,7 +66,7 @@ Puedes modificar, cuando el diseño lo requiera:
 ```text
 src/
 tests/
-runtime/windows-runner/
+runtime/external/
 pyproject.toml
 uv.lock
 ```
@@ -123,4 +123,3 @@ BLOCKED -> <motivo concreto y reproducible>
 - No intentes implementar la feature sin seguir el plan aprobado.
 - No ignores los errores o bloqueos sin documentarlos adecuadamente.
 - No intentes modificar el proceso de implementación establecido por el harness.
-    

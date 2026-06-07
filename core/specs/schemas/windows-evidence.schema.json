@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "windows-evidence.schema.json",
-  "title": "Desktop Overlay Assistant Windows test evidence",
+  "title": "Agentic SDD Windows test evidence",
   "type": "object",
   "additionalProperties": false,
   "required": [

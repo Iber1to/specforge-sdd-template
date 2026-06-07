@@ -1,36 +1,57 @@
-# Instrucciones del proyecto
+# CLAUDE.md - Agent Context Router
 
-## Autoridad operativa
+This file is a router, not the source of truth. It tells agents which contract
+or project document to read for the current question. Do not duplicate
+authoritative content here.
 
-El contrato con máxima prioridad es:
+## Always Load
 
-`docs/architecture/harness-contract.md`
+Read these before acting:
 
-Las definiciones específicas de cada rol se encuentran en:
+1. `AGENTS.md`
+2. `docs/architecture/harness-contract.md`
+3. `state/project.json`
+4. `state/workflow.json`
+5. The active agent definition in `.claude/agents/`
+6. The assigned feature files under `specs/features/<FEATURE>/`
 
-`.claude/agents/`
+## Where To Look
 
-## Reglas universales
+| Question | Read |
+| --- | --- |
+| What is the operational contract? | `docs/architecture/harness-contract.md` |
+| Which files can my role edit? | `docs/architecture/role-guard.md` and `.claude/agents/<role>.md` |
+| How do feature states advance? | `state/workflow.json` and `docs/architecture/finalization-contract.md` |
+| What is the product or project scope? | `docs/00-project/overview.md`, `docs/00-project/goals-and-scope.md` |
+| What architecture is accepted? | `docs/10-architecture/architecture-overview.md` and `docs/10-architecture/adr/` |
+| How do I run or configure this project? | `docs/20-runtime/local-development.md` and `docs/20-runtime/configuration.md` |
+| What quality gates apply? | `state/quality-gates.json` and `docs/30-quality/quality-gates.md` |
+| Which capabilities are enabled? | `state/capabilities/*.json` and capability docs under `docs/30-quality/` or `docs/20-runtime/` |
+| How do I operate or recover the harness? | `docs/40-operations/runbook.md` and `docs/40-operations/troubleshooting.md` |
+| Where is the active feature truth? | `specs/features/<FEATURE>/specification.md`, `acceptance.yaml`, `architecture.md` |
+| Where are lightweight evidences? | `evidence/` |
+| Where are heavy artifacts? | The configured `artifact_root` in `state/project.json` |
+| Where is external control state? | The configured `control_root` in `state/project.json` |
 
-- Lee `AGENTS.md` y el contrato operativo antes de actuar.
-- Respeta estrictamente el rol activo y su propiedad de archivos.
-- No edites directamente el plano de control externo.
-- No cambies manualmente estados de features.
-- No marques una feature como `DONE`.
-- Utiliza exclusivamente los scripts deterministas del harness para operaciones
-  sobre cola, leases, runs, revisiones y finalización.
-- No trabajes simultáneamente sobre varias features.
-- No sustituyas un fallo del harness por un workaround improvisado.
-- Si una operación determinista falla, documenta el bloqueo y detente.
-- La sesión operativa principal debe iniciarse mediante `claude --agent leader`.
-- Una sesión iniciada sin agente explícito debe limitarse a consulta y análisis.
+## Context Budget
 
-## Prioridad
+| Class | Load Policy | Examples |
+| --- | --- | --- |
+| Always loaded | Small contracts required before action | `AGENTS.md`, this router, active agent file, active feature spec |
+| On demand | Read only when the task touches the topic | architecture docs, runtime docs, quality docs, operations docs, ADRs |
+| Machine context | Parse or summarize, do not read exhaustively | `state/*.json`, `state/capabilities/*.json`, schemas |
+| Human first | Use for orientation, not as operational truth | changelog, release notes, generated summaries |
 
-En caso de contradicción:
+`docs/90-generated/` is regenerated context and is not authoritative. If it
+conflicts with `state/`, `specs/`, control state or Git, trust the latter.
+
+## Priority
+
+When documents conflict, apply this order:
 
 1. `docs/architecture/harness-contract.md`
-2. Definición del agente activo
+2. Active agent definition
 3. `AGENTS.md`
-4. Documentación específica de la feature
-5. Resto de documentación
+4. Active feature specification and acceptance criteria
+5. Project documentation under `docs/`
+6. Generated summaries under `docs/90-generated/`

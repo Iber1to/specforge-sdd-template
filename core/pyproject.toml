@@ -1,7 +1,7 @@
 [project]
-name = "desktop-overlay-assistant"
+name = "agentic-sdd-harness"
 version = "0.1.0"
-description = "Asistente local para analizar el escritorio Windows y superponer respuestas."
+description = "Reusable Spec-Driven Development harness for agentic projects."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "jsonschema>=4.26.0",

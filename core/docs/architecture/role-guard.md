@@ -72,7 +72,7 @@ de features que estén en estado `SPEC_READY` o `DESIGN_READY`.
 
 - Debe tener exactamente un lease activo.
 - Solo puede escribir dentro del worktree asignado.
-- Sus escrituras se limitan a `src/`, `tests/`, `runtime/windows-runner/`,
+- Sus escrituras se limitan a `src/`, `tests/`, `runtime/external/`,
   `pyproject.toml` y `uv.lock`.
 - Bash se limita al worktree y a una allowlist de comandos de desarrollo.
 - Solo puede ejecutar `heartbeat_lease.py` y `complete_implementation.py` del
@@ -89,11 +89,11 @@ de features que estén en estado `SPEC_READY` o `DESIGN_READY`.
 
 Las decisiones se registran en:
 
-`/srv/data/desktop-overlay-assistant/control/role-guard/audit.jsonl`
+`<control_root>/role-guard/audit.jsonl`
 
 Las asociaciones entre sesión y rol se guardan en:
 
-`/srv/data/desktop-overlay-assistant/control/role-sessions/`
+`<control_root>/role-sessions/`
 
 ## Validación manual
 

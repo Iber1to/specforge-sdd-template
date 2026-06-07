@@ -4,7 +4,7 @@
 
 El Windows Test Runner debe publicar atómicamente el resultado final en:
 
-`/srv/data/desktop-overlay-assistant/artifacts/windows-tests/<FEATURE>/latest.json`
+`<artifact_root>/windows-tests/<FEATURE>/latest.json`
 
 Los logs, capturas y otros artefactos también deben almacenarse fuera del
 repositorio Git.
