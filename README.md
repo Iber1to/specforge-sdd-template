@@ -4,6 +4,8 @@ Template reutilizable para crear proyectos con un harness de Spec Driven Develop
 
 Estado actual: extraido y validado en `jarvis:/srv/agentic/workspace/agentic-sdd-template` el 2026-06-06. El roadmap original quedo cerrado y documentado en `docs/estado-y-roadmap-harness-agentico.md`.
 
+> **Primera vez?** Empieza por el manual **[De Cero a Hero](docs/zero-to-hero.md)**: del clone de GitHub a operar en semiautomatico, paso a paso.
+
 ## Que Incluye
 
 - `core/`: harness comun que se copia a cada proyecto generado.
@@ -210,6 +212,7 @@ o calidad y el diff revisado por QA no incluye la documentacion correspondiente.
 - `docs/quality-and-capabilities.md`: quality gates, mutation testing, mutation reviewer y validacion Windows.
 - `docs/language-and-style.md`: convencion de idioma, acentos, naming, errores y commits.
 - `docs/naming-and-contracts.md`: vocabulario canonico de los contratos JSON.
+- `docs/zero-to-hero.md`: manual de operacion de cero a semiautomatico (empieza aqui).
 - `docs/leader-operation.md`: operar el leader de forma persistente (tmux) y autonoma.
 
 Tambien se copian al proyecto generado los documentos tecnicos del core en `docs/architecture`, `docs/conventions` y `docs/windows-runner`.
