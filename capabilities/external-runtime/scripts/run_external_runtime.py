@@ -33,20 +33,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--scope", default="local-command")
     parser.add_argument("--result", type=Path, help="Resultado manual-drop externo a normalizar.")
     parser.add_argument("--fetch-artifact", help="Ruta remota opcional a copiar con scp.")
-    parser.add_argument("--timeout-seconds", type=int, default=60)
     parser.add_argument(
         "--command-id",
         help="Identificador de un command template declarado en la policy del target.",
-    )
-    parser.add_argument(
-        "--unsafe-command",
-        action="store_true",
-        help="Permite usar --command libre (deshabilitado por defecto).",
-    )
-    parser.add_argument(
-        "--command",
-        nargs=argparse.REMAINDER,
-        help="Comando libre; requiere --unsafe-command. Preferir --command-id.",
     )
     return parser.parse_args()
 
@@ -59,28 +48,6 @@ def target_policy(policy: dict, target_id: str) -> dict:
             return target
 
     raise CapabilityError(f"Target external-runtime no registrado: {target_id}")
-
-
-def ensure_command_allowed(target: dict, command: list[str]) -> None:
-    """Aplica una allowlist opcional de comandos declarada en la política.
-
-    Si el target define `allowed_commands`, solo se permite ejecutar programas
-    cuyo nombre base esté en esa lista. Si no la define, se mantiene el
-    comportamiento previo (sin restricción) por retrocompatibilidad.
-    """
-
-    allowed = target.get("allowed_commands")
-    if not allowed:
-        return
-
-    if not isinstance(allowed, list):
-        raise CapabilityError("allowed_commands debe ser una lista en la política del target")
-
-    program = Path(command[0]).name if command else ""
-    if program not in {str(item) for item in allowed}:
-        raise CapabilityError(
-            f"Comando no permitido por la política del target '{target.get('id')}': {program}"
-        )
 
 
 def resolve_command_template(target: dict, command_id: str) -> tuple[list[str], int]:
@@ -111,26 +78,17 @@ def resolve_command_template(target: dict, command_id: str) -> tuple[list[str], 
 
 
 def resolve_command(args: argparse.Namespace, target: dict) -> tuple[list[str], int, str | None]:
-    """Determina el comando a ejecutar y su timeout.
+    """Determina el comando a ejecutar.
 
-    El modo por defecto es --command-id contra allowed_command_templates. El
-    comando libre --command solo se permite con --unsafe-command explicito.
+    El unico modo es --command-id contra allowed_command_templates. No existe
+    ejecucion de comandos libres.
     """
 
-    if args.command_id:
-        command, timeout = resolve_command_template(target, args.command_id)
-        return command, timeout, args.command_id
+    if not args.command_id:
+        raise CapabilityError("Debes indicar --command-id; los comandos libres no estan permitidos")
 
-    if args.command:
-        if not args.unsafe_command:
-            raise CapabilityError(
-                "El comando libre --command esta deshabilitado; usa --command-id, "
-                "o repite con --unsafe-command bajo tu responsabilidad."
-            )
-        ensure_command_allowed(target, args.command)
-        return list(args.command), args.timeout_seconds, None
-
-    raise CapabilityError("Debes indicar --command-id (o --command con --unsafe-command)")
+    command, timeout = resolve_command_template(target, args.command_id)
+    return command, timeout, args.command_id
 
 
 def normalize_manual_result(feature_id: str, result_path: Path) -> dict:

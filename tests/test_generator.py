@@ -790,15 +790,13 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(2, result.returncode)
         self.assertNotIn("Traceback", result.stderr)
 
-    def test_external_runtime_rejects_free_command_without_unsafe_flag(self) -> None:
+    def test_external_runtime_requires_command_id(self) -> None:
         output = self.generate("generic", "[external-runtime]")
         result = self.run_unchecked_harness(
             output,
-            "scripts/run_external_runtime.py --feature F-001 --target local "
-            "--command python3 --version",
+            "scripts/run_external_runtime.py --feature F-001 --target local",
         )
         self.assertEqual(2, result.returncode)
-        self.assertIn("--unsafe-command", result.stderr)
 
     def test_hooks_use_wrapper_not_direct_python(self) -> None:
         output = self.generate("generic")

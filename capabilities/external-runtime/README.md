@@ -13,9 +13,9 @@ Capacidad opcional para ejecutar o validar trabajos fuera del runtime principal 
 
 ## Uso
 
-Modo por defecto: seleccionar un command template declarado en la policy del
-target (`allowed_command_templates`). El comando libre `--command` esta
-deshabilitado salvo que se pase `--unsafe-command` de forma explicita.
+El unico modo de ejecucion es seleccionar un command template declarado en la
+policy del target (`allowed_command_templates`) mediante `--command-id`. No
+existe ejecucion de comandos libres.
 
 ```bash
 python3 scripts/run_external_runtime.py \
