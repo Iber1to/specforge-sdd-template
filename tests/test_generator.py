@@ -978,6 +978,32 @@ class GeneratorTests(unittest.TestCase):
         evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
         self.assertNotIn("s3cr3t", json.dumps(evidence))
 
+    def test_external_runtime_ssh_guards_offline(self) -> None:
+        output = self.generate("generic", "[external-runtime]")
+        policy_path = output / "state" / "capabilities" / "external-runtime.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        for target in policy["targets"]:
+            if target["id"] == "ssh-example":
+                target["enabled"] = True
+                target["host"] = "127.0.0.1"
+                target["port"] = 1
+                target["connect_timeout_seconds"] = 5
+        policy_path.write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
+
+        unknown = self.run_unchecked_harness(
+            output,
+            "scripts/run_external_runtime.py --feature F-001 --target ssh-example "
+            "--command-id does-not-exist",
+        )
+        self.assertEqual(2, unknown.returncode)
+
+        unreachable = self.run_unchecked_harness(
+            output,
+            "scripts/run_external_runtime.py --feature F-001 --target ssh-example "
+            "--command-id remote-uptime",
+        )
+        self.assertEqual(2, unreachable.returncode)
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))

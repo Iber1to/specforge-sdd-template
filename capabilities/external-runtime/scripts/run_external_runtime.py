@@ -249,7 +249,18 @@ def run_ssh_command(
 
     port = str(target.get("port", 22))
     destination = ssh_destination(target)
-    ssh_command = ["ssh", "-p", port, destination, *command]
+    connect_timeout = str(min(int(target.get("connect_timeout_seconds", 10)), timeout_seconds))
+    ssh_command = [
+        "ssh",
+        "-p",
+        port,
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        f"ConnectTimeout={connect_timeout}",
+        destination,
+        *command,
+    ]
     started_at = utc_now()
     started = monotonic_seconds()
     runtime_job_id = operation_id("EXT-JOB")

@@ -42,7 +42,16 @@
       "host": "example.invalid",
       "user": "agent",
       "port": 22,
-      "capabilities": ["ssh-command", "scp-artifact"]
+      "connect_timeout_seconds": 10,
+      "capabilities": ["ssh-command", "scp-artifact"],
+      "allowed_command_templates": [
+        {
+          "id": "remote-uptime",
+          "description": "Comando remoto de ejemplo.",
+          "command": ["uptime"],
+          "timeout_seconds": 30
+        }
+      ]
     }
   ]
 }
