@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import json
 import os
 import re
@@ -12,6 +11,16 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
+
+try:  # POSIX
+    import fcntl
+except ModuleNotFoundError:  # pragma: no cover - Windows u otra plataforma sin fcntl
+    fcntl = None  # type: ignore[assignment]
+
+try:  # Windows
+    import msvcrt
+except ModuleNotFoundError:  # pragma: no cover - plataformas POSIX
+    msvcrt = None  # type: ignore[assignment]
 
 FEATURE_ID_PATTERN = re.compile(r"^F-(\d{3,})$")
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -104,6 +113,39 @@ def control_paths() -> dict[str, Path]:
     }
 
 
+def _acquire_file_lock(handle: Any, *, exclusive: bool) -> None:
+    """Adquiere un bloqueo de archivo de forma portable.
+
+    Usa fcntl en POSIX y msvcrt en Windows. En Windows el bloqueo es siempre
+    exclusivo (msvcrt no distingue compartido), suficiente para el runner local.
+    """
+
+    if fcntl is not None:
+        mode = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+        fcntl.flock(handle.fileno(), mode)
+        return
+
+    if msvcrt is not None:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        return
+
+    raise ControlPlaneError("No hay mecanismo de bloqueo de archivos disponible en esta plataforma")
+
+
+def _release_file_lock(handle: Any) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        return
+
+    if msvcrt is not None:
+        handle.seek(0)
+        try:
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        except OSError:
+            pass
+
+
 @contextmanager
 def queue_lock(*, exclusive: bool = True) -> Iterator[None]:
     paths = control_paths()
@@ -111,13 +153,12 @@ def queue_lock(*, exclusive: bool = True) -> Iterator[None]:
     lock_path = paths["locks"] / "queue.lock"
 
     with lock_path.open("a+", encoding="utf-8") as handle:
-        mode = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
-        fcntl.flock(handle.fileno(), mode)
+        _acquire_file_lock(handle, exclusive=exclusive)
 
         try:
             yield
         finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            _release_file_lock(handle)
 
 
 def load_queue() -> dict[str, Any]:

@@ -183,7 +183,7 @@ HARNESS_IMPLEMENTER_FILES = {
 }
 
 
-CONTROL_ROOT_DEFAULT = Path("/tmp/agentic-sdd/control")
+CONTROL_ROOT_DEFAULT = Path(".agentic/control")
 
 
 class GuardError(RuntimeError):
@@ -242,7 +242,9 @@ def control_root(root: Path) -> Path:
     if configured:
         return Path(str(configured)).expanduser().resolve()
 
-    return CONTROL_ROOT_DEFAULT
+    # Fallback solo usado si falta control_root en project.json. Se mantiene
+    # dentro del repositorio (no en /tmp, world-writable y predecible).
+    return (root / CONTROL_ROOT_DEFAULT).resolve()
 
 
 def role_sessions_root(root: Path) -> Path:
@@ -630,9 +632,34 @@ def starts_read_only(command: str) -> bool:
     normalized = command.strip()
 
     return any(
-        normalized == prefix or normalized.startswith(prefix)
+        normalized == prefix or normalized == prefix.strip() or normalized.startswith(prefix)
         for prefix in READ_ONLY_COMMAND_PREFIXES
     )
+
+
+def split_command_segments(command: str) -> list[str]:
+    """Divide un comando en segmentos por operadores de shell (&&, ||, ;, |).
+
+    Permite validar cada subcomando de forma independiente y evita que un
+    prefijo de solo lectura o un script autorizado habiliten comandos
+    encadenados posteriores no autorizados.
+    """
+
+    segments: list[str] = []
+    current: list[str] = []
+
+    for token in shell_tokens(command):
+        if token in SHELL_CHAIN_TOKENS:
+            if current:
+                segments.append(" ".join(current).strip())
+                current = []
+            continue
+        current.append(token)
+
+    if current:
+        segments.append(" ".join(current).strip())
+
+    return [segment for segment in segments if segment]
 
 
 def validate_leader_bash(root: Path, command: str) -> tuple[bool, str]:
@@ -654,13 +681,26 @@ def validate_leader_bash(root: Path, command: str) -> tuple[bool, str]:
     if str(control_root(root)) in command:
         return False, "El plano de control no puede modificarse directamente"
 
-    script_name = script_name_from_command(command)
+    segments = split_command_segments(command)
+    if not segments:
+        return False, "La llamada Bash no contiene un comando válido"
+
+    for segment in segments:
+        allowed, reason = _leader_segment_allowed(segment)
+        if not allowed:
+            return False, reason
+
+    return True, ""
+
+
+def _leader_segment_allowed(segment: str) -> tuple[bool, str]:
+    script_name = script_name_from_command(segment)
     if script_name is not None:
         if script_name in LEADER_HARNESS_SCRIPTS:
             return True, ""
         return False, f"Script no autorizado para leader: {script_name}"
 
-    normalized = command.strip()
+    normalized = segment.strip()
 
     if starts_read_only(normalized):
         return True, ""
@@ -693,13 +733,26 @@ def validate_repository_publisher_bash(root: Path, command: str) -> tuple[bool, 
     if str(control_root(root)) in command:
         return False, "El plano de control no puede modificarse directamente"
 
-    script_name = script_name_from_command(command)
+    segments = split_command_segments(command)
+    if not segments:
+        return False, "La llamada Bash no contiene un comando válido"
+
+    for segment in segments:
+        allowed, reason = _repository_publisher_segment_allowed(segment)
+        if not allowed:
+            return False, reason
+
+    return True, ""
+
+
+def _repository_publisher_segment_allowed(segment: str) -> tuple[bool, str]:
+    script_name = script_name_from_command(segment)
     if script_name is not None:
         if script_name in PUBLISHER_HARNESS_SCRIPTS:
             return True, ""
         return False, f"Script no autorizado para repository-publisher: {script_name}"
 
-    if starts_read_only(command.strip()):
+    if starts_read_only(segment.strip()):
         return True, ""
 
     return False, "Repository publisher solo puede leer estado y ejecutar scripts de publicación"
@@ -739,53 +792,74 @@ def validate_worktree_bash(
     if forbidden:
         return False, f"Patrón Bash prohibido: {forbidden}"
 
-    script_name = script_name_from_command(body)
+    segments = split_command_segments(body)
+    if not segments:
+        return False, "La llamada Bash no contiene un comando válido"
 
     if role == "implementer":
-        if script_name is not None:
-            if script_name in IMPLEMENTER_HARNESS_SCRIPTS:
-                return True, ""
-            return False, f"Script no autorizado para implementer: {script_name}"
-
-        normalized = body.strip()
-
-        if starts_read_only(normalized):
-            return True, ""
-
-        allowed_prefixes = (
-            "uv add ",
-            "uv remove ",
-            "uv sync",
-            "uv lock",
-            "uv run ",
-            "git add ",
-            "git commit ",
-            "git status",
-            "git diff",
-            "git log",
-            "git show",
-            "git rev-parse",
-            "mkdir ",
-            "touch ",
-        )
-
-        if normalized.startswith(allowed_prefixes):
-            return True, ""
-
-        return False, "Comando Bash no incluido en la allowlist del implementer"
+        for segment in segments:
+            allowed, reason = _implementer_segment_allowed(segment)
+            if not allowed:
+                return False, reason
+        return True, ""
 
     if role == "qa-reviewer":
-        if script_name is not None:
-            if script_name in QA_HARNESS_SCRIPTS:
-                return True, ""
-            return False, f"Script no autorizado para qa-reviewer: {script_name}"
-
-        if starts_read_only(body.strip()):
-            return True, ""
-
-        return False, "QA solo puede ejecutar lecturas, verificaciones y scripts QA autorizados"
+        for segment in segments:
+            allowed, reason = _qa_reviewer_segment_allowed(segment)
+            if not allowed:
+                return False, reason
+        return True, ""
 
     return False, f"Rol no soportado para Bash: {role}"
+
+
+IMPLEMENTER_COMMAND_PREFIXES = (
+    "uv add ",
+    "uv remove ",
+    "uv sync",
+    "uv lock",
+    "uv run ",
+    "git add ",
+    "git commit ",
+    "git status",
+    "git diff",
+    "git log",
+    "git show",
+    "git rev-parse",
+    "mkdir ",
+    "touch ",
+)
+
+
+def _implementer_segment_allowed(segment: str) -> tuple[bool, str]:
+    script_name = script_name_from_command(segment)
+    if script_name is not None:
+        if script_name in IMPLEMENTER_HARNESS_SCRIPTS:
+            return True, ""
+        return False, f"Script no autorizado para implementer: {script_name}"
+
+    normalized = segment.strip()
+
+    if starts_read_only(normalized):
+        return True, ""
+
+    if normalized.startswith(IMPLEMENTER_COMMAND_PREFIXES):
+        return True, ""
+
+    return False, "Comando Bash no incluido en la allowlist del implementer"
+
+
+def _qa_reviewer_segment_allowed(segment: str) -> tuple[bool, str]:
+    script_name = script_name_from_command(segment)
+    if script_name is not None:
+        if script_name in QA_HARNESS_SCRIPTS:
+            return True, ""
+        return False, f"Script no autorizado para qa-reviewer: {script_name}"
+
+    if starts_read_only(segment.strip()):
+        return True, ""
+
+    return False, "QA solo puede ejecutar lecturas, verificaciones y scripts QA autorizados"
 
 
 def validate_bash(root: Path, event: dict[str, Any], role: str) -> tuple[bool, str]:

@@ -48,6 +48,28 @@ def target_policy(policy: dict, target_id: str) -> dict:
     raise CapabilityError(f"Target external-runtime no registrado: {target_id}")
 
 
+def ensure_command_allowed(target: dict, command: list[str]) -> None:
+    """Aplica una allowlist opcional de comandos declarada en la política.
+
+    Si el target define `allowed_commands`, solo se permite ejecutar programas
+    cuyo nombre base esté en esa lista. Si no la define, se mantiene el
+    comportamiento previo (sin restricción) por retrocompatibilidad.
+    """
+
+    allowed = target.get("allowed_commands")
+    if not allowed:
+        return
+
+    if not isinstance(allowed, list):
+        raise CapabilityError("allowed_commands debe ser una lista en la política del target")
+
+    program = Path(command[0]).name if command else ""
+    if program not in {str(item) for item in allowed}:
+        raise CapabilityError(
+            f"Comando no permitido por la política del target '{target.get('id')}': {program}"
+        )
+
+
 def normalize_manual_result(feature_id: str, result_path: Path) -> dict:
     result = load_evidence(result_path)
     status = result.get("status", "BLOCKED")
@@ -81,6 +103,8 @@ def run_local_command(
 ) -> dict:
     if not command:
         raise CapabilityError("--command es obligatorio para targets locales")
+
+    ensure_command_allowed(target, command)
 
     started_at = utc_now()
     started = monotonic_seconds()
@@ -155,6 +179,8 @@ def run_ssh_command(
 ) -> dict:
     if not command:
         raise CapabilityError("--command es obligatorio para targets SSH")
+
+    ensure_command_allowed(target, command)
 
     if shutil.which("ssh") is None:
         raise CapabilityError("No existe el binario ssh en PATH")

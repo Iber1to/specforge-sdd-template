@@ -34,7 +34,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "--reason",
-        default="Lease de implementación caducado",
+        default="Lease caducado y recuperado",
     )
 
     return parser.parse_args()
@@ -59,7 +59,10 @@ def recover_feature(
 
     feature = find_feature(queue, feature_id)
 
-    if feature["state"] == "IN_PROGRESS":
+    # Un lease caducado puede pertenecer a un implementador (feature en
+    # IN_PROGRESS) o a un revisor QA (feature en READY_FOR_QA). En ambos casos la
+    # feature debe quedar BLOCKED para no quedar huérfana sin lease activo.
+    if feature["state"] in {"IN_PROGRESS", "READY_FOR_QA"}:
         apply_transition(
             queue=queue,
             runtime=runtime,
