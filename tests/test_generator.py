@@ -770,6 +770,8 @@ class GeneratorTests(unittest.TestCase):
             "docs/30-quality/mutation-testing.md",
             "docs/30-quality/performance-testing.md",
             "docs/30-quality/security-scanning.md",
+            "docs/30-quality/threat-model.md",
+            "docs/30-quality/data-classification.md",
             "docs/40-operations/runbook.md",
             "docs/40-operations/troubleshooting.md",
             "docs/40-operations/backup-and-restore.md",
@@ -784,6 +786,11 @@ class GeneratorTests(unittest.TestCase):
         for relative_path in required_files:
             with self.subTest(relative_path=relative_path):
                 self.assertTrue((output / relative_path).is_file())
+
+        readme = (output / "docs" / "README.md").read_text(encoding="utf-8")
+        self.assertTrue(readme.startswith("---\n"))
+        self.assertIn("owner: template", readme)
+        self.assertIn("last_verified: 2026-06-07", readme)
 
     def test_refreshes_generated_documentation(self) -> None:
         output = self.generate("generic")
@@ -862,6 +869,29 @@ terms:
         self.assertNotEqual(0, result.returncode)
         self.assertIn("missing-file.md", result.stderr)
 
+    def test_documentation_structure_validator_rejects_missing_frontmatter(self) -> None:
+        output = self.generate("generic")
+
+        overview = output / "docs" / "00-project" / "overview.md"
+        content = overview.read_text(encoding="utf-8")
+        overview.write_text(content.split("---", 2)[2].lstrip(), encoding="utf-8")
+
+        result = subprocess.run(
+            [
+                "bash",
+                "-lc",
+                'export PATH="$HOME/.local/bin:$PATH"; '
+                "uv run python scripts/validate_documentation_structure.py",
+            ],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("last_verified", result.stderr)
+
     def test_generates_windows_validation_documentation(self) -> None:
         output = self.generate("generic", "[windows-validation]")
 
@@ -870,6 +900,150 @@ terms:
         self.assertTrue((output / "docs" / "windows-runner" / "evidence-contract.md").is_file())
         self.assertTrue((output / "scripts" / "validate_windows_evidence.py").is_file())
         self.assertTrue((output / "specs" / "schemas" / "windows-evidence.schema.json").is_file())
+
+    def test_security_scan_marks_accepted_baseline_findings(self) -> None:
+        output = self.generate("generic", "[security-scanning]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        secret_path = output / "tmp-secret.txt"
+        secret_value = "AKIA1234567890ABCDEF"
+        secret_path.write_text(secret_value + "\n", encoding="utf-8")
+
+        policy_path = output / "state" / "capabilities" / "security-scanning.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        policy["accepted_findings"] = [
+            {
+                "id": "SEC-SECRET-AWS",
+                "path": "tmp-secret.txt",
+                "line": 1,
+                "reason": "Synthetic fixture baseline",
+            }
+        ]
+        policy_path.write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
+
+        self.harness_python(
+            output,
+            "scripts/run_security_scan.py",
+            "--feature",
+            "F-001",
+            "--path",
+            ".",
+            "--scope",
+            "repository",
+        )
+
+        evidence = json.loads(
+            (
+                Path(state["artifact_root"])
+                / "capabilities"
+                / "security-scanning"
+                / "F-001"
+                / "latest.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("PASSED", evidence["status"])
+        self.assertEqual(1, evidence["security_summary"]["accepted"])
+        self.assertEqual(0, evidence["security_summary"]["new"])
+        self.assertEqual("accepted", evidence["findings"][0]["baseline_status"])
+        self.assertNotIn(secret_value, evidence["findings"][0]["sample"])
+
+    def test_external_runtime_local_evidence_contains_runtime_job(self) -> None:
+        output = self.generate("generic", "[external-runtime]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        policy = json.loads(
+            (output / "state" / "capabilities" / "external-runtime.json").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        self.assertTrue(any(target["type"] == "ssh" for target in policy["targets"]))
+
+        self.harness_python(
+            output,
+            "scripts/run_external_runtime.py",
+            "--feature",
+            "F-001",
+            "--target",
+            "local",
+            "--command",
+            "python3",
+            "--version",
+        )
+
+        evidence = json.loads(
+            (
+                Path(state["artifact_root"])
+                / "capabilities"
+                / "external-runtime"
+                / "F-001"
+                / "latest.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("PASSED", evidence["status"])
+        self.assertEqual("local", evidence["target"])
+        self.assertTrue(str(evidence["runtime_job_id"]).startswith("EXT-JOB-"))
+
+    def test_performance_gate_reports_baseline_budget(self) -> None:
+        output = self.generate("generic", "[performance-testing]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        self.harness_python(
+            output,
+            "scripts/run_performance_gate.py",
+            "--feature",
+            "F-001",
+            "--benchmark",
+            "python-smoke",
+        )
+
+        evidence = json.loads(
+            (
+                Path(state["artifact_root"])
+                / "capabilities"
+                / "performance-testing"
+                / "F-001"
+                / "latest.json"
+            ).read_text(encoding="utf-8")
+        )
+
+        self.assertEqual("PASSED", evidence["status"])
+        self.assertEqual(5000, evidence["baseline_p95_ms"])
+        self.assertEqual(25, evidence["max_regression_percent"])
+        self.assertIn("regression_failed", evidence)
+
+    def test_mutation_runner_scopes_changed_python_code(self) -> None:
+        output = self.generate("python", "[mutation-testing]")
+        module_path = output / "src" / "test_python_project" / "__init__.py"
+        module_path.write_text(
+            module_path.read_text(encoding="utf-8") + "FLAG = True\n",
+            encoding="utf-8",
+        )
+
+        evidence_path = output / "mutation-evidence.json"
+        self.harness_python(
+            output,
+            "scripts/mutation_runner.py",
+            "--feature",
+            "F-001",
+            "--output",
+            str(evidence_path),
+            "--max-mutants",
+            "5",
+            "--test-command",
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "pytest",
+            "-q",
+        )
+
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        self.assertEqual("changed_code", evidence["scope"])
+        self.assertEqual(["src/test_python_project/__init__.py"], evidence["scope_files"])
+        self.assertGreaterEqual(evidence["summary"]["generated"], 1)
+        self.assertIn("FLAG = True", module_path.read_text(encoding="utf-8"))
 
     def test_generates_python_project(self) -> None:
         output = self.generate("python", "[mutation-testing]")

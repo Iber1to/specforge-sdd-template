@@ -78,6 +78,17 @@ def sanitize_remote_url(remote_url: str) -> str:
     return re.sub(r"://[^/@]+@", "://***@", remote_url)
 
 
+def redact_sensitive_text(value: str) -> str:
+    redacted = re.sub(r"://[^/@\s]+@", "://***@", value)
+    redacted = re.sub(r"\bAKIA[0-9A-Z]{16}\b", "AKIA***REDACTED", redacted)
+    redacted = re.sub(
+        r"(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*['\"]?[^'\"\s]{8,}",
+        r"\1=***",
+        redacted,
+    )
+    return redacted
+
+
 def publication_config(
     project: dict[str, Any],
     *,
@@ -267,13 +278,13 @@ def main() -> int:
             "publication_status": status_for_mode(config["mode"]) if status == "PASS" else "FAILED",
             "mode": config["mode"],
             "remote": config["remote"],
-            "remote_url": remote,
+            "remote_url": redact_sensitive_text(remote or "") if remote is not None else None,
             "branch": config["branch"],
             "merged_commit": merged_commit,
             "published_commit": published_commit,
             "exit_code": exit_code,
-            "stdout": stdout,
-            "stderr": stderr,
+            "stdout": redact_sensitive_text(stdout),
+            "stderr": redact_sensitive_text(stderr),
             "reason": args.reason,
             "created_at": timestamp,
         }

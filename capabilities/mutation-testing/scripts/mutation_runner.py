@@ -74,10 +74,53 @@ def generate_mutants(path: str, source: str, *, max_mutants: int) -> list[dict[s
     return mutants
 
 
-def collect_python_mutants(repo_root: Path, *, max_mutants: int) -> list[dict[str, Any]]:
-    mutants: list[dict[str, Any]] = []
+def git_lines(repo_root: Path, *arguments: str) -> list[str]:
+    result = subprocess.run(
+        ["git", *arguments],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
-    for path in sorted((repo_root / "src").rglob("*.py")):
+
+def changed_python_files(repo_root: Path) -> list[Path]:
+    candidates: set[str] = set()
+    candidates.update(git_lines(repo_root, "diff", "--name-only", "HEAD"))
+    candidates.update(git_lines(repo_root, "diff", "--name-only", "--cached"))
+
+    base = git_lines(repo_root, "merge-base", "HEAD", "main")
+    if base:
+        candidates.update(git_lines(repo_root, "diff", "--name-only", f"{base[0]}..HEAD"))
+
+    paths = []
+    for relative in sorted(candidates):
+        if not relative.startswith("src/") or not relative.endswith(".py"):
+            continue
+        path = repo_root / relative
+        if path.is_file():
+            paths.append(path)
+    return paths
+
+
+def collect_python_mutants(
+    repo_root: Path,
+    *,
+    max_mutants: int,
+    scope: str,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    mutants: list[dict[str, Any]] = []
+    if scope == "changed_code":
+        files = changed_python_files(repo_root)
+    elif scope == "all":
+        files = sorted((repo_root / "src").rglob("*.py"))
+    else:
+        raise ValueError(f"Unsupported mutation scope: {scope}")
+
+    for path in files:
         relative = path.relative_to(repo_root).as_posix()
         remaining = max_mutants - len(mutants)
         if remaining <= 0:
@@ -86,7 +129,7 @@ def collect_python_mutants(repo_root: Path, *, max_mutants: int) -> list[dict[st
             generate_mutants(relative, path.read_text(encoding="utf-8"), max_mutants=remaining)
         )
 
-    return mutants
+    return mutants, [path.relative_to(repo_root).as_posix() for path in files]
 
 
 def _mutate_source(source: str, mutant: dict[str, Any]) -> str:
@@ -111,11 +154,12 @@ def run_mutation_testing(
     test_command: list[str],
     max_mutants: int,
     max_duration_seconds: int,
+    scope: str,
 ) -> dict[str, Any]:
     """Genera mutantes, ejecuta tests por mutante y restaura archivos."""
 
     root = repo_root.resolve()
-    mutants = collect_python_mutants(root, max_mutants=max_mutants)
+    mutants, scope_files = collect_python_mutants(root, max_mutants=max_mutants, scope=scope)
 
     for mutant in mutants:
         path = root / str(mutant["file"])
@@ -145,7 +189,8 @@ def run_mutation_testing(
     return {
         "schema_version": 1,
         "feature_id": feature_id,
-        "scope": "changed_code",
+        "scope": scope,
+        "scope_files": scope_files,
         "max_mutants": max_mutants,
         "max_duration_seconds": max_duration_seconds,
         "test_command": test_command,
@@ -167,6 +212,7 @@ def build_evidence(repo_root: Path, feature_id: str, *, max_mutants: int) -> dic
         test_command=["python3", "-m", "pytest", "-q"],
         max_mutants=max_mutants,
         max_duration_seconds=600,
+        scope="changed_code",
     )
 
 
@@ -176,9 +222,10 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--output", required=True)
     parser.add_argument("--max-mutants", type=int, default=100)
     parser.add_argument("--max-duration-seconds", type=int, default=600)
+    parser.add_argument("--scope", choices=["changed_code", "all"], default="changed_code")
     parser.add_argument(
         "--test-command",
-        nargs="+",
+        nargs=argparse.REMAINDER,
         default=["python3", "-m", "pytest", "-q"],
     )
     return parser.parse_args()
@@ -193,6 +240,7 @@ def main() -> int:
         test_command=arguments.test_command,
         max_mutants=arguments.max_mutants,
         max_duration_seconds=arguments.max_duration_seconds,
+        scope=arguments.scope,
     )
 
     output_path = Path(arguments.output).resolve()

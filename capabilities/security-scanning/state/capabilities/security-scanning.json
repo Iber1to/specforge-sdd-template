@@ -19,6 +19,8 @@
     }
   },
   "fail_on": ["critical"],
+  "accepted_findings": [],
+  "redact_samples": true,
   "exclude_globs": [
     "data/**",
     "artifacts/**",

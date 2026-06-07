@@ -6,10 +6,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
 from control_common import ControlPlaneError, load_project_config, repo_root
+
+STALE_AFTER_DAYS = 180
 
 
 def load_json_or_none(path: Path) -> dict[str, Any] | None:
@@ -41,6 +45,75 @@ def summarize_latest_artifacts(artifact_root: Path) -> list[str]:
     return rows
 
 
+def stable_markdown_files(root: Path) -> list[Path]:
+    docs_root = root / "docs"
+    if not docs_root.is_dir():
+        return []
+
+    prefixes = (
+        docs_root / "00-project",
+        docs_root / "10-architecture",
+        docs_root / "20-runtime",
+        docs_root / "30-quality",
+        docs_root / "40-operations",
+        docs_root / "50-releases",
+    )
+
+    files = [docs_root / "README.md"]
+    for prefix in prefixes:
+        if prefix.is_dir():
+            files.extend(prefix.rglob("*.md"))
+    return sorted(path for path in files if path.is_file())
+
+
+def document_frontmatter(path: Path) -> dict[str, Any]:
+    content = path.read_text(encoding="utf-8")
+    if not content.startswith("---\n"):
+        return {}
+
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return {}
+
+    value = yaml.safe_load(parts[1])
+    return value if isinstance(value, dict) else {}
+
+
+def parse_verified_date(value: object) -> date | None:
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def summarize_document_freshness(root: Path) -> list[str]:
+    today = date.today()
+    rows: list[str] = []
+
+    for path in stable_markdown_files(root):
+        frontmatter = document_frontmatter(path)
+        owner = str(frontmatter.get("owner") or "missing")
+        verified = parse_verified_date(frontmatter.get("last_verified"))
+
+        if verified is None:
+            status = "missing-last_verified"
+            age = ""
+        else:
+            age_days = (today - verified).days
+            age = str(age_days)
+            status = "stale" if age_days > STALE_AFTER_DAYS else "fresh"
+
+        rows.append(
+            f"| `{path.relative_to(root)}` | {owner} | {frontmatter.get('last_verified', '')} | {age} | {status} |"
+        )
+
+    return rows or ["| none | none | none | none | no stable docs found |"]
+
+
 def refresh_quality_summary(root: Path | None = None) -> Path:
     root = root or repo_root()
     docs_root = root / "docs" / "90-generated"
@@ -68,6 +141,8 @@ def refresh_quality_summary(root: Path | None = None) -> Path:
     if not artifact_rows:
         artifact_rows.append("| none | none | none | no latest evidence found |")
 
+    freshness_rows = summarize_document_freshness(root)
+
     content = f"""# Quality Summary
 
 Project: {config.get("name", "unknown")}
@@ -80,6 +155,15 @@ authoritative.
 | ID | Phase | Blocking | Command |
 | --- | --- | --- | --- |
 {chr(10).join(gate_rows)}
+
+## Documentation Freshness
+
+Stable docs are expected to expose `owner` and `last_verified` frontmatter.
+Documents older than {STALE_AFTER_DAYS} days are reported as stale.
+
+| Document | Owner | Last Verified | Age Days | Status |
+| --- | --- | --- | --- | --- |
+{chr(10).join(freshness_rows)}
 
 ## Latest Evidence
 

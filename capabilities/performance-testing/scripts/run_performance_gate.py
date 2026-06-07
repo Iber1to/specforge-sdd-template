@@ -99,6 +99,12 @@ def main() -> int:
         if max_p95_ms is None and benchmark.get("max_p95_ms") is not None:
             max_p95_ms = float(benchmark["max_p95_ms"])
 
+        baseline_p95_ms = benchmark.get("baseline_p95_ms")
+        if baseline_p95_ms is not None:
+            baseline_p95_ms = float(baseline_p95_ms)
+
+        max_regression_percent = float(benchmark.get("max_regression_percent", 0))
+
         if warmup_runs < 0 or measured_runs < 1:
             raise CapabilityError("warmup_runs debe ser >= 0 y measured_runs >= 1")
 
@@ -146,8 +152,16 @@ def main() -> int:
         }
 
         budget_failed = max_p95_ms is not None and stats["p95_ms"] > max_p95_ms
+        regression_budget_ms = None
+        regression_failed = False
+        if baseline_p95_ms is not None:
+            regression_budget_ms = baseline_p95_ms * (1 + max_regression_percent / 100)
+            regression_failed = stats["p95_ms"] > regression_budget_ms
+
         status = "PASSED"
-        if failed_runs or timed_out_runs or (budget_failed and policy.get("mode") == "enforce"):
+        if failed_runs or timed_out_runs or (
+            (budget_failed or regression_failed) and policy.get("mode") == "enforce"
+        ):
             status = "FAILED"
 
         evidence = {
@@ -168,8 +182,12 @@ def main() -> int:
             "measured_runs": measured_runs,
             "timeout_seconds": timeout_seconds,
             "max_p95_ms": max_p95_ms,
+            "baseline_p95_ms": baseline_p95_ms,
+            "max_regression_percent": max_regression_percent,
+            "regression_budget_ms": regression_budget_ms,
             "statistics": stats,
             "budget_failed": budget_failed,
+            "regression_failed": regression_failed,
             "failed_runs": failed_runs,
             "timed_out_runs": timed_out_runs,
             "stdout": last_stdout[-4000:],

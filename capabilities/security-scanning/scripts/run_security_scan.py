@@ -126,6 +126,47 @@ def finding(
     return result
 
 
+def accepted_finding(policy: dict, item: dict) -> dict | None:
+    accepted = policy.get("accepted_findings", [])
+    if not isinstance(accepted, list):
+        return None
+
+    for entry in accepted:
+        if not isinstance(entry, dict):
+            continue
+
+        if entry.get("id") != item.get("id"):
+            continue
+
+        if entry.get("path") != item.get("path"):
+            continue
+
+        if "line" in entry and entry.get("line") != item.get("line"):
+            continue
+
+        return entry
+
+    return None
+
+
+def apply_baseline(policy: dict, findings: list[dict]) -> list[dict]:
+    classified: list[dict] = []
+
+    for item in findings:
+        result = dict(item)
+        accepted = accepted_finding(policy, result)
+
+        if accepted is None:
+            result["baseline_status"] = "new"
+        else:
+            result["baseline_status"] = "accepted"
+            result["accepted_reason"] = str(accepted.get("reason", "accepted baseline finding"))
+
+        classified.append(result)
+
+    return classified
+
+
 def scan_file(path: Path, relative: Path) -> list[dict]:
     findings: list[dict] = []
 
@@ -168,12 +209,22 @@ def scan_file(path: Path, relative: Path) -> list[dict]:
 
 
 def summarize(findings: list[dict]) -> dict[str, int]:
-    summary = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    summary = {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "accepted": 0,
+        "new": 0,
+    }
 
     for item in findings:
         severity = item.get("severity")
         if severity in summary:
             summary[severity] += 1
+        baseline_status = item.get("baseline_status")
+        if baseline_status in {"accepted", "new"}:
+            summary[baseline_status] += 1
 
     return summary
 
@@ -199,9 +250,11 @@ def main() -> int:
         for path in text_files(root, scan_root, policy):
             findings.extend(scan_file(path, path.relative_to(root)))
 
+        findings = apply_baseline(policy, findings)
         summary = summarize(findings)
         fail_on = set(policy.get("fail_on", []))
-        blocked = any(item.get("severity") in fail_on for item in findings)
+        new_findings = [item for item in findings if item.get("baseline_status") != "accepted"]
+        blocked = any(item.get("severity") in fail_on for item in new_findings)
         status = "FAILED" if blocked and policy.get("mode") == "enforce" else "PASSED"
 
         evidence = {
@@ -220,6 +273,8 @@ def main() -> int:
                     "name": "deterministic secret scan",
                     "status": status,
                     "findings": len(findings),
+                    "new_findings": len(new_findings),
+                    "accepted_findings": summary["accepted"],
                     "mode": policy.get("mode"),
                 }
             ],
@@ -228,6 +283,7 @@ def main() -> int:
             "findings": findings,
             "mode": policy.get("mode"),
             "fail_on": sorted(fail_on),
+            "blocked_by_new_findings": blocked,
         }
 
         evidence_path = write_capability_evidence(

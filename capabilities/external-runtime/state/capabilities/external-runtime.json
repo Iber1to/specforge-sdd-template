@@ -4,6 +4,7 @@
   "mode": "observe",
   "required_for_done": false,
   "required_for_qa_approval": false,
+  "retain_latest_jobs": 20,
   "targets": [
     {
       "id": "local",
@@ -18,6 +19,16 @@
       "platform": "external",
       "enabled": true,
       "capabilities": ["manual-result"]
+    },
+    {
+      "id": "ssh-example",
+      "type": "ssh",
+      "platform": "linux",
+      "enabled": false,
+      "host": "example.invalid",
+      "user": "agent",
+      "port": 22,
+      "capabilities": ["ssh-command", "scp-artifact"]
     }
   ]
 }

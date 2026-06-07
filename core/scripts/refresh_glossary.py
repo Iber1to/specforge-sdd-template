@@ -61,6 +61,10 @@ def render_glossary(glossary: dict[str, Any]) -> str:
         )
 
     return (
+        "---\n"
+        "owner: template\n"
+        "last_verified: 2026-06-07\n"
+        "---\n\n"
         "# Glossary\n\n"
         "This file is generated from `docs/00-project/glossary.yaml`.\n\n"
         "| Term | Definition | Context | Aliases | Relations |\n"

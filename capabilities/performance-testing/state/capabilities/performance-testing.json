@@ -11,6 +11,8 @@
       "warmup_runs": 0,
       "measured_runs": 3,
       "timeout_seconds": 10,
+      "baseline_p95_ms": 5000,
+      "max_regression_percent": 25,
       "max_p95_ms": 5000
     }
   ]

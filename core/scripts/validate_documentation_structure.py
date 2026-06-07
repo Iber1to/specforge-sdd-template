@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from datetime import date, datetime
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import unquote, urlparse
@@ -28,6 +29,10 @@ REQUIRED_DOCS = {
 }
 
 LINK_PATTERN = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+STABLE_DOC_PATTERN = re.compile(
+    r"^docs/(README\.md|"
+    r"(00-project|10-architecture|20-runtime|30-quality|40-operations|50-releases)/.*\.md)$"
+)
 
 
 class DocumentationStructureError(RuntimeError):
@@ -43,8 +48,32 @@ def markdown_headings(content: str) -> set[str]:
     return headings
 
 
-def validate_frontmatter(path: Path, content: str) -> None:
+def is_stable_doc(root: Path, path: Path) -> bool:
+    relative = path.relative_to(root).as_posix()
+    if relative.startswith("docs/90-generated/"):
+        return False
+    return STABLE_DOC_PATTERN.fullmatch(relative) is not None
+
+
+def validate_last_verified(path: Path, value: object) -> None:
+    if isinstance(value, date):
+        return
+
+    if not isinstance(value, str):
+        raise DocumentationStructureError(f"last_verified debe ser fecha ISO en {path}")
+
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+    except ValueError as exc:
+        raise DocumentationStructureError(f"last_verified debe usar YYYY-MM-DD en {path}") from exc
+
+
+def validate_frontmatter(root: Path, path: Path, content: str) -> None:
+    requires_frontmatter = is_stable_doc(root, path)
+
     if not content.startswith("---\n"):
+        if requires_frontmatter:
+            raise DocumentationStructureError(f"Falta frontmatter owner/last_verified: {path}")
         return
 
     parts = content.split("---", 2)
@@ -58,6 +87,16 @@ def validate_frontmatter(path: Path, content: str) -> None:
 
     if not isinstance(value, dict):
         raise DocumentationStructureError(f"Frontmatter debe ser objeto YAML: {path}")
+
+    if requires_frontmatter:
+        owner = value.get("owner")
+        if not isinstance(owner, str) or not owner.strip():
+            raise DocumentationStructureError(f"Frontmatter requiere owner en {path}")
+
+        if "last_verified" not in value:
+            raise DocumentationStructureError(f"Frontmatter requiere last_verified en {path}")
+
+        validate_last_verified(path, value["last_verified"])
 
 
 def local_link_target(root: Path, source: Path, target: str) -> Path | None:
@@ -118,7 +157,7 @@ def validate_documentation_structure(root: Path | None = None) -> None:
 
     for path in markdown_files(root):
         content = path.read_text(encoding="utf-8")
-        validate_frontmatter(path, content)
+        validate_frontmatter(root, path, content)
         validate_links(root, path, content)
 
 

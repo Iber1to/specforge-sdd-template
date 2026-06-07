@@ -25,6 +25,7 @@ CAPABILITIES = {
 DEFAULT_CAPABILITIES = {"documentation-pack"}
 GIT_PUBLICATION_MODES = {"disabled", "local", "dry_run", "push"}
 PROJECT_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+DOCUMENT_LAST_VERIFIED = "2026-06-07"
 PROFILE_CAPABILITY_RULES = {
     "mutation-testing": {"python"},
 }
@@ -318,7 +319,18 @@ def write_python_smoke(output: Path) -> None:
 
 def write_doc(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content.strip() + "\n", encoding="utf-8")
+    body = content.strip() + "\n"
+
+    if not body.startswith("---\n"):
+        body = (
+            "---\n"
+            "owner: template\n"
+            f"last_verified: {DOCUMENT_LAST_VERIFIED}\n"
+            "---\n\n"
+            + body
+        )
+
+    path.write_text(body, encoding="utf-8")
 
 
 def format_capabilities(config: dict[str, Any]) -> str:
@@ -911,6 +923,74 @@ and sensitive files and records structured evidence.
     )
 
     write_doc(
+        docs / "30-quality" / "threat-model.md",
+        """
+# Threat Model
+
+## Scope
+
+The baseline threat model covers repository contents, harness scripts,
+generated evidence, operational state, external runtimes and publication
+workflows.
+
+## Assets
+
+- Source code and feature specifications.
+- Lightweight evidence under `evidence/`.
+- Heavy artifacts under `artifact_root`.
+- Control-plane state under `control_root`.
+- Git remotes and publication credentials.
+
+## Trust Boundaries
+
+- Repository to external runtimes.
+- Repository to `artifact_root` and `control_root`.
+- Local Git history to remote publication targets.
+- Human-authored docs to generated summaries.
+
+## Default Controls
+
+- Secrets are scanned deterministically.
+- Evidence and publish logs redact likely credentials.
+- Accepted findings must be declared in the security capability baseline.
+- `git-publish` remains manual and supports dry-run.
+
+## Blocking Policy
+
+The default policy observes most security findings and blocks only when
+explicitly enforced for clear critical secrets or confirmed critical issues.
+""",
+    )
+
+    write_doc(
+        docs / "30-quality" / "data-classification.md",
+        """
+# Data Classification
+
+## Public
+
+Documentation, examples and generated summaries intended for repository users.
+
+## Internal
+
+Feature specifications, review evidence, quality summaries and operational
+runbooks.
+
+## Sensitive
+
+Credentials, private keys, tokens, personal data, unpublished remote URLs and
+raw external-runtime logs.
+
+## Handling Rules
+
+- Do not commit Sensitive data.
+- Store heavy or sensitive operational artifacts under `artifact_root`.
+- Redact secrets before writing evidence.
+- Treat `control_root` as operational state, not publishable product data.
+""",
+    )
+
+    write_doc(
         docs / "40-operations" / "runbook.md",
         """
 # Runbook
@@ -1052,6 +1132,17 @@ npm run lint
 Windows validation is optional and capability-scoped. Use the Windows evidence
 contract under `docs/windows-runner/evidence-contract.md` and validate evidence
 with `scripts/validate_windows_evidence.py`.
+
+## Transport
+
+Supported transport patterns are declarative:
+
+- `external-runtime` SSH/SCP adapter for automated remote execution.
+- SMB or shared workspace for operator-managed artifact drops.
+- Manual drop into `artifact_root/windows-tests/<FEATURE>/latest.json`.
+
+The evidence file must reference the reviewed feature and commit. Windows
+validation is not active by default.
 """,
         )
         write_doc(
