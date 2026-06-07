@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -762,6 +763,140 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(canonical.stdout.strip(), remote.stdout.strip())
         self.assertEqual(evidence["published_commit"], remote.stdout.strip())
 
+    # --- T-007 hardening final ---
+
+    def run_unchecked_harness(
+        self, output: Path, script_command: str
+    ) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [
+                "bash",
+                "-lc",
+                'export PATH="$HOME/.local/bin:$PATH"; uv run python ' + script_command,
+            ],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+
+    def test_external_runtime_rejects_unknown_command_id(self) -> None:
+        output = self.generate("generic", "[external-runtime]")
+        result = self.run_unchecked_harness(
+            output,
+            "scripts/run_external_runtime.py --feature F-001 --target local "
+            "--command-id does-not-exist",
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_external_runtime_rejects_free_command_without_unsafe_flag(self) -> None:
+        output = self.generate("generic", "[external-runtime]")
+        result = self.run_unchecked_harness(
+            output,
+            "scripts/run_external_runtime.py --feature F-001 --target local "
+            "--command python3 --version",
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("--unsafe-command", result.stderr)
+
+    def test_hooks_use_wrapper_not_direct_python(self) -> None:
+        output = self.generate("generic")
+        settings = (output / ".claude" / "settings.json").read_text(encoding="utf-8")
+        self.assertIn("hook_entrypoint.sh", settings)
+        self.assertNotIn('"command": "python3"', settings)
+        self.assertTrue((output / "scripts" / "hook_entrypoint.sh").is_file())
+
+    def test_hook_entrypoint_runs_role_guard(self) -> None:
+        output = self.generate("generic")
+        event = json.dumps(
+            {"hook_event_name": "SessionStart", "session_id": "s1", "agent_type": "leader"}
+        )
+        result = subprocess.run(
+            ["bash", "scripts/hook_entrypoint.sh", "role_guard"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            input=event,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(output)},
+        )
+        self.assertEqual(0, result.returncode)
+
+    def test_hook_entrypoint_rejects_unknown_hook(self) -> None:
+        output = self.generate("generic")
+        result = subprocess.run(
+            ["bash", "scripts/hook_entrypoint.sh", "does-not-exist"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(output)},
+        )
+        self.assertEqual(2, result.returncode)
+
+    def test_windows_evidence_cli_handles_string_artifact_root(self) -> None:
+        output = self.generate("generic", "[windows-validation]")
+        self.harness_python(
+            output,
+            "scripts/register_feature.py",
+            "--title",
+            "Win",
+            "--slug",
+            "win-check",
+            "--description",
+            "Windows validation CLI fixture.",
+            "--capability",
+            "windows-validation",
+        )
+        result = self.run_unchecked_harness(
+            output,
+            "scripts/validate_windows_evidence.py --feature F-001 --commit deadbeef",
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertNotIn("AttributeError", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_windows_validation_available_is_project_level_only(self) -> None:
+        with_cap = self.generate("generic", "[windows-validation]")
+        without = self.generate("python", "[]")
+        state_with = json.loads((with_cap / "state" / "project.json").read_text(encoding="utf-8"))
+        state_without = json.loads((without / "state" / "project.json").read_text(encoding="utf-8"))
+        self.assertTrue(state_with["windows_validation_available"])
+        self.assertFalse(state_without["windows_validation_available"])
+        self.assertNotIn("windows_validation_required", state_with)
+        self.assertNotIn("windows_validation_required", state_without)
+
+    def test_windows_requirement_is_opt_in_per_feature(self) -> None:
+        output = self.generate("generic", "[windows-validation]")
+        self.harness_python(
+            output,
+            "scripts/register_feature.py",
+            "--title",
+            "No Windows",
+            "--slug",
+            "no-win",
+            "--description",
+            "Feature without windows requirement.",
+        )
+        self.harness_python(
+            output,
+            "scripts/register_feature.py",
+            "--title",
+            "With Windows",
+            "--slug",
+            "yes-win",
+            "--description",
+            "Feature with windows requirement.",
+            "--capability",
+            "windows-validation",
+        )
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        queue = json.loads((Path(state["control_root"]) / "queue.json").read_text(encoding="utf-8"))
+        by_slug = {feature["slug"]: feature for feature in queue["features"]}
+        self.assertFalse(by_slug["no-win"]["windows_validation_required"])
+        self.assertTrue(by_slug["yes-win"]["windows_validation_required"])
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
@@ -1015,9 +1150,8 @@ terms:
             "F-001",
             "--target",
             "local",
-            "--command",
-            "python3",
-            "--version",
+            "--command-id",
+            "python-version",
         )
 
         evidence = json.loads(
@@ -1032,6 +1166,7 @@ terms:
 
         self.assertEqual("PASSED", evidence["status"])
         self.assertEqual("local", evidence["target"])
+        self.assertEqual("python-version", evidence["command_id"])
         self.assertTrue(str(evidence["runtime_job_id"]).startswith("EXT-JOB-"))
 
     def test_performance_gate_reports_baseline_budget(self) -> None:
