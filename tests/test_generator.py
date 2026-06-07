@@ -1041,6 +1041,34 @@ class GeneratorTests(unittest.TestCase):
         )
         self.assertEqual(2, result.returncode)
 
+    # --- T-009 madurez de quality gates ---
+
+    def read_capability_evidence(self, state: dict, capability: str) -> dict:
+        path = Path(state["artifact_root"]) / "capabilities" / capability / "F-001" / "latest.json"
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def test_performance_gate_updates_baseline(self) -> None:
+        output = self.generate("generic", "[performance-testing]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.harness_python(
+            output,
+            "scripts/run_performance_gate.py",
+            "--feature",
+            "F-001",
+            "--benchmark",
+            "python-smoke",
+            "--update-baseline",
+        )
+        policy = json.loads(
+            (output / "state" / "capabilities" / "performance-testing.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        benchmark = next(item for item in policy["benchmarks"] if item["id"] == "python-smoke")
+        self.assertIn("baseline_commit", benchmark)
+        evidence = self.read_capability_evidence(state, "performance-testing")
+        self.assertIn("baseline_commit", evidence)
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))

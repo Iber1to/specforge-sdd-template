@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import statistics
 import subprocess
 import sys
@@ -16,6 +17,7 @@ from capability_common import (
     ensure_policy_enabled,
     monotonic_seconds,
     operation_id,
+    repo_root,
     utc_now,
     write_capability_evidence,
 )
@@ -31,6 +33,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--measured-runs", type=int)
     parser.add_argument("--timeout-seconds", type=int)
     parser.add_argument("--max-p95-ms", type=float)
+    parser.add_argument("--update-baseline", action="store_true")
     parser.add_argument("--command", nargs=argparse.REMAINDER)
     return parser.parse_args()
 
@@ -41,6 +44,31 @@ def benchmark_policy(policy: dict, benchmark_id: str) -> dict:
             return benchmark
 
     raise CapabilityError(f"Benchmark no registrado: {benchmark_id}")
+
+
+def git_head() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_root(),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else "unknown"
+
+
+def update_baseline(benchmark_id: str, p95_ms: float, commit: str) -> None:
+    """Actualiza el baseline del benchmark en la policy (commit base + p95)."""
+
+    path = repo_root() / "state" / "capabilities" / f"{CAPABILITY}.json"
+    policy = json.loads(path.read_text(encoding="utf-8"))
+
+    for benchmark in policy.get("benchmarks", []):
+        if benchmark.get("id") == benchmark_id:
+            benchmark["baseline_p95_ms"] = p95_ms
+            benchmark["baseline_commit"] = commit
+
+    path.write_text(json.dumps(policy, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def percentile_95(values: list[float]) -> float:
@@ -183,6 +211,7 @@ def main() -> int:
             "timeout_seconds": timeout_seconds,
             "max_p95_ms": max_p95_ms,
             "baseline_p95_ms": baseline_p95_ms,
+            "baseline_commit": benchmark.get("baseline_commit"),
             "max_regression_percent": max_regression_percent,
             "regression_budget_ms": regression_budget_ms,
             "statistics": stats,
@@ -200,6 +229,9 @@ def main() -> int:
             operation=operation,
             evidence=evidence,
         )
+
+        if args.update_baseline and status == "PASSED":
+            update_baseline(args.benchmark, stats["p95_ms"], git_head())
 
         print(f"[OK] Performance: {evidence['status']}")
         print(f"[OK] p95_ms:      {stats['p95_ms']}")
