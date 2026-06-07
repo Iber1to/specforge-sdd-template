@@ -26,11 +26,21 @@ disenado para ejecutarse en un host Linux. Requisitos:
 - `git` y `bash`.
 - Node.js solo para proyectos generados con `profile: node`.
 
+Comprueba el entorno antes de generar o validar (preflight):
+
+```bash
+python3 core/scripts/check_environment.py            # antes de generar
+python3 scripts/check_environment.py --profile node  # dentro de un proyecto node
+```
+
+En entornos sin acceso para descargar Python, exporta `UV_PYTHON_DOWNLOADS=never`
+para que `uv` falle de forma explicita en vez de intentar descargar el runtime 3.12.
+
 Notas importantes:
 
-- Los hooks del Role Guard se invocan con `python3`. Ese binario debe existir en
-  el PATH del host; si falta, los hooks no se ejecutan y el Role Guard no aplica
-  sus restricciones.
+- Los hooks del Role Guard se ejecutan mediante `scripts/hook_entrypoint.sh`, que
+  resuelve el interprete Python (`.venv/bin/python` -> `python3` -> `python`) y
+  falla cerrado si no encuentra ninguno.
 - Los proyectos generados con `profile: node` tambien incluyen los quality gates
   base del harness (`verify_fast.sh`/`verify_full.sh`), que ejecutan `ruff`,
   `pytest` y `compileall`. Por tanto un proyecto node requiere Python, `uv`,

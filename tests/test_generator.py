@@ -897,6 +897,24 @@ class GeneratorTests(unittest.TestCase):
         self.assertFalse(by_slug["no-win"]["windows_validation_required"])
         self.assertTrue(by_slug["yes-win"]["windows_validation_required"])
 
+    # --- T-008 preparacion uso extendido ---
+
+    def test_environment_preflight_passes_with_required_tools(self) -> None:
+        output = self.generate("generic")
+        self.harness_python(output, "scripts/check_environment.py")
+
+    def test_environment_preflight_fails_when_required_tool_missing(self) -> None:
+        output = self.generate("generic")
+        result = subprocess.run(
+            [sys.executable, "scripts/check_environment.py"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            env={"PATH": ""},
+        )
+        self.assertEqual(2, result.returncode)
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
