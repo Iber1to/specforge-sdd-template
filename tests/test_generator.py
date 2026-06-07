@@ -1004,6 +1004,43 @@ class GeneratorTests(unittest.TestCase):
         )
         self.assertEqual(2, unreachable.returncode)
 
+    def test_windows_evidence_collect_and_validate_offline(self) -> None:
+        output = self.generate("generic", "[windows-validation]")
+        self.harness_python(
+            output,
+            "scripts/register_feature.py",
+            "--title",
+            "Win",
+            "--slug",
+            "win-e2e",
+            "--description",
+            "Windows validation offline fixture.",
+            "--capability",
+            "windows-validation",
+        )
+        head = self.assert_command(output, "git", "rev-parse", "HEAD").stdout.strip()
+        self.harness_python(
+            output,
+            "scripts/collect_windows_evidence.py",
+            "--feature",
+            "F-001",
+            "--commit",
+            head,
+            "--allow-non-windows",
+        )
+        self.harness_python(
+            output,
+            "scripts/validate_windows_evidence.py",
+            "--feature",
+            "F-001",
+            "--commit",
+            head,
+        )
+        result = self.run_unchecked_harness(
+            output, "scripts/validate_windows_evidence.py --feature F-001 --commit deadbeef"
+        )
+        self.assertEqual(2, result.returncode)
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
