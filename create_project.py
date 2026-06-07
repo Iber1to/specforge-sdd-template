@@ -118,18 +118,28 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+EXCLUDED_TREE_NAMES = {
+    ".venv",
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "node_modules",
+}
+
+
 def ignore_generated(directory: str, names: list[str]) -> set[str]:
-    return {
-        name
-        for name in names
-        if name == "__pycache__" or name.endswith(".pyc") or name in {".pytest_cache", ".ruff_cache"}
-    }
+    return {name for name in names if name in EXCLUDED_TREE_NAMES or name.endswith(".pyc")}
 
 
 def copy_core(output: Path) -> None:
     core = ROOT / "core"
 
     for child in core.iterdir():
+        # Excluir entornos, repos y caches de nivel superior; el `ignore` de
+        # copytree solo filtra nombres anidados, no el directorio raíz copiado.
+        if child.name in EXCLUDED_TREE_NAMES:
+            continue
         destination = output / child.name
         if child.is_dir():
             shutil.copytree(child, destination, ignore=ignore_generated)
@@ -1120,6 +1130,13 @@ uv run python -m compileall -q scripts src tests
 npm test
 npm run lint
 ```
+
+## Harness Toolchain
+
+The product uses Node, but the agentic harness itself is written in Python and
+its base quality gates run `ruff`, `pytest` and `compileall`. Python 3.12, `uv`,
+`ruff` and `pytest` must therefore be available to pass `qa_full` and
+`finalization`, in addition to Node.
 """,
         )
 

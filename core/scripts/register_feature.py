@@ -89,12 +89,13 @@ def main() -> int:
         if arguments.priority < 0:
             raise ControlPlaneError("La prioridad no puede ser negativa")
 
-        config = load_project_config()
-
         windows_required = arguments.windows_validation_required
 
         if windows_required is None:
-            windows_required = bool(config["windows_validation_required"])
+            # Desacople capability vs obligatoriedad: instalar la capability deja la
+            # validación Windows DISPONIBLE, pero cada feature la exige solo si la
+            # declara (--capability windows-validation o --windows-validation-required).
+            windows_required = "windows-validation" in arguments.capability
 
         with queue_lock():
             queue = load_queue()

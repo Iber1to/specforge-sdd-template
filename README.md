@@ -15,6 +15,39 @@ Estado actual: extraido y validado en `jarvis:/srv/agentic/workspace/agentic-sdd
 
 El proyecto generado contiene scripts, estado, specs, agentes, quality gates y evidencias versionadas. El estado operativo pesado vive fuera de Git en `data/<project_id>/control` y `data/<project_id>/artifacts`.
 
+## Requisitos Y Plataforma
+
+El harness de orquestacion (leader, scripts deterministas, Role Guard) esta
+disenado para ejecutarse en un host Linux. Requisitos:
+
+- Linux (el plano de control usa bloqueo de archivos POSIX por defecto; en
+  Windows degrada a `msvcrt`).
+- Python 3.12 y `uv` disponibles en PATH.
+- `git` y `bash`.
+- Node.js solo para proyectos generados con `profile: node`.
+
+Notas importantes:
+
+- Los hooks del Role Guard se invocan con `python3`. Ese binario debe existir en
+  el PATH del host; si falta, los hooks no se ejecutan y el Role Guard no aplica
+  sus restricciones.
+- Los proyectos generados con `profile: node` tambien incluyen los quality gates
+  base del harness (`verify_fast.sh`/`verify_full.sh`), que ejecutan `ruff`,
+  `pytest` y `compileall`. Por tanto un proyecto node requiere Python, `uv`,
+  `ruff` y `pytest` para pasar QA y finalizacion, ademas de Node.
+- Solo el runner de la capability `windows-validation` esta pensado para
+  ejecutarse en una workstation Windows real.
+- Los scripts bajo `capabilities/<cap>/scripts/` NO se ejecutan directamente
+  desde el template: importan modulos de `core/scripts/` y solo son ejecutables
+  una vez ensamblados en un proyecto generado (el generador los copia a
+  `scripts/`). Para probarlos, genera un proyecto primero.
+
+## Convencion De Idioma
+
+La documentacion operativa y los agentes estan en espanol. Los identificadores,
+las claves de esquema JSON y los nombres de estado se mantienen en ingles. Las
+plantillas de specs usan ingles por compatibilidad con los validadores.
+
 ## Inicio Rapido
 
 1. Crea un archivo de configuracion:

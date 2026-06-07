@@ -25,7 +25,5 @@
     "criterion_prefix": "AC"
   },
   "default_acceptance_schema_version": 2,
-  "legacy_v1_features": [
-    "F-001"
-  ]
+  "legacy_v1_features": []
 }

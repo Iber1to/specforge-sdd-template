@@ -569,8 +569,8 @@ class GeneratorTests(unittest.TestCase):
 
         raise AssertionError(f"Unsupported profile for lifecycle E2E: {profile}")
 
-    def run_generated_project_lifecycle(self, profile: str) -> Path:
-        output = self.generate(profile)
+    def run_generated_project_lifecycle(self, profile: str, capabilities: str = "[]") -> Path:
+        output = self.generate(profile, capabilities)
         feature_root = self.write_lifecycle_feature_documents(output)
 
         self.harness_python(
@@ -711,6 +711,56 @@ class GeneratorTests(unittest.TestCase):
 
     def test_generated_node_project_reaches_done_e2e(self) -> None:
         self.run_generated_project_lifecycle("node")
+
+    def test_generated_project_excludes_environments_and_caches(self) -> None:
+        output = self.generate("python", "[mutation-testing]")
+
+        forbidden = {".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "node_modules"}
+        offenders: list[str] = []
+        for path in output.rglob("*"):
+            relative = path.relative_to(output)
+            if relative.parts and relative.parts[0] == ".git":
+                continue  # el repositorio Git inicializado del proyecto es legitimo
+            if path.name in forbidden or path.suffix == ".pyc":
+                offenders.append(str(relative))
+
+        self.assertEqual([], offenders)
+
+    def test_git_publish_pushes_done_feature_to_local_bare_remote(self) -> None:
+        output = self.run_generated_project_lifecycle("generic", "[git-publish]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        bare = self.root / "remote-origin.git"
+        subprocess.run(
+            ["git", "init", "--bare", str(bare)],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assert_command(output, "git", "remote", "add", "origin", str(bare))
+
+        self.harness_python(
+            output,
+            "scripts/publish_feature.py",
+            "--feature",
+            "F-001",
+            "--mode",
+            "push",
+            "--remote",
+            "origin",
+            "--branch",
+            "main",
+        )
+
+        evidence_path = Path(state["artifact_root"]) / "git-publish" / "F-001" / "latest.json"
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        self.assertEqual("PASS", evidence["status"])
+        self.assertEqual("PUBLISHED", evidence["publication_status"])
+
+        canonical = self.assert_command(output, "git", "rev-parse", "HEAD")
+        remote = self.assert_command(bare, "git", "rev-parse", "refs/heads/main")
+        self.assertEqual(canonical.stdout.strip(), remote.stdout.strip())
+        self.assertEqual(evidence["published_commit"], remote.stdout.strip())
 
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
