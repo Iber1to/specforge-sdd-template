@@ -1155,6 +1155,18 @@ class GeneratorTests(unittest.TestCase):
         self.run_session_start(output, "plain-1", {})
         self.assertEqual("unscoped", self.registered_role(state, "plain-1"))
 
+    def test_generated_project_includes_leader_launcher(self) -> None:
+        output = self.generate("generic")
+        script = output / "scripts" / "run_leader.sh"
+        self.assertTrue(script.is_file())
+        result = subprocess.run(
+            ["bash", "-n", str(script)],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(0, result.returncode)
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))

@@ -210,6 +210,7 @@ o calidad y el diff revisado por QA no incluye la documentacion correspondiente.
 - `docs/quality-and-capabilities.md`: quality gates, mutation testing, mutation reviewer y validacion Windows.
 - `docs/language-and-style.md`: convencion de idioma, acentos, naming, errores y commits.
 - `docs/naming-and-contracts.md`: vocabulario canonico de los contratos JSON.
+- `docs/leader-operation.md`: operar el leader de forma persistente (tmux) y autonoma.
 
 Tambien se copian al proyecto generado los documentos tecnicos del core en `docs/architecture`, `docs/conventions` y `docs/windows-runner`.
 
