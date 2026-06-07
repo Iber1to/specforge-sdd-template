@@ -461,13 +461,55 @@ from becoming competing authorities.
         """
 # Glossary
 
-| Term | Definition | Context | Related Terms |
-| --- | --- | --- | --- |
-| Feature | A traceable unit of product or harness change. | SDD workflow | Spec, QA, evidence |
-| Quality gate | Deterministic validation command attached to a workflow phase. | Quality | Evidence, artifact |
-| Artifact root | External location for heavy logs and generated evidence. | Operations | control_root |
-| Control root | External location for queue, leases, runtime and metrics. | Operations | state/project.json |
+This file is generated from `docs/00-project/glossary.yaml`.
+
+| Term | Definition | Context | Aliases | Relations |
+| --- | --- | --- | --- | --- |
+| Feature | A traceable unit of product or harness change. | SDD workflow | feature | Spec, QA, evidence |
+| Quality gate | Deterministic validation command attached to a workflow phase. | Quality | gate | Evidence, artifact |
+| Artifact root | External location for heavy logs and generated evidence. | Operations | artifact_root | control_root |
+| Control root | External location for queue, leases, runtime and metrics. | Operations | control_root | state/project.json |
 """,
+    )
+
+    (docs / "00-project" / "glossary.yaml").write_text(
+        """
+schema_version: 1
+terms:
+  - term: Feature
+    definition: A traceable unit of product or harness change.
+    aliases:
+      - feature
+    context: SDD workflow
+    relations:
+      - Spec
+      - QA
+      - evidence
+  - term: Quality gate
+    definition: Deterministic validation command attached to a workflow phase.
+    aliases:
+      - gate
+    context: Quality
+    relations:
+      - Evidence
+      - artifact
+  - term: Artifact root
+    definition: External location for heavy logs and generated evidence.
+    aliases:
+      - artifact_root
+    context: Operations
+    relations:
+      - control_root
+  - term: Control root
+    definition: External location for queue, leases, runtime and metrics.
+    aliases:
+      - control_root
+    context: Operations
+    relations:
+      - state/project.json
+""".strip()
+        + "\n",
+        encoding="utf-8",
     )
 
     write_doc(

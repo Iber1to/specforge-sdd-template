@@ -36,6 +36,11 @@ fi
 echo "── Política de agentes ─────────────────────────────────"
 "${run_python[@]}" scripts/validate_agent_budgets.py
 echo
+
+echo "── Documentación técnica ───────────────────────────────"
+"${run_python[@]}" scripts/validate_documentation_structure.py
+echo
+
 echo "── Compilación Python ─────────────────────────────────"
 PYTHONDONTWRITEBYTECODE=1 "${run_python[@]}" -m compileall -q scripts src tests
 

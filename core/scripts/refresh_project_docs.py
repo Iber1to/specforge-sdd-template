@@ -18,6 +18,7 @@ from control_common import (
 )
 from generate_docs_index import refresh_docs_index
 from refresh_feature_index import refresh_feature_index
+from refresh_glossary import refresh_glossary
 from refresh_metrics_summary import refresh_metrics_summary
 from refresh_quality_summary import refresh_quality_summary
 
@@ -70,6 +71,7 @@ def refresh_project_docs(root: Path | None = None) -> list[Path]:
     root = root or repo_root()
     outputs = [
         refresh_docs_index(root),
+        refresh_glossary(root),
         refresh_project_status(root),
         refresh_feature_index(root),
         refresh_quality_summary(root),

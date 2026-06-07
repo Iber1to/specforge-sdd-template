@@ -23,6 +23,7 @@ Read these before acting:
 | Which files can my role edit? | `docs/architecture/role-guard.md` and `.claude/agents/<role>.md` |
 | How do feature states advance? | `state/workflow.json` and `docs/architecture/finalization-contract.md` |
 | What is the product or project scope? | `docs/00-project/overview.md`, `docs/00-project/goals-and-scope.md` |
+| What domain terms should agents use? | `docs/00-project/glossary.yaml` and `docs/00-project/glossary.md` |
 | What architecture is accepted? | `docs/10-architecture/architecture-overview.md` and `docs/10-architecture/adr/` |
 | How do I run or configure this project? | `docs/20-runtime/local-development.md` and `docs/20-runtime/configuration.md` |
 | What quality gates apply? | `state/quality-gates.json` and `docs/30-quality/quality-gates.md` |

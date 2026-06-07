@@ -710,6 +710,7 @@ class GeneratorTests(unittest.TestCase):
             "docs/00-project/overview.md",
             "docs/00-project/goals-and-scope.md",
             "docs/00-project/source-of-truth.md",
+            "docs/00-project/glossary.yaml",
             "docs/00-project/glossary.md",
             "docs/00-project/roadmap.md",
             "docs/10-architecture/system-context.md",
@@ -736,6 +737,7 @@ class GeneratorTests(unittest.TestCase):
             "docs/90-generated/.gitkeep",
             "state/capabilities/documentation-pack.json",
             "specs/schemas/documentation-policy.schema.json",
+            "specs/schemas/glossary.schema.json",
         ]
 
         for relative_path in required_files:
@@ -763,6 +765,61 @@ class GeneratorTests(unittest.TestCase):
                 path = output / relative_path
                 self.assertTrue(path.is_file())
                 self.assertIn("generated", path.read_text(encoding="utf-8").lower())
+
+    def test_refreshes_machine_readable_glossary(self) -> None:
+        output = self.generate("generic")
+
+        glossary_yaml = output / "docs" / "00-project" / "glossary.yaml"
+        glossary_yaml.write_text(
+            """
+schema_version: 1
+terms:
+  - term: Domain Term
+    definition: A term used by agents to avoid ambiguity.
+    aliases:
+      - domain-term
+    context: Generated project documentation
+    relations:
+      - Feature
+""".strip()
+            + "\n",
+            encoding="utf-8",
+        )
+
+        self.harness_python(output, "scripts/refresh_glossary.py")
+
+        glossary_md = (output / "docs" / "00-project" / "glossary.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Domain Term", glossary_md)
+        self.assertIn("domain-term", glossary_md)
+
+    def test_documentation_structure_validator_rejects_broken_links(self) -> None:
+        output = self.generate("generic")
+
+        self.harness_python(output, "scripts/validate_documentation_structure.py")
+
+        readme = output / "docs" / "README.md"
+        readme.write_text(
+            readme.read_text(encoding="utf-8") + "\n[broken](missing-file.md)\n",
+            encoding="utf-8",
+        )
+
+        result = subprocess.run(
+            [
+                "bash",
+                "-lc",
+                'export PATH="$HOME/.local/bin:$PATH"; '
+                "uv run python scripts/validate_documentation_structure.py",
+            ],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("missing-file.md", result.stderr)
 
     def test_generates_windows_validation_documentation(self) -> None:
         output = self.generate("generic", "[windows-validation]")
