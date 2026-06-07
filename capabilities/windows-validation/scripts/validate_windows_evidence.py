@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from control_common import (
     ControlPlaneError,
@@ -40,7 +41,7 @@ def main() -> int:
 
         evidence = validate_windows_evidence(
             repo_root=repo_root(),
-            artifact_root=config["artifact_root"],
+            artifact_root=Path(config["artifact_root"]).expanduser().resolve(),
             feature=feature,
             expected_commit=arguments.commit,
         )
