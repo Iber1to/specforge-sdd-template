@@ -6,9 +6,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
+            "command": "bash",
             "args": [
-              "${CLAUDE_PROJECT_DIR}/scripts/role_guard.py"
+              "${CLAUDE_PROJECT_DIR}/scripts/hook_entrypoint.sh",
+              "role_guard"
             ],
             "timeout": 10
           }
@@ -21,9 +22,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
+            "command": "bash",
             "args": [
-              "${CLAUDE_PROJECT_DIR}/scripts/role_guard.py"
+              "${CLAUDE_PROJECT_DIR}/scripts/hook_entrypoint.sh",
+              "role_guard"
             ],
             "timeout": 10
           }
@@ -36,9 +38,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
+            "command": "bash",
             "args": [
-              "${CLAUDE_PROJECT_DIR}/scripts/role_guard.py"
+              "${CLAUDE_PROJECT_DIR}/scripts/hook_entrypoint.sh",
+              "role_guard"
             ],
             "timeout": 10
           }
@@ -51,9 +54,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
+            "command": "bash",
             "args": [
-              "${CLAUDE_PROJECT_DIR}/scripts/agent_budget_observer.py"
+              "${CLAUDE_PROJECT_DIR}/scripts/hook_entrypoint.sh",
+              "agent_budget_observer"
             ],
             "timeout": 10
           }
@@ -66,9 +70,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
+            "command": "bash",
             "args": [
-              "${CLAUDE_PROJECT_DIR}/scripts/agent_budget_observer.py"
+              "${CLAUDE_PROJECT_DIR}/scripts/hook_entrypoint.sh",
+              "agent_budget_observer"
             ],
             "timeout": 10
           }
