@@ -129,6 +129,9 @@ Ver detalles en:
 - `profiles/python/README.md`
 - `profiles/node/README.md`
 
+La matriz de combinaciones perfil x capability soportadas esta en
+`docs/profile-capability-matrix.md`.
+
 ## Workflow Del Proyecto Generado
 
 El harness trabaja con una cola de features y transiciones controladas:
