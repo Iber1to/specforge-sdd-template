@@ -14,11 +14,13 @@ El generador marcara:
 
 ```json
 {
-  "windows_validation_required": true
+  "windows_validation_available": true
 }
 ```
 
-en `state/project.json`.
+en `state/project.json`. La obligatoriedad de evidencia Windows es por feature
+(se declara con `--capability windows-validation` o `--windows-validation-required`
+al registrar la feature); instalar la capability solo la deja disponible.
 
 ## Componentes
 

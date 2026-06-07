@@ -202,7 +202,8 @@ capabilities: [windows-validation]
 
 Efecto:
 
-- `state/project.json` marca `windows_validation_required`.
+- `state/project.json` marca `windows_validation_available`.
+- La obligatoriedad de evidencia Windows es por feature, no global.
 - El proyecto conserva scripts y schemas para validar evidencia Windows.
 
 Archivos principales:
