@@ -13,11 +13,15 @@ Capacidad opcional para ejecutar o validar trabajos fuera del runtime principal 
 
 ## Uso
 
+Modo por defecto: seleccionar un command template declarado en la policy del
+target (`allowed_command_templates`). El comando libre `--command` esta
+deshabilitado salvo que se pase `--unsafe-command` de forma explicita.
+
 ```bash
 python3 scripts/run_external_runtime.py \
   --feature F-001 \
   --target local \
-  --command python3 --version
+  --command-id python-version
 ```
 
 Validacion:

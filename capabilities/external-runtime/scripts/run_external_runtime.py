@@ -34,7 +34,20 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--result", type=Path, help="Resultado manual-drop externo a normalizar.")
     parser.add_argument("--fetch-artifact", help="Ruta remota opcional a copiar con scp.")
     parser.add_argument("--timeout-seconds", type=int, default=60)
-    parser.add_argument("--command", nargs=argparse.REMAINDER)
+    parser.add_argument(
+        "--command-id",
+        help="Identificador de un command template declarado en la policy del target.",
+    )
+    parser.add_argument(
+        "--unsafe-command",
+        action="store_true",
+        help="Permite usar --command libre (deshabilitado por defecto).",
+    )
+    parser.add_argument(
+        "--command",
+        nargs=argparse.REMAINDER,
+        help="Comando libre; requiere --unsafe-command. Preferir --command-id.",
+    )
     return parser.parse_args()
 
 
@@ -70,6 +83,56 @@ def ensure_command_allowed(target: dict, command: list[str]) -> None:
         )
 
 
+def resolve_command_template(target: dict, command_id: str) -> tuple[list[str], int]:
+    """Resuelve un command template declarado en la policy del target."""
+
+    templates = target.get("allowed_command_templates")
+
+    if not isinstance(templates, list) or not templates:
+        raise CapabilityError(f"El target '{target.get('id')}' no define allowed_command_templates")
+
+    for template in templates:
+        if not isinstance(template, dict) or template.get("id") != command_id:
+            continue
+
+        command = template.get("command")
+        if not isinstance(command, list) or not command:
+            raise CapabilityError(f"El command template '{command_id}' no define un comando valido")
+
+        timeout = template.get("timeout_seconds", 60)
+        if not isinstance(timeout, int) or timeout <= 0:
+            raise CapabilityError(f"El command template '{command_id}' tiene un timeout invalido")
+
+        return [str(part) for part in command], timeout
+
+    raise CapabilityError(
+        f"command-id no registrado en el target '{target.get('id')}': {command_id}"
+    )
+
+
+def resolve_command(args: argparse.Namespace, target: dict) -> tuple[list[str], int, str | None]:
+    """Determina el comando a ejecutar y su timeout.
+
+    El modo por defecto es --command-id contra allowed_command_templates. El
+    comando libre --command solo se permite con --unsafe-command explicito.
+    """
+
+    if args.command_id:
+        command, timeout = resolve_command_template(target, args.command_id)
+        return command, timeout, args.command_id
+
+    if args.command:
+        if not args.unsafe_command:
+            raise CapabilityError(
+                "El comando libre --command esta deshabilitado; usa --command-id, "
+                "o repite con --unsafe-command bajo tu responsabilidad."
+            )
+        ensure_command_allowed(target, args.command)
+        return list(args.command), args.timeout_seconds, None
+
+    raise CapabilityError("Debes indicar --command-id (o --command con --unsafe-command)")
+
+
 def normalize_manual_result(feature_id: str, result_path: Path) -> dict:
     result = load_evidence(result_path)
     status = result.get("status", "BLOCKED")
@@ -100,11 +163,10 @@ def run_local_command(
     command: list[str],
     timeout_seconds: int,
     scope: str,
+    command_id: str | None,
 ) -> dict:
     if not command:
         raise CapabilityError("--command es obligatorio para targets locales")
-
-    ensure_command_allowed(target, command)
 
     started_at = utc_now()
     started = monotonic_seconds()
@@ -153,6 +215,7 @@ def run_local_command(
         "artifacts": [],
         "target": target["id"],
         "target_type": target.get("type"),
+        "command_id": command_id,
         "runtime_job_id": operation_id("EXT-JOB"),
         "command": command,
         "stdout": stdout[-4000:],
@@ -176,11 +239,10 @@ def run_ssh_command(
     timeout_seconds: int,
     scope: str,
     fetch_artifact: str | None,
+    command_id: str | None,
 ) -> dict:
     if not command:
         raise CapabilityError("--command es obligatorio para targets SSH")
-
-    ensure_command_allowed(target, command)
 
     if shutil.which("ssh") is None:
         raise CapabilityError("No existe el binario ssh en PATH")
@@ -257,6 +319,7 @@ def run_ssh_command(
         "artifacts": artifacts,
         "target": target["id"],
         "target_type": target.get("type"),
+        "command_id": command_id,
         "runtime_job_id": runtime_job_id,
         "command": ssh_command,
         "stdout": stdout[-4000:],
@@ -276,21 +339,25 @@ def main() -> int:
         if args.result is not None:
             evidence = normalize_manual_result(args.feature, args.result)
         elif target.get("type") == "local":
+            command, timeout_seconds, command_id = resolve_command(args, target)
             evidence = run_local_command(
                 feature_id=args.feature,
                 target=target,
-                command=args.command or [],
-                timeout_seconds=args.timeout_seconds,
+                command=command,
+                timeout_seconds=timeout_seconds,
                 scope=args.scope,
+                command_id=command_id,
             )
         elif target.get("type") == "ssh":
+            command, timeout_seconds, command_id = resolve_command(args, target)
             evidence = run_ssh_command(
                 feature_id=args.feature,
                 target=target,
-                command=args.command or [],
-                timeout_seconds=args.timeout_seconds,
+                command=command,
+                timeout_seconds=timeout_seconds,
                 scope=args.scope,
                 fetch_artifact=args.fetch_artifact,
+                command_id=command_id,
             )
         else:
             raise CapabilityError(f"Target {args.target} requiere resultado manual con --result")

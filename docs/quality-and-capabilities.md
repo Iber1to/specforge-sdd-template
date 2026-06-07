@@ -143,7 +143,7 @@ Runner:
 python3 scripts/run_external_runtime.py \
   --feature F-001 \
   --target local \
-  --command python3 --version
+  --command-id python-version
 ```
 
 Validador:

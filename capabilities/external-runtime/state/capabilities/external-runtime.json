@@ -11,7 +11,21 @@
       "type": "local",
       "platform": "linux",
       "enabled": true,
-      "capabilities": ["local-command"]
+      "capabilities": ["local-command"],
+      "allowed_command_templates": [
+        {
+          "id": "python-version",
+          "description": "Muestra la version de Python disponible.",
+          "command": ["python3", "--version"],
+          "timeout_seconds": 30
+        },
+        {
+          "id": "pytest-quick",
+          "description": "Ejecuta los tests rapidos del proyecto.",
+          "command": ["uv", "run", "pytest", "-q"],
+          "timeout_seconds": 300
+        }
+      ]
     },
     {
       "id": "manual-drop",
