@@ -327,6 +327,83 @@ def write_python_smoke(output: Path) -> None:
     )
 
 
+def write_harness_suite(output: Path) -> None:
+    """Suite minima del harness, ejecutable offline en el proyecto generado.
+
+    Cubre logica determinista (transiciones por rol, Role Guard) sin depender del
+    plano de control, Claude Code ni red. Se ejecuta con `uv run pytest tests/harness`.
+    """
+
+    harness = output / "tests" / "harness"
+    harness.mkdir(parents=True, exist_ok=True)
+
+    (harness / "conftest.py").write_text(
+        """# Importa los scripts deterministas del harness en la suite minima.
+import sys
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+""",
+        encoding="utf-8",
+    )
+
+    (harness / "test_workflow_transitions.py").write_text(
+        """import pytest
+from control_common import ControlPlaneError, validate_role_for_transition
+
+
+def test_specifier_can_open_spec() -> None:
+    validate_role_for_transition("specifier", "DRAFT", "SPEC_READY")
+
+
+def test_architect_can_mark_ready_for_development() -> None:
+    validate_role_for_transition("architect", "DESIGN_READY", "READY_FOR_DEVELOPMENT")
+
+
+def test_qa_reviewer_can_approve() -> None:
+    validate_role_for_transition("qa-reviewer", "READY_FOR_QA", "APPROVED")
+
+
+def test_implementer_cannot_approve() -> None:
+    with pytest.raises(ControlPlaneError):
+        validate_role_for_transition("implementer", "READY_FOR_QA", "APPROVED")
+
+
+def test_leader_can_block() -> None:
+    validate_role_for_transition("leader", "IN_PROGRESS", "BLOCKED")
+
+
+def test_leader_cannot_advance_spec() -> None:
+    with pytest.raises(ControlPlaneError):
+        validate_role_for_transition("leader", "DRAFT", "SPEC_READY")
+""",
+        encoding="utf-8",
+    )
+
+    (harness / "test_role_guard_basic.py").write_text(
+        """from role_guard import split_command_segments, starts_read_only
+
+
+def test_split_on_shell_operators() -> None:
+    assert split_command_segments("cat x && python evil.py") == ["cat x", "python evil.py"]
+    assert split_command_segments("git diff | head") == ["git diff", "head"]
+
+
+def test_quoted_operator_is_not_split() -> None:
+    assert split_command_segments('git commit -m "a && b"') == ["git commit -m a && b"]
+
+
+def test_read_only_detection() -> None:
+    assert starts_read_only("git status") is True
+    assert starts_read_only("ls") is True
+    assert starts_read_only("python evil.py") is False
+""",
+        encoding="utf-8",
+    )
+
+
 def write_doc(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     body = content.strip() + "\n"
@@ -1268,6 +1345,7 @@ def create_project(config: dict[str, Any]) -> Path:
     install_capability_files(output, config)
     write_project_state(output, config)
     apply_profile(output, config["profile"])
+    write_harness_suite(output)
     apply_documentation_pack(output, config)
     initialize_git(output)
     return output

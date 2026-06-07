@@ -915,6 +915,13 @@ class GeneratorTests(unittest.TestCase):
         )
         self.assertEqual(2, result.returncode)
 
+    def test_generated_project_includes_harness_suite(self) -> None:
+        output = self.generate("generic")
+        harness = output / "tests" / "harness"
+        self.assertTrue((harness / "conftest.py").is_file())
+        self.assertTrue((harness / "test_workflow_transitions.py").is_file())
+        self.assertTrue((harness / "test_role_guard_basic.py").is_file())
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
