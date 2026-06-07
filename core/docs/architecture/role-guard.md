@@ -12,14 +12,18 @@ impide operaciones no autorizadas antes de que se ejecuten.
 
 ### SessionStart
 
-Registra el rol de la sesión principal cuando Claude Code se inicia mediante:
+Registra el rol de la sesión principal. Claude Code reporta la sesión principal
+como `agent_type: "claude"` (no transmite `--agent leader` al hook), por lo que el
+rol se toma de la variable de entorno `CLAUDE_HARNESS_ROLE`, fijada por el operador
+al lanzar:
 
 ```bash
-claude --agent leader
+CLAUDE_HARNESS_ROLE=leader claude --agent leader
 ```
 
-Las sesiones sin agente explícito quedan clasificadas como `unscoped` y no
-pueden utilizar herramientas mutantes.
+Las sesiones sin esa variable quedan clasificadas como `unscoped` y no pueden
+utilizar herramientas mutantes. Los subagentes se identifican por su `agent_type`
+y no dependen de esta variable.
 
 ### PreToolUse
 
@@ -107,7 +111,7 @@ uv run pytest -q tests/unit/test_role_guard.py
 Al iniciar Claude Code:
 
 ```bash
-claude --agent leader
+CLAUDE_HARNESS_ROLE=leader claude --agent leader
 ```
 
 Dentro de la sesión, utiliza `/hooks` para confirmar que aparecen los hooks de

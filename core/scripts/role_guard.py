@@ -290,7 +290,16 @@ def register_session(root: Path, event: dict[str, Any]) -> int:
             existing = {}
 
     supplied_role = event.get("agent_type")
-    role = supplied_role if supplied_role in KNOWN_ROLES else existing.get("role", "unscoped")
+    env_role = os.environ.get("CLAUDE_HARNESS_ROLE", "").strip()
+
+    if supplied_role in KNOWN_ROLES:
+        role = supplied_role
+    elif supplied_role in (None, "claude") and env_role in KNOWN_ROLES:
+        # La sesion principal (claude --agent leader) llega como agent_type "claude";
+        # el rol se toma de CLAUDE_HARNESS_ROLE, fijado por el operador al lanzar.
+        role = env_role
+    else:
+        role = existing.get("role", "unscoped")
 
     payload = {
         "session_id": session_id,

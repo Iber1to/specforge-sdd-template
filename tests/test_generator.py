@@ -1120,6 +1120,41 @@ class GeneratorTests(unittest.TestCase):
         evidence = self.read_capability_evidence(state, "performance-testing")
         self.assertIn("baseline_commit", evidence)
 
+    # --- T-012 resolucion de rol de la sesion principal ---
+
+    def run_session_start(self, output: Path, session_id: str, extra_env: dict) -> None:
+        event = json.dumps(
+            {"hook_event_name": "SessionStart", "session_id": session_id, "agent_type": "claude"}
+        )
+        env = {key: value for key, value in os.environ.items() if key != "CLAUDE_HARNESS_ROLE"}
+        env["CLAUDE_PROJECT_DIR"] = str(output)
+        env.update(extra_env)
+        subprocess.run(
+            [sys.executable, "scripts/role_guard.py"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            input=event,
+            env=env,
+        )
+
+    def registered_role(self, state: dict, session_id: str) -> str:
+        path = Path(state["control_root"]) / "role-sessions" / f"{session_id}.json"
+        return json.loads(path.read_text(encoding="utf-8"))["role"]
+
+    def test_role_guard_registers_leader_from_env(self) -> None:
+        output = self.generate("generic")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.run_session_start(output, "leader-1", {"CLAUDE_HARNESS_ROLE": "leader"})
+        self.assertEqual("leader", self.registered_role(state, "leader-1"))
+
+    def test_role_guard_main_session_without_env_is_unscoped(self) -> None:
+        output = self.generate("generic")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.run_session_start(output, "plain-1", {})
+        self.assertEqual("unscoped", self.registered_role(state, "plain-1"))
+
     def test_generates_git_publish_capability_config(self) -> None:
         output = self.generate("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
