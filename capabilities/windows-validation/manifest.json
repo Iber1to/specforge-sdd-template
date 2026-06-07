@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "capability": "windows-validation",
+  "files": [
+    {
+      "source": "scripts/collect_windows_evidence.py",
+      "target": "scripts/collect_windows_evidence.py"
+    },
+    {
+      "source": "scripts/validate_windows_evidence.py",
+      "target": "scripts/validate_windows_evidence.py"
+    },
+    {
+      "source": "scripts/windows_validation.py",
+      "target": "scripts/windows_validation.py"
+    },
+    {
+      "source": "specs/schemas/windows-evidence.schema.json",
+      "target": "specs/schemas/windows-evidence.schema.json"
+    },
+    {
+      "source": "state/capabilities/windows-validation.json",
+      "target": "state/capabilities/windows-validation.json"
+    },
+    {
+      "source": "docs/windows-runner/evidence-contract.md",
+      "target": "docs/windows-runner/evidence-contract.md"
+    }
+  ]
+}

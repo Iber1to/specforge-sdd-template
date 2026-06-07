@@ -37,10 +37,6 @@ from review_validation import (
     ReviewValidationError,
     validate_review_evidence,
 )
-from windows_validation import (
-    WindowsEvidenceValidationError,
-    validate_windows_evidence,
-)
 from worktree_common import (
     branch_exists,
     current_branch,
@@ -461,12 +457,24 @@ def main() -> int:
         windows_evidence_path: str | None = None
 
         if feature.get("windows_validation_required", False):
-            windows_evidence = validate_windows_evidence(
-                repo_root=worktree,
-                artifact_root=artifact_root,
-                feature=feature,
-                expected_commit=reviewed_commit,
-            )
+            try:
+                from windows_validation import (
+                    WindowsEvidenceValidationError,
+                    validate_windows_evidence,
+                )
+
+                windows_evidence = validate_windows_evidence(
+                    repo_root=worktree,
+                    artifact_root=artifact_root,
+                    feature=feature,
+                    expected_commit=reviewed_commit,
+                )
+            except ImportError as exc:
+                raise FinalizationError(
+                    "windows-validation requiere instalar su capability"
+                ) from exc
+            except WindowsEvidenceValidationError as exc:
+                raise FinalizationError(str(exc)) from exc
 
             windows_evidence_path = str(
                 artifact_root / "windows-tests" / feature["id"] / "latest.json"
@@ -587,7 +595,6 @@ def main() -> int:
         FinalizationError,
         DocumentationValidationError,
         ReviewValidationError,
-        WindowsEvidenceValidationError,
     ) as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 2

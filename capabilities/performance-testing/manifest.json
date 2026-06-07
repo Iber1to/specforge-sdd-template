@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "capability": "performance-testing",
+  "files": [
+    {
+      "source": "scripts/run_performance_gate.py",
+      "target": "scripts/run_performance_gate.py"
+    },
+    {
+      "source": "scripts/validate_performance_result.py",
+      "target": "scripts/validate_performance_result.py"
+    },
+    {
+      "source": "specs/schemas/performance-result.schema.json",
+      "target": "specs/schemas/performance-result.schema.json"
+    },
+    {
+      "source": "state/capabilities/performance-testing.json",
+      "target": "state/capabilities/performance-testing.json"
+    }
+  ]
+}

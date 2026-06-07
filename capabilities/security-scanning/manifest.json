@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "capability": "security-scanning",
+  "files": [
+    {
+      "source": "scripts/run_security_scan.py",
+      "target": "scripts/run_security_scan.py"
+    },
+    {
+      "source": "scripts/validate_security_result.py",
+      "target": "scripts/validate_security_result.py"
+    },
+    {
+      "source": "specs/schemas/security-result.schema.json",
+      "target": "specs/schemas/security-result.schema.json"
+    },
+    {
+      "source": "state/capabilities/security-scanning.json",
+      "target": "state/capabilities/security-scanning.json"
+    }
+  ]
+}

@@ -245,6 +245,25 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue((output / "specs" / "CLAUDE.md").is_file())
         self.assertIn("documentation-pack", state["capabilities"])
         self.assertFalse((output / "specs" / "features" / "F-001-cli-health-check").exists())
+        self.assertFalse((output / "scripts" / "mutation_runner.py").exists())
+        self.assertFalse((output / "scripts" / "mutation_review_validation.py").exists())
+        self.assertFalse((output / "specs" / "schemas" / "mutation-review.schema.json").exists())
+        for relative_path in [
+            "scripts/run_external_runtime.py",
+            "scripts/run_performance_gate.py",
+            "scripts/run_security_scan.py",
+            "scripts/publish_feature.py",
+            "scripts/collect_windows_evidence.py",
+            "scripts/validate_windows_evidence.py",
+            "scripts/windows_validation.py",
+            "state/capabilities/external-runtime.json",
+            "state/capabilities/performance-testing.json",
+            "state/capabilities/security-scanning.json",
+            "state/capabilities/windows-validation.json",
+            "docs/windows-runner/evidence-contract.md",
+        ]:
+            with self.subTest(relative_path=relative_path):
+                self.assertFalse((output / relative_path).exists())
 
     def write_lifecycle_feature_documents(self, output: Path) -> Path:
         feature_root = output / "specs" / "features" / "F-001-deterministic-lifecycle"
@@ -676,10 +695,13 @@ class GeneratorTests(unittest.TestCase):
 
         self.assertIn("external-runtime", state["capabilities"])
         self.assertTrue((output / "state" / "capabilities" / "external-runtime.json").is_file())
+        self.assertTrue((output / "scripts" / "run_external_runtime.py").is_file())
         self.assertTrue(
             (output / "state" / "capabilities" / "performance-testing.json").is_file()
         )
+        self.assertTrue((output / "scripts" / "run_performance_gate.py").is_file())
         self.assertTrue((output / "state" / "capabilities" / "security-scanning.json").is_file())
+        self.assertTrue((output / "scripts" / "run_security_scan.py").is_file())
 
     def test_generates_documentation_pack_structure(self) -> None:
         output = self.generate("generic")
@@ -687,6 +709,7 @@ class GeneratorTests(unittest.TestCase):
             "docs/README.md",
             "docs/00-project/overview.md",
             "docs/00-project/goals-and-scope.md",
+            "docs/00-project/source-of-truth.md",
             "docs/00-project/glossary.md",
             "docs/00-project/roadmap.md",
             "docs/10-architecture/system-context.md",
@@ -746,11 +769,17 @@ class GeneratorTests(unittest.TestCase):
 
         self.assertTrue((output / "docs" / "20-runtime" / "windows-runner.md").is_file())
         self.assertTrue((output / "docs" / "30-quality" / "windows-validation.md").is_file())
+        self.assertTrue((output / "docs" / "windows-runner" / "evidence-contract.md").is_file())
+        self.assertTrue((output / "scripts" / "validate_windows_evidence.py").is_file())
+        self.assertTrue((output / "specs" / "schemas" / "windows-evidence.schema.json").is_file())
 
     def test_generates_python_project(self) -> None:
         output = self.generate("python", "[mutation-testing]")
         self.assertTrue((output / "pyproject.toml").is_file())
         self.assertTrue((output / "docs" / "20-runtime" / "python-environment.md").is_file())
+        self.assertTrue((output / "scripts" / "mutation_runner.py").is_file())
+        self.assertTrue((output / "scripts" / "mutation_review_validation.py").is_file())
+        self.assertTrue((output / "specs" / "schemas" / "mutation-review.schema.json").is_file())
         subprocess.run(
             [sys.executable, "-m", "compileall", "-q", "scripts", "src", "tests"],
             cwd=output,

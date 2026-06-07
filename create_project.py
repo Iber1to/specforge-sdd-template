@@ -141,6 +141,42 @@ def copy_core(output: Path) -> None:
     )
 
 
+def install_capability_files(output: Path, config: dict[str, Any]) -> None:
+    for capability in config["capabilities"]:
+        manifest_path = ROOT / "capabilities" / capability / "manifest.json"
+
+        if not manifest_path.is_file():
+            continue
+
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        files = manifest.get("files", [])
+
+        if not isinstance(files, list):
+            raise ValueError(f"{capability} manifest files must be a list")
+
+        for entry in files:
+            if not isinstance(entry, dict):
+                raise ValueError(f"{capability} manifest file entries must be objects")
+
+            source = entry.get("source")
+            target = entry.get("target")
+
+            if not isinstance(source, str) or not isinstance(target, str):
+                raise ValueError(f"{capability} manifest file entries require source and target")
+
+            source_path = (manifest_path.parent / source).resolve()
+            target_path = (output / target).resolve()
+
+            if manifest_path.parent.resolve() not in source_path.parents:
+                raise ValueError(f"{capability} manifest source escapes capability root: {source}")
+
+            if output.resolve() not in target_path.parents:
+                raise ValueError(f"{capability} manifest target escapes project root: {target}")
+
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, target_path)
+
+
 def write_project_state(output: Path, config: dict[str, Any]) -> None:
     project_id = config["project_id"]
     data_root = (
@@ -292,7 +328,7 @@ def apply_documentation_pack(output: Path, config: dict[str, Any]) -> None:
 This project separates stable project documentation from traceable feature
 documentation and operational evidence.
 
-- `docs/00-project/`: product context, goals, glossary and roadmap.
+- `docs/00-project/`: product context, goals, glossary, roadmap and source-of-truth matrix.
 - `docs/10-architecture/`: consolidated architecture and accepted ADRs.
 - `docs/20-runtime/`: local development, configuration and runtime matrix.
 - `docs/30-quality/`: test strategy, quality gates and capabilities.
@@ -389,6 +425,34 @@ documentation. Heavy artifacts and operational control files live outside Git.
 
 List external services, runtimes, repositories or operators here when they
 become required.
+""",
+    )
+
+    write_doc(
+        docs / "00-project" / "source-of-truth.md",
+        """
+# Source Of Truth
+
+This matrix prevents roadmap, changelog, generated summaries and feature docs
+from becoming competing authorities.
+
+| Information | Authoritative Source | Owner | Notes |
+| --- | --- | --- | --- |
+| Current feature state | `control_root/queue.json` | Harness scripts | Use `scripts/project_status.py` for a readable view. |
+| Feature requirements | `specs/features/<FEATURE>/specification.md` and `acceptance.yaml` | Spec Partner | Feature truth until finalization. |
+| Feature architecture proposal | `specs/features/<FEATURE>/architecture.md` | Architect | Consolidate accepted decisions into ADRs when required. |
+| Stable architecture decisions | `docs/10-architecture/adr/` | Architect | ADRs are stable project documentation. |
+| Runtime and configuration | `state/project.json`, `docs/20-runtime/` | Architect or Implementer | `state/project.json` wins for exact configured paths. |
+| Quality gates | `state/quality-gates.json`, `docs/30-quality/quality-gates.md` | Architect or Capability installer | State is executable; docs explain interpretation. |
+| Capability policy | `state/capabilities/*.json` | Capability installer | Only active capabilities should have policy files. |
+| Lightweight evidence | `evidence/` | Harness scripts | Versioned summaries and review records. |
+| Heavy artifacts | `artifact_root` | Harness scripts | Logs and large outputs stay outside Git. |
+| Exact code changes | Git history | Implementer and Finalizer | Git remains authoritative for diffs. |
+| Human release narrative | `docs/50-releases/changelog.md` | Maintainer | Complements Git; it does not replace Git. |
+| Generated summaries | `docs/90-generated/` | Deterministic scripts | Regenerable and not authoritative. |
+
+`docs/90-generated/` may be deleted and recreated from `state/`, control state,
+`specs/`, `evidence/` and Git without losing project truth.
 """,
     )
 
@@ -1005,6 +1069,7 @@ def create_project(config: dict[str, Any]) -> Path:
     output.mkdir(parents=True)
 
     copy_core(output)
+    install_capability_files(output, config)
     write_project_state(output, config)
     apply_profile(output, config["profile"])
     apply_documentation_pack(output, config)

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "capability": "mutation-testing",
+  "files": [
+    {
+      "source": "scripts/mutation_runner.py",
+      "target": "scripts/mutation_runner.py"
+    },
+    {
+      "source": "scripts/mutation_review_validation.py",
+      "target": "scripts/mutation_review_validation.py"
+    },
+    {
+      "source": "specs/schemas/mutation-review.schema.json",
+      "target": "specs/schemas/mutation-review.schema.json"
+    }
+  ]
+}

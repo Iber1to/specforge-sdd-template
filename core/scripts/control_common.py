@@ -171,6 +171,11 @@ def ensure_nonempty_file(path: Path, label: str) -> None:
         raise ControlPlaneError(f"{label} está vacío: {path}")
 
 
+def mutation_testing_required(feature: dict[str, Any]) -> bool:
+    capabilities = feature.get("capabilities", [])
+    return isinstance(capabilities, list) and "mutation-testing" in capabilities
+
+
 def validate_evidence_for_transition(
     feature: dict[str, Any],
     current_state: str,
@@ -183,11 +188,6 @@ def validate_evidence_for_transition(
             validate_development_readiness,
             validate_specification,
         )
-        from .mutation_review_validation import (
-            MutationReviewValidationError,
-            mutation_testing_required,
-            validate_mutation_review_evidence,
-        )
         from .review_validation import (
             ReviewValidationError,
             validate_review_evidence,
@@ -198,11 +198,6 @@ def validate_evidence_for_transition(
             validate_architecture,
             validate_development_readiness,
             validate_specification,
-        )
-        from mutation_review_validation import (
-            MutationReviewValidationError,
-            mutation_testing_required,
-            validate_mutation_review_evidence,
         )
         from review_validation import (
             ReviewValidationError,
@@ -264,6 +259,17 @@ def validate_evidence_for_transition(
             raise ControlPlaneError("El informe QA no corresponde al commit asignado")
 
         if target_state == "APPROVED" and mutation_testing_required(feature):
+            if __package__:
+                from .mutation_review_validation import (
+                    MutationReviewValidationError,
+                    validate_mutation_review_evidence,
+                )
+            else:
+                from mutation_review_validation import (
+                    MutationReviewValidationError,
+                    validate_mutation_review_evidence,
+                )
+
             try:
                 validate_mutation_review_evidence(root, feature)
             except MutationReviewValidationError as exc:

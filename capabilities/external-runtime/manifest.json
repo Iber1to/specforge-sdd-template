@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "capability": "external-runtime",
+  "files": [
+    {
+      "source": "scripts/run_external_runtime.py",
+      "target": "scripts/run_external_runtime.py"
+    },
+    {
+      "source": "scripts/validate_external_runtime_result.py",
+      "target": "scripts/validate_external_runtime_result.py"
+    },
+    {
+      "source": "specs/schemas/external-runtime-result.schema.json",
+      "target": "specs/schemas/external-runtime-result.schema.json"
+    },
+    {
+      "source": "state/capabilities/external-runtime.json",
+      "target": "state/capabilities/external-runtime.json"
+    }
+  ]
+}

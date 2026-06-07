@@ -61,6 +61,32 @@ specs/schemas/documentation-policy.schema.json
 Generated documentation is explicitly non-authoritative. The source of truth
 remains `state/`, `control_root`, `specs/features/`, `evidence/` and Git.
 
+## Source Of Truth Matrix
+
+Generated projects include:
+
+```text
+docs/00-project/source-of-truth.md
+```
+
+That file declares which source owns each kind of information:
+
+| Information | Authoritative Source |
+| --- | --- |
+| Current feature state | `control_root/queue.json` |
+| Feature requirements | `specs/features/<FEATURE>/` |
+| Stable architecture decisions | `docs/10-architecture/adr/` |
+| Runtime configuration | `state/project.json` |
+| Quality gates | `state/quality-gates.json` |
+| Capability policy | `state/capabilities/*.json` |
+| Lightweight evidence | `evidence/` |
+| Heavy artifacts | `artifact_root` |
+| Exact code changes | Git history |
+| Generated summaries | `docs/90-generated/` |
+
+`docs/90-generated/` is regenerable and must never be treated as the source of
+truth.
+
 ## Finalization Gate
 
 Features can declare documentation requirements in `acceptance.yaml`:
