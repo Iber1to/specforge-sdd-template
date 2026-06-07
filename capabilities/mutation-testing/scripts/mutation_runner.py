@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,32 @@ MUTATION_PATTERNS = (
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+class MutationError(RuntimeError):
+    """Error controlado del runner de mutation testing."""
+
+
+def ensure_clean_worktree(repo_root: Path) -> None:
+    """Mutation testing solo se ejecuta sobre un arbol limpio (diff revisado)."""
+
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=repo_root,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.stdout.strip():
+        raise MutationError(
+            "El worktree tiene cambios sin commitear; mutation testing requiere un "
+            "arbol limpio para mutar solo el diff revisado."
+        )
+
+
+def is_test_file(relative: str) -> bool:
+    name = Path(relative).name
+    return name.startswith("test_") or name.endswith("_test.py") or name == "conftest.py"
 
 
 def _token_pattern(token: str) -> re.Pattern[str]:
@@ -100,6 +127,8 @@ def changed_python_files(repo_root: Path) -> list[Path]:
     for relative in sorted(candidates):
         if not relative.startswith("src/") or not relative.endswith(".py"):
             continue
+        if is_test_file(relative):
+            continue
         path = repo_root / relative
         if path.is_file():
             paths.append(path)
@@ -116,7 +145,9 @@ def collect_python_mutants(
     if scope == "changed_code":
         files = changed_python_files(repo_root)
     elif scope == "all":
-        files = sorted((repo_root / "src").rglob("*.py"))
+        files = [
+            path for path in sorted((repo_root / "src").rglob("*.py")) if not is_test_file(path.name)
+        ]
     else:
         raise ValueError(f"Unsupported mutation scope: {scope}")
 
@@ -159,6 +190,7 @@ def run_mutation_testing(
     """Genera mutantes, ejecuta tests por mutante y restaura archivos."""
 
     root = repo_root.resolve()
+    ensure_clean_worktree(root)
     mutants, scope_files = collect_python_mutants(root, max_mutants=max_mutants, scope=scope)
 
     for mutant in mutants:
@@ -234,14 +266,18 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> int:
     arguments = parse_arguments()
 
-    evidence = run_mutation_testing(
-        repo_root=Path.cwd(),
-        feature_id=arguments.feature,
-        test_command=arguments.test_command,
-        max_mutants=arguments.max_mutants,
-        max_duration_seconds=arguments.max_duration_seconds,
-        scope=arguments.scope,
-    )
+    try:
+        evidence = run_mutation_testing(
+            repo_root=Path.cwd(),
+            feature_id=arguments.feature,
+            test_command=arguments.test_command,
+            max_mutants=arguments.max_mutants,
+            max_duration_seconds=arguments.max_duration_seconds,
+            scope=arguments.scope,
+        )
+    except MutationError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        return 2
 
     output_path = Path(arguments.output).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)

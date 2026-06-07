@@ -1429,6 +1429,10 @@ terms:
             module_path.read_text(encoding="utf-8") + "FLAG = True\n",
             encoding="utf-8",
         )
+        # mutation testing requiere arbol limpio: commitea el cambio en una rama
+        self.assert_command(output, "git", "checkout", "-b", "feature/mutation")
+        self.assert_command(output, "git", "add", "src/test_python_project/__init__.py")
+        self.assert_command(output, "git", "commit", "-m", "feat: add flag")
 
         evidence_path = output / "mutation-evidence.json"
         self.harness_python(
@@ -1454,6 +1458,19 @@ terms:
         self.assertEqual(["src/test_python_project/__init__.py"], evidence["scope_files"])
         self.assertGreaterEqual(evidence["summary"]["generated"], 1)
         self.assertIn("FLAG = True", module_path.read_text(encoding="utf-8"))
+
+    def test_mutation_runner_refuses_dirty_worktree(self) -> None:
+        output = self.generate("python", "[mutation-testing]")
+        module_path = output / "src" / "test_python_project" / "__init__.py"
+        module_path.write_text(
+            module_path.read_text(encoding="utf-8") + "FLAG = True\n",
+            encoding="utf-8",
+        )
+        result = self.run_unchecked_harness(
+            output,
+            "scripts/mutation_runner.py --feature F-001 --output mut.json --max-mutants 5",
+        )
+        self.assertEqual(2, result.returncode)
 
     def test_generates_python_project(self) -> None:
         output = self.generate("python", "[mutation-testing]")
