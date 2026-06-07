@@ -56,7 +56,9 @@ def ensure_clean_worktree(repo_root: Path) -> None:
 
 def is_test_file(relative: str) -> bool:
     name = Path(relative).name
-    return name.startswith("test_") or name.endswith("_test.py") or name == "conftest.py"
+    return (
+        name.startswith("test_") or name.endswith("_test.py") or name == "conftest.py"
+    )
 
 
 def _token_pattern(token: str) -> re.Pattern[str]:
@@ -66,7 +68,9 @@ def _token_pattern(token: str) -> re.Pattern[str]:
     return re.compile(re.escape(token))
 
 
-def generate_mutants(path: str, source: str, *, max_mutants: int) -> list[dict[str, Any]]:
+def generate_mutants(
+    path: str, source: str, *, max_mutants: int
+) -> list[dict[str, Any]]:
     """Genera mutantes deterministas por orden de línea y patrón."""
 
     mutants: list[dict[str, Any]] = []
@@ -121,7 +125,9 @@ def changed_python_files(repo_root: Path) -> list[Path]:
 
     base = git_lines(repo_root, "merge-base", "HEAD", "main")
     if base:
-        candidates.update(git_lines(repo_root, "diff", "--name-only", f"{base[0]}..HEAD"))
+        candidates.update(
+            git_lines(repo_root, "diff", "--name-only", f"{base[0]}..HEAD")
+        )
 
     paths = []
     for relative in sorted(candidates):
@@ -146,7 +152,9 @@ def collect_python_mutants(
         files = changed_python_files(repo_root)
     elif scope == "all":
         files = [
-            path for path in sorted((repo_root / "src").rglob("*.py")) if not is_test_file(path.name)
+            path
+            for path in sorted((repo_root / "src").rglob("*.py"))
+            if not is_test_file(path.name)
         ]
     else:
         raise ValueError(f"Unsupported mutation scope: {scope}")
@@ -157,7 +165,9 @@ def collect_python_mutants(
         if remaining <= 0:
             break
         mutants.extend(
-            generate_mutants(relative, path.read_text(encoding="utf-8"), max_mutants=remaining)
+            generate_mutants(
+                relative, path.read_text(encoding="utf-8"), max_mutants=remaining
+            )
         )
 
     return mutants, [path.relative_to(repo_root).as_posix() for path in files]
@@ -191,7 +201,9 @@ def run_mutation_testing(
 
     root = repo_root.resolve()
     ensure_clean_worktree(root)
-    mutants, scope_files = collect_python_mutants(root, max_mutants=max_mutants, scope=scope)
+    mutants, scope_files = collect_python_mutants(
+        root, max_mutants=max_mutants, scope=scope
+    )
 
     for mutant in mutants:
         path = root / str(mutant["file"])
@@ -212,7 +224,9 @@ def run_mutation_testing(
             mutant["status"] = "survived" if completed.returncode == 0 else "killed"
         except (subprocess.TimeoutExpired, ValueError) as exc:
             mutant["test_command"] = test_command
-            mutant["test_exit_code"] = 124 if isinstance(exc, subprocess.TimeoutExpired) else 2
+            mutant["test_exit_code"] = (
+                124 if isinstance(exc, subprocess.TimeoutExpired) else 2
+            )
             mutant["status"] = "invalid"
             mutant["error"] = str(exc)
         finally:
@@ -229,15 +243,23 @@ def run_mutation_testing(
         "generated_at": utc_now(),
         "summary": {
             "generated": len(mutants),
-            "killed": len([mutant for mutant in mutants if mutant["status"] == "killed"]),
-            "survived": len([mutant for mutant in mutants if mutant["status"] == "survived"]),
-            "invalid": len([mutant for mutant in mutants if mutant["status"] == "invalid"]),
+            "killed": len(
+                [mutant for mutant in mutants if mutant["status"] == "killed"]
+            ),
+            "survived": len(
+                [mutant for mutant in mutants if mutant["status"] == "survived"]
+            ),
+            "invalid": len(
+                [mutant for mutant in mutants if mutant["status"] == "invalid"]
+            ),
         },
         "mutants": mutants,
     }
 
 
-def build_evidence(repo_root: Path, feature_id: str, *, max_mutants: int) -> dict[str, Any]:
+def build_evidence(
+    repo_root: Path, feature_id: str, *, max_mutants: int
+) -> dict[str, Any]:
     return run_mutation_testing(
         repo_root=repo_root,
         feature_id=feature_id,
@@ -254,7 +276,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--output", required=True)
     parser.add_argument("--max-mutants", type=int, default=100)
     parser.add_argument("--max-duration-seconds", type=int, default=600)
-    parser.add_argument("--scope", choices=["changed_code", "all"], default="changed_code")
+    parser.add_argument(
+        "--scope", choices=["changed_code", "all"], default="changed_code"
+    )
     parser.add_argument(
         "--test-command",
         nargs=argparse.REMAINDER,

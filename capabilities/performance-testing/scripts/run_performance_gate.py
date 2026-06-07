@@ -68,7 +68,9 @@ def update_baseline(benchmark_id: str, p95_ms: float, commit: str) -> None:
             benchmark["baseline_p95_ms"] = p95_ms
             benchmark["baseline_commit"] = commit
 
-    path.write_text(json.dumps(policy, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(policy, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def percentile_95(values: list[float]) -> float:
@@ -80,7 +82,9 @@ def percentile_95(values: list[float]) -> float:
     return ordered[index]
 
 
-def run_once(command: list[str], timeout_seconds: int) -> tuple[int, float, bool, str, str]:
+def run_once(
+    command: list[str], timeout_seconds: int
+) -> tuple[int, float, bool, str, str]:
     started = time.perf_counter()
 
     try:
@@ -92,7 +96,13 @@ def run_once(command: list[str], timeout_seconds: int) -> tuple[int, float, bool
             check=False,
         )
         elapsed_ms = (time.perf_counter() - started) * 1000
-        return completed.returncode, elapsed_ms, False, completed.stdout, completed.stderr
+        return (
+            completed.returncode,
+            elapsed_ms,
+            False,
+            completed.stdout,
+            completed.stderr,
+        )
     except subprocess.TimeoutExpired as exc:
         elapsed_ms = (time.perf_counter() - started) * 1000
         return 124, elapsed_ms, True, exc.stdout or "", exc.stderr or ""
@@ -150,7 +160,9 @@ def main() -> int:
         last_stderr = ""
 
         for index in range(measured_runs):
-            exit_code, elapsed_ms, timed_out, stdout, stderr = run_once(command, timeout_seconds)
+            exit_code, elapsed_ms, timed_out, stdout, stderr = run_once(
+                command, timeout_seconds
+            )
             durations.append(elapsed_ms)
             last_stdout = stdout
             last_stderr = stderr
@@ -187,8 +199,12 @@ def main() -> int:
             regression_failed = stats["p95_ms"] > regression_budget_ms
 
         status = "PASSED"
-        if failed_runs or timed_out_runs or (
-            (budget_failed or regression_failed) and policy.get("mode") == "enforce"
+        if (
+            failed_runs
+            or timed_out_runs
+            or (
+                (budget_failed or regression_failed) and policy.get("mode") == "enforce"
+            )
         ):
             status = "FAILED"
 
