@@ -1267,13 +1267,7 @@ class GeneratorTests(unittest.TestCase):
     def test_refreshes_generated_documentation(self) -> None:
         output = self.generate("generic")
 
-        subprocess.run(
-            [sys.executable, "scripts/refresh_project_docs.py"],
-            cwd=output,
-            check=True,
-            text=True,
-            capture_output=True,
-        )
+        self.harness_python(output, "scripts/refresh_project_docs.py")
 
         for relative_path in [
             "docs/90-generated/project-status.md",
