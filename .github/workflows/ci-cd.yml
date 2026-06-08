@@ -64,19 +64,44 @@ jobs:
       - name: Template deterministic test suite
         shell: bash
         run: |
-          set -o pipefail
-          python3 -m unittest discover -s tests -v 2>&1 | tee template-suite.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            {
-              echo "### Template suite failure"
-              echo
-              echo '```text'
-              tail -n 220 template-suite.log
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-          exit "$status"
+          python3 - <<'PY'
+          import os
+          import sys
+          import unittest
+
+
+          def escape_annotation(value: str) -> str:
+              return (
+                  value.replace("%", "%25")
+                  .replace("\r", "%0D")
+                  .replace("\n", "%0A")
+              )
+
+
+          suite = unittest.defaultTestLoader.discover("tests")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+
+          if result.wasSuccessful():
+              raise SystemExit(0)
+
+          failures = [*result.failures, *result.errors]
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as summary:
+                  summary.write("### Template suite failure\n\n")
+                  for test, traceback_text in failures:
+                      summary.write(f"- `{test.id()}`\n")
+                      summary.write("\n```text\n")
+                      summary.write(traceback_text[-4000:])
+                      summary.write("\n```\n")
+
+          for test, traceback_text in failures:
+              message = escape_annotation(traceback_text[-1800:])
+              print(f"::error title={test.id()}::{message}")
+
+          raise SystemExit(1)
+          PY
 
   generated-project-smoke:
     name: Generated project smoke (${{ matrix.profile }})

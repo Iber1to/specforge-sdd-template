@@ -65,6 +65,10 @@ python3 -m compileall -q create_project.py tests core/scripts capabilities
 python3 -m unittest discover -s tests -v
 ```
 
+En GitHub Actions se ejecuta mediante un runner `unittest` embebido que conserva
+la misma semantica y, si hay fallo, escribe el test y traceback resumido en el
+job summary y emite anotaciones `::error`.
+
 ### Generated project smoke
 
 Genera proyectos temporales y ejecuta su verificacion completa.
