@@ -141,6 +141,7 @@ Guia completa (incluido `mosh`, observacion y recuperacion) en
 | [architecture/role-guard.md](core/docs/architecture/role-guard.md) | Role Guard y resolucion de rol |
 | [naming-and-contracts.md](docs/naming-and-contracts.md) | Vocabulario canonico de contratos JSON |
 | [language-and-style.md](docs/language-and-style.md) | Convencion de idioma y estilo |
+| [roadmap.md](docs/roadmap.md) | Roadmap vivo post-`v1.0`: que viene en Now / Next / Later |
 | [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
 
 ---
@@ -152,7 +153,8 @@ workflow + Role Guard + gates + plano de control, y capabilities
 `documentation-pack`, `mutation-testing` (python), `performance-testing`,
 `security-scanning`, `git-publish`, `external-runtime`. Experimental:
 `windows-validation` (codigo listo y cubierto offline; pendiente validar en
-Windows real). Ver [`CHANGELOG.md`](CHANGELOG.md).
+Windows real). Ver [`CHANGELOG.md`](CHANGELOG.md) para el historial y
+[`roadmap.md`](docs/roadmap.md) para lo que viene (Now / Next / Later).
 
 ---
 
