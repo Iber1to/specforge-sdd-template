@@ -54,6 +54,27 @@ verde.
 - **Done when.** Un solo termino en todo el plano de control y las evidencias, con
   un test que lo fije.
 
+### Smoke de carga del harness en Claude Code (proyecto generado)  (`T-014`)
+
+- **Por que.** La suite offline y el job *Generated project smoke* validan que el
+  template genera proyectos operables, pero el CI no ejecuta Claude Code (contrato
+  en [`ci-cd.md`](ci-cd.md)). Que Claude Code **cargue de verdad** el harness, los
+  agentes y los hooks sobre un proyecto generado solo se comprueba en una sesion
+  real; hoy es deuda manual sin cubrir.
+- **Que falta.** Documentar el procedimiento manual como runbook
+  (`harness-load-runbook.md`) con la carga de agentes (`claude agents`), arranque
+  del Leader (`--agent leader`), bloqueo del Role Guard en vivo y subagente real;
+  opcionalmente, automatizar la parte **sin Claude** (checks de `.claude/agents/*`,
+  `hooks` de `settings.json`, wrapper `hook_entrypoint.sh`, `project_status.py` /
+  `metrics_status.py`) dentro de `verify_full.sh` como smoke **no bloqueante**. Se
+  ejecuta sobre un proyecto generado, nunca sobre el repo del template.
+- **Done when.** Sobre un proyecto generado: Claude arranca con `--agent leader`;
+  `claude agents` lista los agentes del proyecto (`leader`, `specifier`,
+  `architect`, `implementer`, `qa-reviewer` y los de capabilities instaladas);
+  `project_status.py` corre desde el Leader; los hooks no fallan; el Role Guard
+  bloquea una escritura no autorizada; `SubagentStart`/`SubagentStop` generan
+  metrica; y `git status` queda limpio al salir.
+
 ---
 
 ## Next — planificado
