@@ -17,8 +17,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   PYTHONDONTWRITEBYTECODE: "1"
   UV_PYTHON_DOWNLOADS: never
+  UV_VERSION: "0.11.19"
 
 jobs:
   template-suite:
@@ -44,6 +46,12 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: ${{ env.UV_VERSION }}
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "SpecForge CI"
+          git config --global user.email "specforge-ci@example.invalid"
 
       - name: Environment preflight
         run: python3 core/scripts/check_environment.py --profile node
@@ -54,7 +62,21 @@ jobs:
           python3 -m compileall -q create_project.py tests core/scripts capabilities
 
       - name: Template deterministic test suite
-        run: python3 -m unittest discover -s tests -v
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tests -v 2>&1 | tee template-suite.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            {
+              echo "### Template suite failure"
+              echo
+              echo '```text'
+              tail -n 220 template-suite.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
 
   generated-project-smoke:
     name: Generated project smoke (${{ matrix.profile }})
@@ -90,6 +112,12 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: ${{ env.UV_VERSION }}
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "SpecForge CI"
+          git config --global user.email "specforge-ci@example.invalid"
 
       - name: Generate project and run full verification
         shell: bash

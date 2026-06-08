@@ -44,21 +44,22 @@ Pasos:
 1. Checkout del repo.
 2. Python 3.12.
 3. Node 22, necesario para validar el perfil `node`.
-4. `uv`.
-5. Preflight:
+4. `uv` fijado a la version usada para validar el template localmente.
+5. Identidad Git local para tests que crean commits temporales.
+6. Preflight:
 
 ```bash
 python3 core/scripts/check_environment.py --profile node
 ```
 
-6. Integridad estatica:
+7. Integridad estatica:
 
 ```bash
 git diff --check
 python3 -m compileall -q create_project.py tests core/scripts capabilities
 ```
 
-7. Suite determinista:
+8. Suite determinista:
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -100,6 +101,19 @@ Acciones:
 - marca como prerelease si el tag contiene `internal`, `alpha`, `beta` o `rc`.
 
 No necesita secretos propios: usa `GITHUB_TOKEN`.
+
+## Versiones Fijadas
+
+El workflow fija:
+
+| Herramienta | Version |
+|---|---|
+| Python | `3.12` |
+| Node | `22` |
+| uv | `0.11.19` |
+
+Tambien define `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` para anticipar la
+migracion de GitHub Actions desde Node 20 a Node 24.
 
 ## Politica De Ramas
 
