@@ -1,0 +1,38 @@
+name: Setup toolchain
+description: Set up Python, Node, uv (cached) and a CI Git identity.
+
+inputs:
+  python-version:
+    description: Python version to install.
+    default: "3.12"
+  node-version:
+    description: Node version to install.
+    default: "22"
+  uv-version:
+    description: uv version to install.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        version: ${{ inputs.uv-version }}
+
+    - name: Configure Git identity
+      shell: bash
+      run: |
+        git config --global user.name "SpecForge CI"
+        git config --global user.email "specforge-ci@example.invalid"

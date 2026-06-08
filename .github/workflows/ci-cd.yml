@@ -23,6 +23,35 @@ env:
   UV_VERSION: "0.11.19"
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: ${{ env.UV_VERSION }}
+
+      - name: Ruff critical-error check
+        run: >-
+          uvx ruff check
+          --output-format=github
+          --select=E9,F63,F7,F82
+          create_project.py tests core/scripts capabilities
+
   template-suite:
     name: Template suite
     runs-on: ubuntu-24.04
@@ -31,27 +60,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          persist-credentials: false
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup toolchain
+        uses: ./.github/actions/setup
         with:
-          node-version: "22"
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Configure Git identity
-        run: |
-          git config --global user.name "SpecForge CI"
-          git config --global user.email "specforge-ci@example.invalid"
+          uv-version: ${{ env.UV_VERSION }}
 
       - name: Environment preflight
         run: python3 core/scripts/check_environment.py --profile node
@@ -122,27 +137,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          persist-credentials: false
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup toolchain
+        uses: ./.github/actions/setup
         with:
-          node-version: "22"
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          version: ${{ env.UV_VERSION }}
-
-      - name: Configure Git identity
-        run: |
-          git config --global user.name "SpecForge CI"
-          git config --global user.email "specforge-ci@example.invalid"
+          uv-version: ${{ env.UV_VERSION }}
 
       - name: Generate project and run full verification
         shell: bash
@@ -151,6 +152,7 @@ jobs:
           tmpdir="$(mktemp -d)"
           project_id="ci-${{ matrix.profile }}-project"
           output_path="$tmpdir/$project_id"
+          echo "PROJECT_DIR=$output_path" >> "$GITHUB_ENV"
 
           cat > "$tmpdir/project.yaml" <<YAML
           project_id: $project_id
@@ -165,10 +167,20 @@ jobs:
           python3 scripts/check_environment.py --profile "${{ matrix.profile }}"
           bash scripts/verify_full.sh
 
+      - name: Upload generated project on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-${{ matrix.profile }}
+          path: ${{ env.PROJECT_DIR }}
+          if-no-files-found: warn
+          retention-days: 7
+
   release:
     name: Publish GitHub release
     runs-on: ubuntu-24.04
     needs:
+      - lint
       - template-suite
       - generated-project-smoke
     if: startsWith(github.ref, 'refs/tags/v')
@@ -179,6 +191,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build release notes from CHANGELOG
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          notes_file="$(mktemp)"
+          tag_plain="${TAG_NAME#v}"
+
+          # 1) Prefer a CHANGELOG section whose header mentions the tag.
+          awk -v tag="$TAG_NAME" -v tagp="$tag_plain" '
+            /^## / {
+              if (capture) exit
+              if (index($0, tag) || index($0, tagp)) { capture = 1; next }
+            }
+            capture { print }
+          ' CHANGELOG.md > "$notes_file"
+
+          # 2) Fallback: the most recent (top) section.
+          if [ ! -s "$notes_file" ]; then
+            awk '
+              /^## / { sec++; if (sec == 1) next; if (sec > 1) exit }
+              sec == 1 { print }
+            ' CHANGELOG.md > "$notes_file"
+          fi
+
+          # 3) Fallback: the whole changelog.
+          if [ ! -s "$notes_file" ]; then
+            cp CHANGELOG.md "$notes_file"
+          fi
+
+          echo "NOTES_FILE=$notes_file" >> "$GITHUB_ENV"
 
       - name: Create or update release
         env:
@@ -196,11 +243,11 @@ jobs:
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release edit "$TAG_NAME" \
               --title "SpecForge SDD Template $TAG_NAME" \
-              --notes-file CHANGELOG.md \
+              --notes-file "$NOTES_FILE" \
               "${prerelease_flag[@]}"
           else
             gh release create "$TAG_NAME" \
               --title "SpecForge SDD Template $TAG_NAME" \
-              --notes-file CHANGELOG.md \
+              --notes-file "$NOTES_FILE" \
               "${prerelease_flag[@]}"
           fi
