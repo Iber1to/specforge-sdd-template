@@ -14,7 +14,7 @@ durable, Role Guard, quality gates y capabilities opcionales.
 > Settings y pulsa **"Use this template"** para arrancar uno nuevo. O clona y
 > genera con `create_project.py` (ver Quickstart).
 
-> **Primera vez?** Empieza por **[De Cero a Hero](docs/zero-to-hero.md)**: del
+> **Primera vez?** Empieza por **[De Zero a Hero](docs/zero-to-hero.md)**: del
 > clone de GitHub a operar en semiautomatico, paso a paso.
 
 ---
