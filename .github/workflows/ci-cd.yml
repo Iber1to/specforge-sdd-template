@@ -1,0 +1,153 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  UV_PYTHON_DOWNLOADS: never
+
+jobs:
+  template-suite:
+    name: Template suite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Environment preflight
+        run: python3 core/scripts/check_environment.py --profile node
+
+      - name: Static integrity checks
+        run: |
+          git diff --check
+          python3 -m compileall -q create_project.py tests core/scripts capabilities
+
+      - name: Template deterministic test suite
+        run: python3 -m unittest discover -s tests -v
+
+  generated-project-smoke:
+    name: Generated project smoke (${{ matrix.profile }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: generic
+            capabilities: "[]"
+          - profile: python
+            capabilities: "[mutation-testing]"
+          - profile: node
+            capabilities: "[]"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Generate project and run full verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          project_id="ci-${{ matrix.profile }}-project"
+          output_path="$tmpdir/$project_id"
+
+          cat > "$tmpdir/project.yaml" <<YAML
+          project_id: $project_id
+          name: CI ${{ matrix.profile }} Project
+          output_path: $output_path
+          profile: ${{ matrix.profile }}
+          capabilities: ${{ matrix.capabilities }}
+          YAML
+
+          python3 create_project.py --config "$tmpdir/project.yaml"
+          cd "$output_path"
+          python3 scripts/check_environment.py --profile "${{ matrix.profile }}"
+          bash scripts/verify_full.sh
+
+  release:
+    name: Publish GitHub release
+    runs-on: ubuntu-24.04
+    needs:
+      - template-suite
+      - generated-project-smoke
+    if: startsWith(github.ref, 'refs/tags/v')
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          prerelease_flag=()
+          if [[ "$TAG_NAME" == *internal* || "$TAG_NAME" == *alpha* || "$TAG_NAME" == *beta* || "$TAG_NAME" == *rc* ]]; then
+            prerelease_flag=(--prerelease)
+          fi
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release edit "$TAG_NAME" \
+              --title "SpecForge SDD Template $TAG_NAME" \
+              --notes-file CHANGELOG.md \
+              "${prerelease_flag[@]}"
+          else
+            gh release create "$TAG_NAME" \
+              --title "SpecForge SDD Template $TAG_NAME" \
+              --notes-file CHANGELOG.md \
+              "${prerelease_flag[@]}"
+          fi

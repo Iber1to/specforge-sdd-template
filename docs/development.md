@@ -14,15 +14,14 @@ El template se valida principalmente con `unittest`; los proyectos generados usa
 
 ## Estructura De Trabajo
 
-Rutas relevantes en `jarvis`:
+Ruta principal en `jarvis`:
 
 ```text
-/srv/agentic/workspace/desktop-overlay-assistant   harness fuente
 /srv/agentic/workspace/agentic-sdd-template        template
-/srv/agentic/workspace/test-generic-project        proyecto generado de prueba
-/srv/agentic/workspace/test-python-project         proyecto generado de prueba
-/srv/agentic/workspace/test-node-project           proyecto generado de prueba
 ```
+
+Los proyectos de prueba deben generarse en directorios temporales o sandboxes
+locales. No se conservan como parte estable del workspace.
 
 ## Ejecutar Tests Del Template
 
@@ -58,13 +57,15 @@ python3 scripts/project_status.py
 
 ## Modificar `core/`
 
-`core/` debe permanecer alineado con el harness fuente. Para cambios de comportamiento:
+`core/` es ahora la fuente estable del harness dentro del template. Para cambios
+de comportamiento:
 
-1. Implementar y validar primero en `/srv/agentic/workspace/desktop-overlay-assistant`.
-2. Sincronizar los archivos necesarios dentro de `agentic-sdd-template/core`.
-3. Ejecutar tests del template.
-4. Regenerar proyectos de prueba si el cambio afecta lifecycle, scripts, specs, gates, agentes o state.
-5. Completar una feature real en al menos un proyecto generado si el cambio toca flujo operativo.
+1. Implementar el cambio en `agentic-sdd-template/core`.
+2. Ejecutar tests del template.
+3. Generar proyectos temporales si el cambio afecta lifecycle, scripts, specs,
+   gates, agentes o state.
+4. Completar una feature real en al menos un proyecto generado si el cambio toca
+   flujo operativo.
 
 No edites manualmente `data/<project_id>/control` salvo para inspeccion. El estado operativo debe cambiar mediante scripts deterministas.
 
@@ -93,6 +94,7 @@ Si una capability se activa por feature, verifica que `register_feature.py` acep
 ## Checklist Antes De Commit
 
 ```bash
+python3 core/scripts/check_environment.py --profile node
 python3 -m unittest discover -s tests -v
 git status --short
 git diff --check
@@ -115,6 +117,19 @@ Un cambio grande del template esta listo cuando:
 - Las capacidades afectadas tienen README actualizado.
 - `docs/estado-y-roadmap-harness-agentico.md` o el documento de decision correspondiente refleja el cambio si altera el roadmap o contratos.
 - El repo queda limpio antes del commit.
+
+## CI/CD
+
+El ciclo automatizado vive en `.github/workflows/ci-cd.yml` y esta documentado
+en `docs/ci-cd.md`.
+
+Resumen:
+
+- PR y push a `main`: preflight, integridad estatica, suite del template y smoke
+  de proyectos generados.
+- Tags `v*`: los mismos checks y, si pasan, publicacion/actualizacion de GitHub
+  Release usando `CHANGELOG.md`.
+- No ejecuta Claude Code ni runners Windows reales.
 
 ## Convenciones De Documentacion
 

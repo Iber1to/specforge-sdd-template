@@ -5,6 +5,7 @@ Spec-Driven Development** para Claude Code: roles gobernados, plano de control
 durable, Role Guard, quality gates y capabilities opcionales.
 
 ![status](https://img.shields.io/badge/status-v1.0--internal-blue)
+![ci](https://github.com/Iber1to/specforge-sdd-template/actions/workflows/ci-cd.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.12-blue)
 ![platform](https://img.shields.io/badge/platform-linux-lightgrey)
 ![tests](https://img.shields.io/badge/tests-48%20passing-brightgreen)
@@ -133,6 +134,7 @@ Guia completa (incluido `mosh`, observacion y recuperacion) en
 |---|---|
 | [zero-to-hero.md](docs/zero-to-hero.md) | Manual de operacion de cero a semiautomatico (empieza aqui) |
 | [leader-operation.md](docs/leader-operation.md) | Operar el leader persistente y autonomo |
+| [ci-cd.md](docs/ci-cd.md) | Ciclo CI/CD, checks, release y configuracion GitHub |
 | [profile-capability-matrix.md](docs/profile-capability-matrix.md) | Combinaciones perfil x capability |
 | [real-validation-runbook.md](docs/real-validation-runbook.md) | Validacion real Windows / SSH |
 | [architecture/harness-contract.md](core/docs/architecture/harness-contract.md) | Contrato operativo del harness |
