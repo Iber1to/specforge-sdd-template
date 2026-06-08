@@ -960,20 +960,37 @@ class GeneratorTests(unittest.TestCase):
     def test_git_publish_redacts_remote_credentials(self) -> None:
         output = self.run_generated_project_lifecycle("generic", "[git-publish]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        bare = self.root / "remote-credential-redaction.git"
+        subprocess.run(
+            ["git", "init", "--bare", str(bare)],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
         self.assert_command(
             output,
             "git",
             "remote",
             "add",
             "origin",
-            "https://user:s3cr3t@invalid.example/repo.git",
+            f"file://user:s3cr3t@localhost{bare}",
         )
-        self.run_unchecked_harness(
+        self.harness_python(
             output,
-            "scripts/publish_feature.py --feature F-001 --mode push --remote origin --branch main",
+            "scripts/publish_feature.py",
+            "--feature",
+            "F-001",
+            "--mode",
+            "push",
+            "--remote",
+            "origin",
+            "--branch",
+            "main",
         )
         evidence_path = Path(state["artifact_root"]) / "git-publish" / "F-001" / "latest.json"
         evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        self.assertEqual("PASS", evidence["status"])
+        self.assertEqual("PUBLISHED", evidence["publication_status"])
         self.assertNotIn("s3cr3t", json.dumps(evidence))
 
     def test_external_runtime_ssh_guards_offline(self) -> None:
