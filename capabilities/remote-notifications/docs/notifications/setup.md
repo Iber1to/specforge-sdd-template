@@ -26,7 +26,9 @@ Las credenciales viven **fuera del repositorio**. Nunca se versionan.
 curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates" | jq '.result[-1].message.chat.id'
 ```
 
-4. Crea el archivo de credenciales en la máquina donde corre el leader:
+4. Crea el archivo de credenciales en la máquina donde corre el leader (las
+   variables de entorno `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` tienen prioridad
+   sobre el archivo; la ruta es configurable vía `credentials_file` en la política):
 
 ```bash
 mkdir -p ~/.config/agentic-harness
@@ -49,20 +51,31 @@ uv run python scripts/notify.py --event info --message "Prueba de notificaciones
 bash scripts/run_gateway.sh
 ```
 
+El gateway corre en su propia sesión tmux (`notify-gateway`; configurable con
+la variable `GATEWAY_TMUX_SESSION`). Reconecta con `tmux attach -t notify-gateway`.
+
 Desde Telegram: `/ping`, `/status`, `/tail 60`, `/help`. Cualquier otro texto
 se inyecta como prompt en la sesión tmux del leader (`tmux_session` en la
 política). Solo se atiende el `chat_id` autorizado; el resto se ignora y se
-registra en stderr.
+registra en stderr. Al arrancar se descarta el backlog de mensajes pendientes
+para no reprocesar mensajes antiguos.
 
 ## Política
 
 `state/capabilities/remote-notifications.json`:
 
 - `enabled`: interruptor global.
+- `transport`: canal de envío; hoy solo `telegram`.
 - `roles`: roles cuyos hooks notifican (defecto `["leader"]`).
 - `events`: activa/desactiva por tipo (`stop` y `notification` son los
   automáticos de hooks; `blocked`/`completed`/`attention`/`info` los explícitos).
-- `debounce_seconds`: silencio mínimo entre eventos automáticos.
+- `debounce_seconds`: silencio mínimo entre eventos automáticos (defecto 60).
+- `credentials_file`: ruta del archivo de credenciales (defecto
+  `~/.config/agentic-harness/telegram.env`).
+- `tmux_session`: sesión tmux del leader donde `/tail` lee y se inyectan prompts
+  (defecto `leader`).
+- `gateway.enabled`: interruptor del gateway bidireccional.
+- `gateway.poll_timeout_seconds`: timeout del long-polling (defecto 50).
 - `gateway.allow_text_injection`: permite o no inyectar prompts vía tmux.
 
 ## Garantías

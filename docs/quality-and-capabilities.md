@@ -330,6 +330,53 @@ Reglas de bloqueo:
 - Por defecto, `merged_commit` debe ser exactamente `HEAD` para evitar publicar commits posteriores por accidente.
 - `dry_run` y `push` requieren un remote Git existente.
 
+## Capability: Remote Notifications
+
+Activacion de proyecto:
+
+```yaml
+capabilities: [remote-notifications]
+```
+
+Objetivo:
+
+- avisar por Telegram cuando el leader se detiene, bloquea una feature o
+  completa el trabajo (`scripts/notify.py`, instruido en `leader.md`)
+- red de seguridad determinista via hooks `Stop`/`Notification` de Claude Code
+  (`scripts/notify_hook.py` a traves de `hook_entrypoint.sh notify`; no-op si la
+  capability no esta instalada)
+- gateway bidireccional opcional (`scripts/telegram_gateway.py`): `/status`,
+  `/tail` y texto libre inyectado como prompt en la sesion tmux del leader
+
+Notificacion explicita:
+
+```bash
+uv run python scripts/notify.py --event blocked --feature F-001 --message "<motivo>"
+```
+
+Gateway (sesion tmux persistente):
+
+```bash
+bash scripts/run_gateway.sh
+```
+
+Politica:
+
+```text
+state/capabilities/remote-notifications.json
+```
+
+Reglas:
+
+- Fail-soft: una notificacion fallida nunca bloquea el harness (exit 0 salvo
+  `--strict`).
+- Credenciales fuera de Git (`~/.config/agentic-harness/telegram.env`); el token
+  se redacta en errores.
+- Solo el `chat_id` autorizado puede hablar con el gateway.
+
+Setup completo: `docs/notifications/setup.md` (en el proyecto generado) o
+`capabilities/remote-notifications/docs/notifications/setup.md` (en el template).
+
 ## Perfil Node Y Gates Adicionales
 
 El perfil `node` agrega gates especificos:

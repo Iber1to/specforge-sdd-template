@@ -78,7 +78,8 @@ Debe terminar en `[OK] Entorno preparado.` (exit 0). Si falta algo, lo lista con
 - **Plano de control** (fuera de Git, en `control_root`): `queue.json`,
   `leases/`, `runs/`. Es **durable**: si una sesion muere, el estado sobrevive.
 - **Quality gates** y **capabilities** opcionales (security, performance,
-  mutation, windows-validation, external-runtime, git-publish).
+  mutation, windows-validation, external-runtime, git-publish,
+  remote-notifications).
 
 Solo `scripts/finalize_feature.py` puede pasar una feature a `DONE`, y solo tras
 gates verdes y evidencia valida.
