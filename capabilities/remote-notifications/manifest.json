@@ -29,6 +29,10 @@
     {
       "source": "docs/notifications/setup.md",
       "target": "docs/notifications/setup.md"
+    },
+    {
+      "source": "tests/harness/test_remote_notifications.py",
+      "target": "tests/harness/test_remote_notifications.py"
     }
   ]
 }
