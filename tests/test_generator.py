@@ -1560,6 +1560,138 @@ terms:
         )
         subprocess.run(["npm", "test"], cwd=output, check=True, text=True, capture_output=True)
 
+    # --- capability remote-notifications ---
+
+    REMOTE_NOTIFICATION_FILES = [
+        "scripts/notify_common.py",
+        "scripts/notify.py",
+        "scripts/notify_hook.py",
+        "scripts/telegram_gateway.py",
+        "scripts/run_gateway.sh",
+        "state/capabilities/remote-notifications.json",
+        "docs/notifications/setup.md",
+        "tests/harness/test_remote_notifications.py",
+    ]
+
+    def hermetic_notify_policy(self, output: Path) -> None:
+        """Politica hermetica: sin credenciales reales del runner y sin debounce."""
+
+        policy_path = output / "state" / "capabilities" / "remote-notifications.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        policy["credentials_file"] = str(output / "missing-credentials.env")
+        policy["debounce_seconds"] = 0
+        policy_path.write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
+
+    def notify_environment(self, output: Path, role: str | None = None) -> dict[str, str]:
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("TELEGRAM_") and key != "CLAUDE_HARNESS_ROLE"
+        }
+        env["CLAUDE_PROJECT_DIR"] = str(output)
+
+        if role is not None:
+            env["CLAUDE_HARNESS_ROLE"] = role
+
+        return env
+
+    def test_generates_remote_notifications_capability(self) -> None:
+        output = self.generate("generic", "[remote-notifications]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        self.assertIn("remote-notifications", state["capabilities"])
+
+        for relative_path in self.REMOTE_NOTIFICATION_FILES:
+            with self.subTest(relative_path=relative_path):
+                self.assertTrue((output / relative_path).is_file())
+
+        result = subprocess.run(
+            ["bash", "-n", str(output / "scripts" / "run_gateway.sh")],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(0, result.returncode)
+
+    def test_generic_project_excludes_remote_notifications_files(self) -> None:
+        output = self.generate("generic")
+
+        for relative_path in self.REMOTE_NOTIFICATION_FILES:
+            with self.subTest(relative_path=relative_path):
+                self.assertFalse((output / relative_path).exists())
+
+        # Sin la capability instalada, el hook notify es un no-op (exit 0).
+        event = json.dumps({"hook_event_name": "Stop", "session_id": "s1"})
+        result = subprocess.run(
+            ["bash", "scripts/hook_entrypoint.sh", "notify"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            input=event,
+            env=self.notify_environment(output, role="leader"),
+        )
+        self.assertEqual(0, result.returncode)
+
+    def test_notify_is_fail_soft_without_credentials(self) -> None:
+        output = self.generate("generic", "[remote-notifications]")
+        self.hermetic_notify_policy(output)
+        command = [
+            sys.executable,
+            "scripts/notify.py",
+            "--event",
+            "info",
+            "--message",
+            "fixture",
+        ]
+
+        soft = subprocess.run(
+            command,
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            env=self.notify_environment(output),
+        )
+        self.assertEqual(0, soft.returncode)
+        self.assertIn("[ERROR]", soft.stderr)
+
+        strict = subprocess.run(
+            [*command, "--strict"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            env=self.notify_environment(output),
+        )
+        self.assertEqual(2, strict.returncode)
+
+    def test_notify_hook_filters_by_role_and_never_blocks(self) -> None:
+        output = self.generate("generic", "[remote-notifications]")
+        self.hermetic_notify_policy(output)
+        event = json.dumps({"hook_event_name": "Stop", "session_id": "s1"})
+
+        def run_hook(role: str | None) -> subprocess.CompletedProcess[str]:
+            return subprocess.run(
+                ["bash", "scripts/hook_entrypoint.sh", "notify"],
+                cwd=output,
+                check=False,
+                text=True,
+                capture_output=True,
+                input=event,
+                env=self.notify_environment(output, role=role),
+            )
+
+        # Rol no autorizado: silencio total antes de tocar credenciales.
+        unscoped = run_hook(role=None)
+        self.assertEqual(0, unscoped.returncode)
+        self.assertNotIn("[ERROR]", unscoped.stderr)
+
+        # Rol leader sin credenciales: informa en stderr pero nunca bloquea.
+        leader = run_hook(role="leader")
+        self.assertEqual(0, leader.returncode)
+        self.assertIn("[ERROR]", leader.stderr)
+
     def test_project_id_pattern_documents_slug_contract(self) -> None:
         self.assertIsNotNone(re.fullmatch(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", "valid-id"))
         self.assertIsNone(re.fullmatch(r"^[a-z0-9]+(?:-[a-z0-9]+)*$", "Invalid_Id"))

@@ -19,6 +19,7 @@ CAPABILITIES = {
     "git-publish",
     "mutation-testing",
     "performance-testing",
+    "remote-notifications",
     "security-scanning",
     "windows-validation",
 }

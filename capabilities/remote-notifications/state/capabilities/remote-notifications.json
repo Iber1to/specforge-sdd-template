@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "mode": "observe",
+  "transport": "telegram",
+  "roles": ["leader"],
+  "events": {
+    "blocked": true,
+    "completed": true,
+    "attention": true,
+    "info": true,
+    "stop": true,
+    "notification": true
+  },
+  "debounce_seconds": 60,
+  "credentials_file": "~/.config/agentic-harness/telegram.env",
+  "tmux_session": "leader",
+  "gateway": {
+    "enabled": true,
+    "poll_timeout_seconds": 50,
+    "allow_text_injection": true,
+    "tail_lines": 40
+  }
+}

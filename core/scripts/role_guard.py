@@ -90,6 +90,7 @@ LEADER_HARNESS_SCRIPTS = {
     "refresh_feature_index.py",
     "refresh_quality_summary.py",
     "refresh_metrics_summary.py",
+    "notify.py",
 }
 
 IMPLEMENTER_HARNESS_SCRIPTS = {

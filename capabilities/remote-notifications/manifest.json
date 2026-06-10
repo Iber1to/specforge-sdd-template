@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "capability": "remote-notifications",
+  "files": [
+    {
+      "source": "scripts/notify_common.py",
+      "target": "scripts/notify_common.py"
+    },
+    {
+      "source": "scripts/notify.py",
+      "target": "scripts/notify.py"
+    },
+    {
+      "source": "scripts/notify_hook.py",
+      "target": "scripts/notify_hook.py"
+    },
+    {
+      "source": "scripts/telegram_gateway.py",
+      "target": "scripts/telegram_gateway.py"
+    },
+    {
+      "source": "scripts/run_gateway.sh",
+      "target": "scripts/run_gateway.sh"
+    },
+    {
+      "source": "state/capabilities/remote-notifications.json",
+      "target": "state/capabilities/remote-notifications.json"
+    },
+    {
+      "source": "docs/notifications/setup.md",
+      "target": "docs/notifications/setup.md"
+    },
+    {
+      "source": "tests/harness/test_remote_notifications.py",
+      "target": "tests/harness/test_remote_notifications.py"
+    }
+  ]
+}
