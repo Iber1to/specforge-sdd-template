@@ -3,6 +3,21 @@
 All notable changes to `agentic-sdd-template`. Format loosely follows Keep a
 Changelog; the project uses Conventional Commits.
 
+## [Unreleased]
+
+### Added
+
+- New optional capability `remote-notifications`: Telegram alerts when the
+  leader stops, blocks or completes its work, plus a long-polling gateway
+  (`scripts/telegram_gateway.py`) to read status and inject prompts into the
+  leader tmux session from a phone. Transport is abstracted behind
+  `scripts/notify_common.py` (a WhatsApp Cloud API adapter can be added later
+  without touching callers). Hooks `Stop`/`Notification` route through
+  `hook_entrypoint.sh notify` and are a no-op when the capability is not
+  installed. `notify.py` added to the leader Bash allowlist in Role Guard.
+  Credentials live outside the repository
+  (`~/.config/agentic-harness/telegram.env`).
+
 ## [v1.0-internal] - 2026-06-07
 
 First internal release. The template generates projects with a working

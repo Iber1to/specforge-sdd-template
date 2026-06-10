@@ -3,11 +3,11 @@
 Combinaciones soportadas por `create_project.py`. `documentation-pack` esta
 activa por defecto en todos los perfiles.
 
-| Perfil | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| generic | si (defecto) | no | si | opcional | si | si | si |
-| python | si (defecto) | si | si | opcional | si | si | si |
-| node | si (defecto) | no (futuro) | si | opcional | si | si | si |
+| Perfil | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish | remote-notifications |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| generic | si (defecto) | no | si | opcional | si | si | si | opcional |
+| python | si (defecto) | si | si | opcional | si | si | si | opcional |
+| node | si (defecto) | no (futuro) | si | opcional | si | si | si | opcional |
 
 ## Reglas aplicadas por el generador
 

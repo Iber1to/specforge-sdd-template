@@ -158,6 +158,27 @@ uv run python scripts/finalize_feature.py --feature <FEATURE>
   `repository-publisher` para publicar la feature finalizada. No ejecutes
   `git push` directamente.
 
+## Notificaciones remotas
+
+Si existe `scripts/notify.py` (capability `remote-notifications`), avisa al
+operador en estos momentos, justo antes de detenerte:
+
+- Una feature queda bloqueada o necesitas intervención humana:
+
+```bash
+uv run python scripts/notify.py --event blocked --feature <FEATURE> --message "<motivo breve>"
+```
+
+- Has completado todas las tareas solicitadas y vas a detenerte:
+
+```bash
+uv run python scripts/notify.py --event completed --message "<resumen breve del resultado>"
+```
+
+Reglas: el mensaje es breve (una o dos frases, sin secretos ni rutas
+absolutas). Si el script no existe o falla, continúa sin reintentar: la
+notificación nunca es bloqueante.
+
 ## Prohibiciones
 
 - No utilices `Write` ni `Edit`.

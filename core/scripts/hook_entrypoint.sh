@@ -42,6 +42,14 @@ case "$HOOK_NAME" in
     agent_budget_observer)
         exec "$PYTHON_BIN" scripts/agent_budget_observer.py "$@"
         ;;
+    notify)
+        # Capability opcional remote-notifications: si no esta instalada,
+        # el hook es un no-op (no debe romper proyectos sin la capability).
+        if [ ! -f scripts/notify_hook.py ]; then
+            exit 0
+        fi
+        exec "$PYTHON_BIN" scripts/notify_hook.py "$@"
+        ;;
     *)
         echo "[HOOK_FATAL] Hook desconocido: $HOOK_NAME" >&2
         exit 2
