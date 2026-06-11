@@ -7,6 +7,8 @@ import argparse
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
 
 from control_common import (
     ControlPlaneError,
@@ -14,6 +16,7 @@ from control_common import (
     atomic_write_json,
     control_paths,
     find_feature,
+    load_json,
     load_project_config,
     load_queue,
     load_runtime,
@@ -52,6 +55,33 @@ def expiration_time(ttl_minutes: int) -> str:
     return expiration.isoformat(timespec="seconds")
 
 
+def find_conflicting_implementer_lease(
+    leases_root: Path,
+    feature_id: str,
+) -> tuple[Path, dict[str, Any]] | None:
+    """Devuelve el primer lease de implementer ajeno presente en ``leases_root``.
+
+    Replica la semántica de enumeración de ``role_guard.active_lease()``: itera
+    ``sorted(leases_root.glob("F-*.json"))`` (orden determinista), ignora los
+    archivos ilegibles o corruptos (ASM-001) y no consulta ``expires_at`` ni el
+    estado de la feature propietaria (DEC-001). Un lease cuenta como conflicto
+    cuando ``role == "implementer"`` y su ``feature_id`` es distinto del
+    solicitado, incluyendo el caso en que ``feature_id`` está ausente
+    (conservador). Devuelve ``(ruta, lease)`` del primer conflicto o ``None``.
+    """
+
+    for path in sorted(leases_root.glob("F-*.json")):
+        try:
+            lease = load_json(path)
+        except ControlPlaneError:
+            continue
+
+        if lease.get("role") == "implementer" and lease.get("feature_id") != feature_id:
+            return path, lease
+
+    return None
+
+
 def main() -> int:
     arguments = parse_arguments()
 
@@ -83,9 +113,23 @@ def main() -> int:
                     f"Ya existe un lease activo para {feature['id']}: {lease_path}"
                 )
 
+            conflict = find_conflicting_implementer_lease(paths["leases"], feature["id"])
+
+            if conflict is not None:
+                conflict_path, conflict_lease = conflict
+                conflict_feature = conflict_lease.get("feature_id", "desconocida")
+                raise ControlPlaneError(
+                    f"No se puede iniciar {feature['id']}: existe un lease de "
+                    f"implementer activo de {conflict_feature} en {conflict_path}. "
+                    "Libera el lease por la vía operativa "
+                    "(scripts/recover_stale_leases.py) antes de reintentar."
+                )
+
             validate_transition(feature, "IN_PROGRESS", "implementer")
 
-            worktree, branch, worktree_created = ensure_implementation_worktree(feature)
+            worktree, branch, worktree_created, resynced = ensure_implementation_worktree(feature)
+
+            canonical_branch = config.get("canonical_branch", "main")
 
             run_id = create_run_id()
             timestamp = utc_now()
@@ -145,6 +189,9 @@ def main() -> int:
         print(f"[OK] Rama:     {branch}")
         print(f"[OK] Worktree: {worktree}")
         print(f"[OK] Lease:    {lease_path}")
+
+        if resynced:
+            print(f"[INFO] Resync:  merge de '{canonical_branch}' en '{branch}' aplicado")
 
         return 0
 

@@ -15,7 +15,7 @@ Donde vive cada cosa:
 Convencion: un item se mueve a **Hecho** cuando entra en un release del CHANGELOG.
 Los IDs `T-0xx` siguen el documento de tareas v1.
 
-_Ultima actualizacion: 2026-06-08._
+_Ultima actualizacion: 2026-06-10._
 
 ---
 
@@ -27,6 +27,9 @@ gates, plano de control durable) y las capabilities `documentation-pack`,
 `git-publish`, `external-runtime`. Experimental: `windows-validation` (codigo listo
 y cubierto offline; pendiente validar en Windows real). 48 tests del generador en
 verde.
+
+En `[Unreleased]`: capability `remote-notifications` (avisos Telegram del leader,
+hooks `Stop`/`Notification` y gateway bidireccional; ver CHANGELOG).
 
 ---
 

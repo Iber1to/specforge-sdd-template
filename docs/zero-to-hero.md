@@ -78,7 +78,8 @@ Debe terminar en `[OK] Entorno preparado.` (exit 0). Si falta algo, lo lista con
 - **Plano de control** (fuera de Git, en `control_root`): `queue.json`,
   `leases/`, `runs/`. Es **durable**: si una sesion muere, el estado sobrevive.
 - **Quality gates** y **capabilities** opcionales (security, performance,
-  mutation, windows-validation, external-runtime, git-publish).
+  mutation, windows-validation, external-runtime, git-publish,
+  remote-notifications).
 
 Solo `scripts/finalize_feature.py` puede pasar una feature a `DONE`, y solo tras
 gates verdes y evidencia valida.
@@ -150,8 +151,9 @@ uv run pytest -q tests/harness
 ```
 
 - `verify_full.sh`: ruff (lint + format), `compileall`, pytest y `git diff --check`.
-- `tests/harness`: suite minima del harness (transiciones de rol, Role Guard),
-  rapida y sin red.
+- `tests/harness`: suite del harness (transiciones de rol, Role Guard,
+  invariante de leases del implementer, resync de worktrees reutilizados),
+  hermetica y sin red.
 
 Si todo sale verde, el proyecto esta sano.
 

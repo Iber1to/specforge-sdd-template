@@ -92,6 +92,17 @@ python3 scripts/start_implementation.py --feature F-001 --agent-id implementer-1
 
 El script registra el run y crea un worktree aislado. La implementacion se hace en ese worktree.
 
+Dos salvaguardas en el arranque:
+
+- Si la rama o el worktree de la feature ya existian (reanudacion), se
+  resincronizan con la rama canonica mediante `git merge --no-edit` antes de
+  crear el lease (`[INFO] Resync` en la salida). Un conflicto o un worktree
+  sucio abortan con exit 2 sin escribir nada en el plano de control.
+- Si existe cualquier otro lease de implementer (aunque su feature este
+  `BLOCKED` o el lease haya caducado), el arranque se rechaza con un error que
+  remite a `scripts/recover_stale_leases.py`. Esto preserva el invariante del
+  Role Guard de un unico lease de implementer activo.
+
 Al terminar:
 
 ```bash
@@ -293,11 +304,17 @@ python3 scripts/refresh_metrics_summary.py
 
 ## Recuperacion
 
-Si un lease queda colgado:
+Si un lease queda colgado (por ejemplo, `start_implementation.py` rechaza el
+arranque por un lease de implementer ajeno):
 
 ```bash
-python3 scripts/recover_stale_leases.py
+python3 scripts/recover_stale_leases.py --all
 ```
+
+El script solo recupera leases caducados (`expires_at` vencido): borra el
+lease, marca el run como `EXPIRED` y deja la feature en `BLOCKED` si estaba en
+curso. Para liberar un lease no caducado, espera a su expiracion o caducalo
+explicitamente como operador.
 
 Si necesitas inspeccionar locks, leases o runs, revisa `data/<project_id>/control/`, pero aplica cambios de estado solo mediante scripts.
 

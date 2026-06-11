@@ -5,7 +5,34 @@ Changelog; the project uses Conventional Commits.
 
 ## [Unreleased]
 
+### Fixed
+
+Harness fixes backported on 2026-06-11 from the `poker-assistant` pilot
+(features F-008/F-009/F-010/F-011 of that project):
+
+- Lease invariant (`scripts/start_implementation.py`): refuse to create an
+  implementer lease when any other implementer lease exists (matching
+  `role_guard.active_lease()`, which requires exactly one), with a clear error
+  pointing to `scripts/recover_stale_leases.py`. Previously a feature left
+  `BLOCKED` with a live lease deadlocked every other implementer (observed
+  2026-06-10; required manual lease deletion).
+- Worktree resync (`scripts/worktree_common.py`): reused feature worktrees and
+  branches are resynchronized with the canonical branch via
+  `git merge --no-edit` on start (idempotent no-op when already in sync; abort
+  with a clean restore on conflict or dirty worktree; no control-plane writes
+  on failure). Previously a resumed feature branch could silently stay behind
+  `main`.
+- `ruff format` conformance of capability scripts that ship into generated
+  projects and are checked by GATE-001 (`verify_fast.sh`):
+  `capabilities/performance-testing/scripts/run_performance_gate.py` and
+  `capabilities/remote-notifications/scripts/telegram_gateway.py`.
+
 ### Added
+
+- Hermetic harness tests for the two fixes above, copied into generated
+  projects from `core/tests/harness/`: `test_lease_invariant.py` and
+  `test_worktree_resync.py` (unit + subprocess E2E against temporary Git
+  repositories and control planes).
 
 - New optional capability `remote-notifications`: Telegram alerts when the
   leader stops, blocks or completes its work, plus a long-polling gateway
