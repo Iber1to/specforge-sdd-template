@@ -151,8 +151,9 @@ uv run pytest -q tests/harness
 ```
 
 - `verify_full.sh`: ruff (lint + format), `compileall`, pytest y `git diff --check`.
-- `tests/harness`: suite minima del harness (transiciones de rol, Role Guard),
-  rapida y sin red.
+- `tests/harness`: suite del harness (transiciones de rol, Role Guard,
+  invariante de leases del implementer, resync de worktrees reutilizados),
+  hermetica y sin red.
 
 Si todo sale verde, el proyecto esta sano.
 

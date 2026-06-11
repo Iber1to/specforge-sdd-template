@@ -72,10 +72,120 @@ def current_branch(repository: Path) -> str:
     return result.stdout.strip()
 
 
+def resync_branch_with_canonical(
+    canonical: Path,
+    worktree: Path,
+    branch: str,
+    canonical_branch: str,
+    feature_id: str,
+) -> bool:
+    """Resincroniza la rama de feature reutilizada con la rama canónica.
+
+    Integra ``canonical_branch`` en ``branch`` mediante ``git merge --no-edit``
+    dentro de ``worktree``, sin reescribir la historia (DEC-001). Es un no-op
+    idempotente cuando la rama ya contiene el head canónico (FR-3). Ante
+    worktree sucio con integración pendiente (FR-4) o conflicto/fallo de merge
+    (FR-5) lanza ``ControlPlaneError``, dejando el worktree limpio en su head
+    previo, sin escrituras en el plano de control (el caller aborta antes de
+    cualquier persistencia).
+
+    Devuelve ``True`` si se aplicó un merge y ``False`` si fue un no-op.
+    """
+
+    # 1. Comprobación de ancestría (no-op idempotente, FR-3).
+    ancestry = run_git(
+        canonical,
+        "merge-base",
+        "--is-ancestor",
+        canonical_branch,
+        branch,
+        check=False,
+    )
+
+    if ancestry.returncode == 0:
+        return False
+
+    if ancestry.returncode != 1:
+        details = ancestry.stderr.strip() or ancestry.stdout.strip()
+        raise ControlPlaneError(
+            f"No se pudo comprobar la ancestría de '{canonical_branch}' en "
+            f"'{branch}' para {feature_id}: {details}"
+        )
+
+    # 2. Precondición de limpieza (FR-4): solo si se requiere integración.
+    status = run_git(worktree, "status", "--porcelain")
+
+    if status.stdout.strip():
+        raise ControlPlaneError(
+            f"El worktree de {feature_id} contiene cambios sin commitear y "
+            f"requiere integrar '{canonical_branch}' en '{branch}': {worktree}. "
+            f"Commitea o descarta los cambios antes de reiniciar."
+        )
+
+    # 3. Captura del head previo (para verificar restauración ante fallo).
+    previous_head = run_git(worktree, "rev-parse", "HEAD").stdout.strip()
+
+    # 4. Integración por merge (FR-2, DEC-001): permite fast-forward.
+    merge = run_git(
+        worktree,
+        "merge",
+        "--no-edit",
+        canonical_branch,
+        check=False,
+    )
+
+    if merge.returncode != 0:
+        cause = merge.stderr.strip() or merge.stdout.strip()
+
+        # 6. Fallo (FR-5, DEC-004): abortar merge y verificar restauración.
+        run_git(worktree, "merge", "--abort", check=False)
+
+        restored_status = run_git(worktree, "status", "--porcelain")
+        restored_head = run_git(worktree, "rev-parse", "HEAD").stdout.strip()
+
+        if restored_status.stdout.strip() or restored_head != previous_head:
+            raise ControlPlaneError(
+                f"La integración de '{canonical_branch}' en '{branch}' para "
+                f"{feature_id} falló y el worktree no pudo restaurarse "
+                f"automáticamente: {worktree}. Requiere intervención manual. "
+                f"Causa: {cause}"
+            )
+
+        raise ControlPlaneError(
+            f"La integración de '{canonical_branch}' en '{branch}' para "
+            f"{feature_id} produjo un conflicto y se abortó; el worktree quedó "
+            f"limpio en su head previo: {worktree}. Causa: {cause}"
+        )
+
+    # 5. Éxito: sanity check de ancestría.
+    confirm = run_git(
+        canonical,
+        "merge-base",
+        "--is-ancestor",
+        canonical_branch,
+        branch,
+        check=False,
+    )
+
+    if confirm.returncode != 0:
+        details = confirm.stderr.strip() or confirm.stdout.strip()
+        raise ControlPlaneError(
+            f"Tras integrar '{canonical_branch}' en '{branch}' para "
+            f"{feature_id}, el head canónico no quedó como ancestro: {details}"
+        )
+
+    return True
+
+
 def ensure_implementation_worktree(
     feature: dict[str, Any],
-) -> tuple[Path, str, bool]:
-    """Crea o recupera el worktree asignado a una feature."""
+) -> tuple[Path, str, bool, bool]:
+    """Crea o recupera el worktree asignado a una feature.
+
+    Devuelve ``(worktree, branch, created, resynced)`` donde ``created``
+    indica si el worktree se creó en esta invocación y ``resynced`` si se
+    aplicó un merge de resincronización con la rama canónica.
+    """
 
     config = load_project_config()
     canonical = ensure_canonical_repository()
@@ -107,11 +217,28 @@ def ensure_implementation_worktree(
                 f"pero se esperaba '{branch}'"
             )
 
-        return worktree, branch, False
+        resynced = resync_branch_with_canonical(
+            canonical=canonical,
+            worktree=worktree,
+            branch=branch,
+            canonical_branch=canonical_branch,
+            feature_id=feature["id"],
+        )
+
+        return worktree, branch, False, resynced
 
     if branch_exists(canonical, branch):
         run_git(canonical, "worktree", "add", str(worktree), branch)
-        return worktree, branch, True
+
+        resynced = resync_branch_with_canonical(
+            canonical=canonical,
+            worktree=worktree,
+            branch=branch,
+            canonical_branch=canonical_branch,
+            feature_id=feature["id"],
+        )
+
+        return worktree, branch, True, resynced
 
     if feature["state"] == "CHANGES_REQUESTED":
         raise ControlPlaneError(
@@ -128,7 +255,7 @@ def ensure_implementation_worktree(
         canonical_branch,
     )
 
-    return worktree, branch, True
+    return worktree, branch, True, False
 
 
 def remove_worktree(worktree: Path) -> None:

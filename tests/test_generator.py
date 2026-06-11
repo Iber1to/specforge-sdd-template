@@ -919,6 +919,8 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue((harness / "conftest.py").is_file())
         self.assertTrue((harness / "test_workflow_transitions.py").is_file())
         self.assertTrue((harness / "test_role_guard_basic.py").is_file())
+        self.assertTrue((harness / "test_lease_invariant.py").is_file())
+        self.assertTrue((harness / "test_worktree_resync.py").is_file())
 
     # --- T-008 validaciones reales (partes offline) ---
 

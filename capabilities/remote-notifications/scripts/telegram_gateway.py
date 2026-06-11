@@ -188,7 +188,9 @@ def handle_text(text: str, policy: dict[str, Any], root: Path) -> str:
         return f"Comando desconocido: {stripped.split()[0]}\n\n{HELP_TEXT}"
 
     if gateway.get("allow_text_injection", True) is not True:
-        return "[ERROR] Inyeccion de texto deshabilitada por politica (gateway.allow_text_injection)."
+        return (
+            "[ERROR] Inyeccion de texto deshabilitada por politica (gateway.allow_text_injection)."
+        )
 
     if not tmux_available():
         return "[ERROR] tmux no esta disponible en el host."
@@ -222,8 +224,10 @@ def drain_backlog(token: str) -> int:
 def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> None:
     gateway = gateway_policy(policy)
     raw_timeout = gateway.get("poll_timeout_seconds", DEFAULT_POLL_TIMEOUT_SECONDS)
-    poll_timeout = raw_timeout if isinstance(raw_timeout, int) and raw_timeout > 0 else (
-        DEFAULT_POLL_TIMEOUT_SECONDS
+    poll_timeout = (
+        raw_timeout
+        if isinstance(raw_timeout, int) and raw_timeout > 0
+        else (DEFAULT_POLL_TIMEOUT_SECONDS)
     )
     offset = drain_backlog(token)
     print(f"[OK] Gateway escuchando (chat autorizado: {chat_id})")
@@ -237,8 +241,10 @@ def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> N
                 timeout_seconds=poll_timeout + 15,
             )
         except NotificationError as exc:
-            print(f"[ERROR] getUpdates fallo; reintento en {RETRY_DELAY_SECONDS}s: {exc}",
-                  file=sys.stderr)
+            print(
+                f"[ERROR] getUpdates fallo; reintento en {RETRY_DELAY_SECONDS}s: {exc}",
+                file=sys.stderr,
+            )
             time.sleep(RETRY_DELAY_SECONDS)
             continue
 
@@ -249,8 +255,10 @@ def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> N
             text = message.get("text")
 
             if str(chat.get("id", "")) != str(chat_id):
-                print(f"[ERROR] Mensaje ignorado de chat no autorizado: {chat.get('id')}",
-                      file=sys.stderr)
+                print(
+                    f"[ERROR] Mensaje ignorado de chat no autorizado: {chat.get('id')}",
+                    file=sys.stderr,
+                )
                 continue
 
             if not isinstance(text, str) or not text.strip():
