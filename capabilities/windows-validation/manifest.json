@@ -25,6 +25,10 @@
     {
       "source": "docs/windows-runner/evidence-contract.md",
       "target": "docs/windows-runner/evidence-contract.md"
+    },
+    {
+      "source": "tests/harness/test_windows_evidence_paths.py",
+      "target": "tests/harness/test_windows_evidence_paths.py"
     }
   ]
 }

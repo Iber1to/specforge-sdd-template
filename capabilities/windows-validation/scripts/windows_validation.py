@@ -48,6 +48,37 @@ def default_windows_evidence_path(
     return artifact_root.resolve() / "windows-tests" / feature_id / "latest.json"
 
 
+def _reroot_under_canonical(value: str, base_dir: Path) -> Path:
+    """Re-enraíza ``value`` por basename bajo ``base_dir``.
+
+    Normaliza separadores POSIX (``/``) y Windows (``\\``), extrae el último
+    componente como basename y exige que sea un basename simple no vacío,
+    distinto de ``.`` y ``..``, sin separadores residuales, y que la ruta
+    resultante quede contenida bajo ``base_dir`` resuelto. La confianza se
+    ancla en ``base_dir`` (el directorio canónico de la feature) y no en la
+    cadena nativa emitida por el runner. Lanza
+    ``WindowsEvidenceValidationError`` en caso contrario.
+    """
+
+    normalized = value.replace("\\", "/")
+    basename = normalized.rsplit("/", 1)[-1]
+
+    if basename in ("", ".", "..") or "/" in basename or "\\" in basename:
+        raise WindowsEvidenceValidationError(
+            f"Ruta de evidencia Windows insegura o ambigua: {value!r}"
+        )
+
+    base_resolved = base_dir.resolve()
+    candidate_resolved = (base_resolved / basename).resolve()
+
+    if not candidate_resolved.is_relative_to(base_resolved):
+        raise WindowsEvidenceValidationError(
+            f"La ruta de evidencia Windows escapa del directorio canónico: {value!r}"
+        )
+
+    return candidate_resolved
+
+
 def validate_windows_evidence(
     *,
     repo_root: Path,
@@ -123,13 +154,17 @@ def validate_windows_evidence(
     if completed_at < started_at:
         raise WindowsEvidenceValidationError("completed_at no puede ser anterior a started_at")
 
-    log_path = Path(evidence["log"]).resolve()
+    canonical_dir = artifact_root.resolve() / "windows-tests" / feature["id"]
+
+    log_path = _reroot_under_canonical(evidence["log"], canonical_dir)
 
     if not log_path.is_file():
-        raise WindowsEvidenceValidationError(f"No existe el log Windows: {log_path}")
+        raise WindowsEvidenceValidationError(f"No existe el log Windows: {evidence['log']}")
 
     missing_artifacts = [
-        value for value in evidence["artifacts"] if not Path(value).resolve().exists()
+        value
+        for value in evidence["artifacts"]
+        if not _reroot_under_canonical(value, canonical_dir).is_file()
     ]
 
     if missing_artifacts:

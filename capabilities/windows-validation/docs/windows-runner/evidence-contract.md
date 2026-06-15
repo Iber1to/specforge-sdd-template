@@ -20,6 +20,24 @@ repositorio Git.
 - El log debe existir.
 - Todos los artefactos declarados deben existir.
 - Los timestamps deben incluir zona horaria.
+
+### Rutas de `log` y `artifacts` (portabilidad Windows/POSIX)
+
+El runner se ejecuta en Windows y emite inevitablemente rutas nativas
+(`J:\...`, UNC `\\host\share\...`), mientras que la validación corre en Linux.
+Por eso el esquema **no** impone formato POSIX en `log` ni en `artifacts`
+(solo `minLength: 1`), y la validación re-enraíza cada ruta por su *basename*
+bajo el directorio canónico `<artifact_root>/windows-tests/<FEATURE>/`. La
+confianza se ancla en el directorio canónico, no en la cadena emitida por el
+runner:
+
+- Se acepta cualquier ruta cuyo último componente (basename) exista como
+  fichero real dentro del directorio canónico.
+- Se rechazan basenames inseguros o ambiguos (`.`, `..`, vacío, o con
+  separadores residuales), de modo que ninguna ruta declarada pueda escapar
+  del canónico.
+- La existencia real se sigue comprobando contra el canónico: una ruta nativa
+  no resuelve nunca contra el sistema de ficheros local arbitrario.
 - El archivo `latest.json` solo debe reemplazarse cuando la ejecución haya
   concluido completamente.
 

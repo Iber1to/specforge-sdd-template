@@ -61,13 +61,13 @@
     },
     "log": {
       "type": "string",
-      "pattern": "^/"
+      "minLength": 1
     },
     "artifacts": {
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^/"
+        "minLength": 1
       },
       "uniqueItems": true
     },
