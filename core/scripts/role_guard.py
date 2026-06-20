@@ -183,6 +183,25 @@ HARNESS_IMPLEMENTER_FILES = {
     Path("uv.lock"),
 }
 
+# Layout de escritura del implementer para change_domain=product. El layout base
+# es Python (src/, tests/, runtime/external/, pyproject.toml, uv.lock). Los profiles
+# no-Python que emite el generador amplian las rutas permitidas segun
+# state/project.json -> "profile".
+PRODUCT_IMPLEMENTER_ROOTS = {"src", "tests", "runtime"}
+PRODUCT_IMPLEMENTER_FILES = {Path("pyproject.toml"), Path("uv.lock")}
+PROFILE_IMPLEMENTER_ROOTS = {
+    # android: modulo app/ y wrapper gradle/.
+    "android": {"app", "gradle"},
+}
+PROFILE_IMPLEMENTER_FILES = {
+    # android: ficheros Gradle de raiz.
+    "android": {
+        Path("settings.gradle.kts"),
+        Path("build.gradle.kts"),
+        Path("gradle.properties"),
+    },
+}
+
 
 CONTROL_ROOT_DEFAULT = Path(".agentic/control")
 
@@ -429,6 +448,18 @@ def change_domain_for_lease(root: Path, lease: dict[str, Any]) -> str:
     return str(domain)
 
 
+def project_profile(root: Path) -> str:
+    """Profile declarado en state/project.json (generic/python/node/android)."""
+
+    try:
+        data = load_json(root / "state" / "project.json")
+    except GuardError:
+        return ""
+
+    profile = data.get("profile")
+    return profile if isinstance(profile, str) else ""
+
+
 def eligible_spec_paths(root: Path, role: str) -> set[Path]:
     result: set[Path] = set()
 
@@ -518,8 +549,9 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
 
             return False, f"Ruta no autorizada para implementer harness: {relative}"
 
-        allowed_roots = {"src", "tests", "runtime"}
-        allowed_files = {Path("pyproject.toml"), Path("uv.lock")}
+        profile = project_profile(root)
+        allowed_roots = PRODUCT_IMPLEMENTER_ROOTS | PROFILE_IMPLEMENTER_ROOTS.get(profile, set())
+        allowed_files = PRODUCT_IMPLEMENTER_FILES | PROFILE_IMPLEMENTER_FILES.get(profile, set())
 
         if relative in allowed_files:
             return True, ""

@@ -7,6 +7,18 @@ Changelog; the project uses Conventional Commits.
 
 ### Fixed
 
+- Role Guard implementer write policy is now profile-aware (`scripts/role_guard.py`).
+  For `change_domain=product` the base layout stays Python (`src/`, `tests/`,
+  `runtime/external/`, `pyproject.toml`, `uv.lock`); the `android` profile now also
+  authorizes the `app/` module, the `gradle/` wrapper directory and the root Gradle
+  files (`settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`). The
+  profile is read from `state/project.json`. Without this fix the implementer in an
+  `android` project was blocked from writing any product file (the generator emitted
+  an Android layout the guard did not allow), discovered on the `pokecards-app`
+  pilot. The deterministic lifecycle E2E did not catch it because Role Guard runs as
+  a Claude Code hook, not inside the harness scripts the test drives.
+
+
 Harness fixes backported on 2026-06-11 from the `poker-assistant` pilot
 (features F-008/F-009/F-010/F-011 of that project):
 
