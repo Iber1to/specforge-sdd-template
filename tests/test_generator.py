@@ -4,6 +4,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -568,6 +569,27 @@ class GeneratorTests(unittest.TestCase):
             )
             return "src/index.js", "feat(F-001): add node lifecycle marker"
 
+        if profile == "android":
+            module_path = (
+                worktree
+                / "app"
+                / "src"
+                / "main"
+                / "java"
+                / "com"
+                / "generated"
+                / "testandroidproject"
+                / "MainActivity.kt"
+            )
+            module_path.write_text(
+                module_path.read_text(encoding="utf-8") + "\n// lifecycle marker: validated\n",
+                encoding="utf-8",
+            )
+            return (
+                "app/src/main/java/com/generated/testandroidproject/MainActivity.kt",
+                "feat(F-001): add android lifecycle marker",
+            )
+
         raise AssertionError(f"Unsupported profile for lifecycle E2E: {profile}")
 
     def run_generated_project_lifecycle(self, profile: str, capabilities: str = "[]") -> Path:
@@ -712,6 +734,9 @@ class GeneratorTests(unittest.TestCase):
 
     def test_generated_node_project_reaches_done_e2e(self) -> None:
         self.run_generated_project_lifecycle("node")
+
+    def test_generated_android_project_reaches_done_e2e(self) -> None:
+        self.run_generated_project_lifecycle("android")
 
     def test_generated_project_excludes_environments_and_caches(self) -> None:
         output = self.generate("python", "[mutation-testing]")
@@ -1561,6 +1586,84 @@ terms:
             package["scripts"],
         )
         subprocess.run(["npm", "test"], cwd=output, check=True, text=True, capture_output=True)
+
+    def test_generates_android_project(self) -> None:
+        output = self.generate("android")
+        gates = json.loads((output / "state" / "quality-gates.json").read_text(encoding="utf-8"))
+        gates_by_id = {gate["id"]: gate for gate in gates["gates"]}
+
+        self.assertTrue((output / "settings.gradle.kts").is_file())
+        self.assertTrue((output / "build.gradle.kts").is_file())
+        self.assertTrue((output / "gradle.properties").is_file())
+        self.assertTrue((output / "app" / "build.gradle.kts").is_file())
+        self.assertTrue((output / "app" / "src" / "main" / "AndroidManifest.xml").is_file())
+        self.assertTrue(
+            (
+                output
+                / "app"
+                / "src"
+                / "main"
+                / "java"
+                / "com"
+                / "generated"
+                / "testandroidproject"
+                / "MainActivity.kt"
+            ).is_file()
+        )
+        self.assertTrue(
+            (
+                output
+                / "app"
+                / "src"
+                / "test"
+                / "java"
+                / "com"
+                / "generated"
+                / "testandroidproject"
+                / "ExampleUnitTest.kt"
+            ).is_file()
+        )
+        self.assertTrue((output / "scripts" / "verify_android.sh").is_file())
+        self.assertTrue((output / "docs" / "20-runtime" / "android-environment.md").is_file())
+
+        for locale in ("values", "values-es", "values-ja", "values-ko"):
+            with self.subTest(locale=locale):
+                self.assertTrue(
+                    (output / "app" / "src" / "main" / "res" / locale / "strings.xml").is_file()
+                )
+
+        self.assertEqual("observe", gates_by_id["ANDROID-001"]["mode"])
+        self.assertFalse(gates_by_id["ANDROID-001"]["blocking"])
+        self.assertEqual("observe", gates_by_id["ANDROID-002"]["mode"])
+        self.assertFalse(gates_by_id["ANDROID-002"]["blocking"])
+
+        gitignore = (output / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn(".gradle/", gitignore)
+        self.assertIn("build/", gitignore)
+
+        syntax = subprocess.run(
+            ["bash", "-n", str(output / "scripts" / "verify_android.sh")],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(0, syntax.returncode)
+
+        # Sin toolchain Android (Gradle ausente), el verificador observe se omite
+        # con exito para no bloquear el lifecycle orquestado en Python. Se acota el
+        # PATH al directorio de git para garantizar que `gradle` no este disponible,
+        # con independencia del host de CI.
+        git_dir = os.path.dirname(shutil.which("git") or "/usr/bin/git")
+        skipped = subprocess.run(
+            ["bash", str(output / "scripts" / "verify_android.sh")],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            env={**os.environ, "PATH": git_dir},
+        )
+        self.assertEqual(0, skipped.returncode)
+        self.assertIn("[SKIP]", skipped.stdout)
 
     # --- capability remote-notifications ---
 

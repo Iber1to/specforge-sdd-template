@@ -47,6 +47,7 @@ Perfiles soportados:
 - `generic`
 - `python`
 - `node`
+- `android`
 
 Capacidades soportadas:
 

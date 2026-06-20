@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
-PROFILES = {"generic", "python", "node"}
+PROFILES = {"generic", "python", "node", "android"}
 CAPABILITIES = {
     "documentation-pack",
     "external-runtime",
@@ -1218,6 +1218,44 @@ its base quality gates run `ruff`, `pytest` and `compileall`. Python 3.12, `uv`,
 """,
         )
 
+    if profile == "android":
+        write_doc(
+            docs / "20-runtime" / "android-environment.md",
+            """
+# Android Environment
+
+## Product Toolchain
+
+The product is an Android app written in Kotlin and built with Gradle.
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew lintDebug
+./gradlew assembleDebug
+```
+
+The generated skeleton ships application sources under `app/src/main/`,
+JVM unit tests under `app/src/test/`, and localized resources under
+`app/src/main/res/values{,-es,-ja,-ko}/` (English default plus Spanish,
+Japanese and Korean).
+
+## Harness Toolchain
+
+The product targets Android, but the agentic harness itself is written in
+Python and its blocking quality gates run `ruff`, `pytest` and `compileall`.
+Python 3.12, `uv`, `ruff` and `pytest` must therefore be available to pass
+`qa_full` and `finalization`.
+
+## Android Gates
+
+The Android gates (`ANDROID-001`, `ANDROID-002`) run through
+`scripts/verify_android.sh` in `observe` mode: they are non-blocking and skip
+with success when Gradle or the Android SDK is not present on the host. Run the
+real Android build and tests on a developer machine, in Android Studio, or on a
+provisioned runner (for example via the `external-runtime` capability).
+""",
+        )
+
     if "windows-validation" in config["capabilities"]:
         write_doc(
             docs / "20-runtime" / "windows-runner.md",
@@ -1326,6 +1364,227 @@ def apply_profile(output: Path, profile: str) -> None:
             ]
         )
         gates_path.write_text(json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    if profile == "android":
+        apply_android_profile(output)
+
+
+ANDROID_LOCALE_STRINGS = {
+    # `values/` es el recurso por defecto (inglés). Las variantes por idioma
+    # demuestran el soporte multi-idioma requerido por el producto: castellano,
+    # japonés y coreano, además del inglés por defecto.
+    "values": ("en", "Card Collector", "Scan a card"),
+    "values-es": ("es", "Coleccionista de Cartas", "Escanear una carta"),
+    "values-ja": ("ja", "カードコレクター", "カードをスキャン"),
+    "values-ko": ("ko", "카드 컬렉터", "카드 스캔"),
+}
+
+
+def apply_android_profile(output: Path) -> None:
+    """Genera un skeleton Android (Kotlin + Gradle) con toolchain mínimo.
+
+    Igual que el perfil Node v1, el harness no instala dependencias externas: el
+    generador no descarga el Android SDK ni Gradle. Los gates Android se instalan
+    en modo `observe` (no bloqueante) y se ejecutan a través de
+    `scripts/verify_android.sh`, que detecta el toolchain y se omite con éxito
+    cuando no está disponible. Los gates bloqueantes del harness siguen siendo los
+    de Python (`verify_fast.sh` / `verify_full.sh`).
+    """
+
+    package = "com.generated." + output.name.replace("-", "")
+    package_path = Path(*package.split("."))
+
+    app = output / "app"
+    main_java = app / "src" / "main" / "java" / package_path
+    test_java = app / "src" / "test" / "java" / package_path
+    main_java.mkdir(parents=True, exist_ok=True)
+    test_java.mkdir(parents=True, exist_ok=True)
+
+    (output / "settings.gradle.kts").write_text(
+        'pluginManagement {\n'
+        "    repositories {\n"
+        "        google()\n"
+        "        mavenCentral()\n"
+        "        gradlePluginPortal()\n"
+        "    }\n"
+        "}\n"
+        "dependencyResolutionManagement {\n"
+        "    repositories {\n"
+        "        google()\n"
+        "        mavenCentral()\n"
+        "    }\n"
+        "}\n"
+        f'rootProject.name = "{output.name}"\n'
+        'include(":app")\n',
+        encoding="utf-8",
+    )
+
+    (output / "build.gradle.kts").write_text(
+        "// Configuración raíz de Gradle. Los plugins se aplican por módulo.\n"
+        "plugins {\n"
+        '    id("com.android.application") version "8.5.0" apply false\n'
+        '    id("org.jetbrains.kotlin.android") version "1.9.24" apply false\n'
+        "}\n",
+        encoding="utf-8",
+    )
+
+    (output / "gradle.properties").write_text(
+        "org.gradle.jvmargs=-Xmx2048m\n"
+        "android.useAndroidX=true\n"
+        "kotlin.code.style=official\n",
+        encoding="utf-8",
+    )
+
+    (app / "build.gradle.kts").write_text(
+        "plugins {\n"
+        '    id("com.android.application")\n'
+        '    id("org.jetbrains.kotlin.android")\n'
+        "}\n\n"
+        "android {\n"
+        f'    namespace = "{package}"\n'
+        "    compileSdk = 34\n\n"
+        "    defaultConfig {\n"
+        f'        applicationId = "{package}"\n'
+        "        minSdk = 24\n"
+        "        targetSdk = 34\n"
+        "        versionCode = 1\n"
+        '        versionName = "0.1.0"\n'
+        '        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"\n'
+        '        resConfigs("en", "es", "ja", "ko")\n'
+        "    }\n\n"
+        "    compileOptions {\n"
+        "        sourceCompatibility = JavaVersion.VERSION_17\n"
+        "        targetCompatibility = JavaVersion.VERSION_17\n"
+        "    }\n"
+        "    kotlinOptions {\n"
+        '        jvmTarget = "17"\n'
+        "    }\n"
+        "}\n\n"
+        "dependencies {\n"
+        '    implementation("androidx.core:core-ktx:1.13.1")\n'
+        '    implementation("androidx.appcompat:appcompat:1.7.0")\n'
+        '    testImplementation("junit:junit:4.13.2")\n'
+        "}\n",
+        encoding="utf-8",
+    )
+
+    (app / "src" / "main" / "AndroidManifest.xml").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n'
+        '    <uses-permission android:name="android.permission.CAMERA" />\n'
+        '    <uses-permission android:name="android.permission.INTERNET" />\n'
+        "    <application\n"
+        '        android:label="@string/app_name"\n'
+        '        android:supportsRtl="true">\n'
+        "        <activity\n"
+        '            android:name=".MainActivity"\n'
+        '            android:exported="true">\n'
+        "            <intent-filter>\n"
+        '                <action android:name="android.intent.action.MAIN" />\n'
+        '                <category android:name="android.intent.category.LAUNCHER" />\n'
+        "            </intent-filter>\n"
+        "        </activity>\n"
+        "    </application>\n"
+        "</manifest>\n",
+        encoding="utf-8",
+    )
+
+    (main_java / "MainActivity.kt").write_text(
+        f"package {package}\n\n"
+        "import android.app.Activity\n"
+        "import android.os.Bundle\n"
+        "import android.widget.TextView\n\n"
+        "class MainActivity : Activity() {\n"
+        "    override fun onCreate(savedInstanceState: Bundle?) {\n"
+        "        super.onCreate(savedInstanceState)\n"
+        "        val label = TextView(this)\n"
+        "        label.setText(R.string.app_name)\n"
+        "        setContentView(label)\n"
+        "    }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    for directory, (_, app_name, scan_label) in ANDROID_LOCALE_STRINGS.items():
+        values_dir = app / "src" / "main" / "res" / directory
+        values_dir.mkdir(parents=True, exist_ok=True)
+        (values_dir / "strings.xml").write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            "<resources>\n"
+            f'    <string name="app_name">{app_name}</string>\n'
+            f'    <string name="action_scan_card">{scan_label}</string>\n'
+            "</resources>\n",
+            encoding="utf-8",
+        )
+
+    (test_java / "ExampleUnitTest.kt").write_text(
+        f"package {package}\n\n"
+        "import org.junit.Assert.assertEquals\n"
+        "import org.junit.Test\n\n"
+        "class ExampleUnitTest {\n"
+        "    @Test\n"
+        "    fun versionName_isParsable() {\n"
+        '        val parts = "0.1.0".split(".")\n'
+        "        assertEquals(3, parts.size)\n"
+        "    }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    (output / "scripts" / "verify_android.sh").write_text(
+        "#!/usr/bin/env bash\n"
+        "# Verificación Android (observe). No bloquea el lifecycle del harness Python.\n"
+        "# Ejecuta los gates de Gradle si el toolchain Android está disponible; en su\n"
+        '# ausencia informa y termina con éxito (evidencia "skipped").\n'
+        "set -uo pipefail\n\n"
+        'cd "$(git rev-parse --show-toplevel)"\n\n'
+        "if [ -x ./gradlew ]; then\n"
+        "  gradle_cmd=(./gradlew)\n"
+        "elif command -v gradle >/dev/null 2>&1; then\n"
+        "  gradle_cmd=(gradle)\n"
+        "else\n"
+        '  echo "[SKIP] Android toolchain (Gradle/SDK) no disponible; gate observe omitido."\n'
+        "  exit 0\n"
+        "fi\n\n"
+        "set -e\n"
+        'echo "── Android unit tests ─────────────────────────────────"\n'
+        '"${gradle_cmd[@]}" testDebugUnitTest\n'
+        "echo\n"
+        'echo "── Android lint ───────────────────────────────────────"\n'
+        '"${gradle_cmd[@]}" lintDebug\n',
+        encoding="utf-8",
+    )
+
+    gitignore = output / ".gitignore"
+    gitignore.write_text(
+        gitignore.read_text(encoding="utf-8")
+        + ".gradle/\nbuild/\n/local.properties\n*.apk\n*.aab\n.cxx/\n",
+        encoding="utf-8",
+    )
+
+    gates_path = output / "state" / "quality-gates.json"
+    gates = json.loads(gates_path.read_text(encoding="utf-8"))
+    gates["gates"].extend(
+        [
+            {
+                "id": "ANDROID-001",
+                "phase": "implementation_fast",
+                "command": ["bash", "scripts/verify_android.sh"],
+                "blocking": False,
+                "mode": "observe",
+                "timeout_seconds": 1800,
+            },
+            {
+                "id": "ANDROID-002",
+                "phase": "qa_full",
+                "command": ["bash", "scripts/verify_android.sh"],
+                "blocking": False,
+                "mode": "observe",
+                "timeout_seconds": 1800,
+            },
+        ]
+    )
+    gates_path.write_text(json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def initialize_git(output: Path) -> None:

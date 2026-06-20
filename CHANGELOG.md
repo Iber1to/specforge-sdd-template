@@ -29,6 +29,22 @@ Harness fixes backported on 2026-06-11 from the `poker-assistant` pilot
 
 ### Added
 
+- New project profile `android` (Kotlin + Gradle). The generator emits a minimal
+  Android app skeleton: `settings.gradle.kts`, root and `app/` Kotlin DSL build
+  files, `AndroidManifest.xml`, a `MainActivity.kt`, a JVM unit test, and
+  localized string resources for English (default), Spanish, Japanese and Korean
+  (`app/src/main/res/values{,-es,-ja,-ko}/`). Following the `node` v1 philosophy,
+  the generator installs no external toolchain (no Android SDK / Gradle download).
+  The Android gates (`ANDROID-001` in `implementation_fast`, `ANDROID-002` in
+  `qa_full`) are non-blocking `observe` gates that run through
+  `scripts/verify_android.sh`, which detects Gradle/`gradlew` and skips with
+  success when the Android toolchain is absent, so the Python-orchestrated
+  lifecycle stays green offline. Blocking gates remain the Python harness gates.
+  `mutation-testing` stays exclusive to `python`. Covered by
+  `test_generates_android_project` and an end-to-end lifecycle test; documented in
+  `profiles/android/README.md`, `docs/profile-capability-matrix.md` and a
+  generated `docs/20-runtime/android-environment.md`.
+
 - Hermetic harness tests for the two fixes above, copied into generated
   projects from `core/tests/harness/`: `test_lease_invariant.py` and
   `test_worktree_resync.py` (unit + subprocess E2E against temporary Git
