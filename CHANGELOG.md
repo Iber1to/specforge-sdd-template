@@ -5,6 +5,30 @@ Changelog; the project uses Conventional Commits.
 
 ## [Unreleased]
 
+### Added
+
+- Capability `eval-harness`: convierte los escenarios `SCN-XXX` de cada feature en
+  graders ejecutables (`code`/`rule` elegibles para gate; `model`/`human`
+  consultivos) con metricas `pass_at_k`/`pass_caret_k`. Runner
+  `scripts/run_evals.py`, validador, schema y politica; gate `EVAL-001` en
+  `qa_full`. Decision en `docs/adr-0002-eval-harness-verification-gate.md`.
+  Adoptado de `affaan-m/ECC`.
+- Capability `tool-telemetry`: hooks `PreToolUse`/`PostToolUse` registran cada
+  llamada a herramienta como JSONL con scrubbing de secretos
+  (`scripts/tool_telemetry_hook.py`); no-op y fail-soft sin la capability.
+- Informe QA en Markdown de campos fijos (`evidence/reviews/<feature>.md`) junto
+  al JSON, generado por `scripts/complete_review.py` (report template).
+- Endurecimiento de agentes (adoptado de ECC / agency-agents): bloque "Defensa de
+  prompt" anti-inyeccion en los 7 agentes; `qa-reviewer` con sesgo por defecto a
+  `CHANGES_REQUESTED`, disparadores de fallo automatico y pre-report gate; guard
+  stale-replay en `leader`/`implementer`; recuperacion de contexto iterativa en
+  `architect`/`implementer`.
+
+### Changed
+
+- `finalize_feature.py` admite el informe QA Markdown junto al JSON en el commit
+  de evidencia posterior al commit revisado.
+
 ### Fixed
 
 - Role Guard implementer write policy is now profile-aware (`scripts/role_guard.py`).
@@ -17,6 +41,17 @@ Changelog; the project uses Conventional Commits.
   an Android layout the guard did not allow), discovered on the `pokecards-app`
   pilot. The deterministic lifecycle E2E did not catch it because Role Guard runs as
   a Claude Code hook, not inside the harness scripts the test drives.
+
+- Role Guard product implementer can now write feature documentation subtrees
+  (`scripts/role_guard.py`). For `change_domain=product` (all profiles) the
+  implementer may write under `docs/10-architecture/adr/`, `docs/20-runtime/`,
+  `docs/30-quality/` and `docs/40-operations/` — the documentation that
+  `documentation_validation.py` requires in the reviewed commit when a feature
+  declares `requires_adr` / `requires_runtime_update` / `requires_quality_update` /
+  `requires_operations_update`. The rest of `docs/` stays out of product scope
+  (owned by `change_domain=harness`). Without this, any feature with a `requires_*`
+  flag could not be finalized: the ADR/doc had to ship in the reviewed content but
+  no product role could author it (discovered finalizing `pokecards-app` F-001).
 
 
 Harness fixes backported on 2026-06-11 from the `poker-assistant` pilot

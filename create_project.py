@@ -15,12 +15,14 @@ ROOT = Path(__file__).resolve().parent
 PROFILES = {"generic", "python", "node", "android"}
 CAPABILITIES = {
     "documentation-pack",
+    "eval-harness",
     "external-runtime",
     "git-publish",
     "mutation-testing",
     "performance-testing",
     "remote-notifications",
     "security-scanning",
+    "tool-telemetry",
     "windows-validation",
 }
 DEFAULT_CAPABILITIES = {"documentation-pack"}
@@ -1007,6 +1009,23 @@ repeatable benchmarks with structured evidence and baselines.
 
 Security scanning is capability-driven. The baseline scanner detects secrets
 and sensitive files and records structured evidence.
+""",
+    )
+
+    write_doc(
+        docs / "30-quality" / "eval-harness.md",
+        """
+# Eval Harness
+
+Eval harness is capability-driven. It turns each `SCN-XXX` scenario into
+executable graders so acceptance becomes machine-checkable, closing the
+`AC-XXX -> SCN-XXX -> grader -> evidence` chain.
+
+Graders are declared per feature in `specs/features/<FEATURE>/evals.json`.
+Deterministic `code` and `rule` graders are gate-eligible; `model` and `human`
+graders are advisory and never decide the automatic gate. The runner records
+`pass_at_k` and `pass_caret_k` metrics as structured evidence under
+`artifact_root/capabilities/eval-harness/`.
 """,
     )
 

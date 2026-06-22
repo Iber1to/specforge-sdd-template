@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "mode": "observe",
+  "required_for_done": false,
+  "required_for_qa_approval": false,
+  "runs": 1,
+  "pass_at_k_min": 1.0,
+  "require_pass_caret_k_for_release_critical": true,
+  "grader_timeout_seconds": 300
+}

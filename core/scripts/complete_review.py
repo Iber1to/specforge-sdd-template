@@ -98,6 +98,38 @@ def run_full_verification(
     return result, log_path, "quality-gates:qa_full", quality_gates
 
 
+def render_review_report(review: dict) -> str:
+    """Render legible y diffable del informe QA, de campos fijos, junto al JSON."""
+
+    changes = review.get("required_changes") or []
+    if changes:
+        changes_block = "\n".join(f"- {item}" for item in changes)
+    else:
+        changes_block = "Ninguno."
+
+    verification = review.get("verification", {})
+
+    return (
+        f"# QA Review Report - {review['feature_id']}\n\n"
+        "| Campo | Valor |\n"
+        "| --- | --- |\n"
+        f"| Feature | {review['feature_id']} |\n"
+        f"| Veredicto | {review['verdict']} |\n"
+        f"| Revisor | {review['reviewer_id']} |\n"
+        f"| Run | {review['run_id']} |\n"
+        f"| Commit revisado | {review['reviewed_commit']} |\n"
+        f"| Verificacion | {verification.get('command', '')} "
+        f"(exit {verification.get('exit_code', '')}) |\n"
+        f"| Fecha | {review['created_at']} |\n\n"
+        "## Resumen\n\n"
+        f"{review['summary']}\n\n"
+        "## Cambios requeridos\n\n"
+        f"{changes_block}\n\n"
+        "## Log de verificacion\n\n"
+        f"`{verification.get('log', '')}`\n"
+    )
+
+
 def create_and_commit_review(
     worktree: Path,
     feature: dict,
@@ -130,15 +162,17 @@ def create_and_commit_review(
 
     atomic_write_json(review_path, review)
 
+    report_path = worktree / "evidence" / "reviews" / f"{feature['id']}.md"
+    report_path.write_text(render_review_report(review), encoding="utf-8")
+
     validate_review_evidence(
         worktree,
         feature,
         expected_verdict=verdict,
     )
 
-    relative_path = review_path.relative_to(worktree)
-
-    run_git(worktree, "add", str(relative_path))
+    run_git(worktree, "add", str(review_path.relative_to(worktree)))
+    run_git(worktree, "add", str(report_path.relative_to(worktree)))
     run_git(
         worktree,
         "commit",

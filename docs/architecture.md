@@ -58,7 +58,15 @@ Las capacidades son opt-in. El template las documenta y el proyecto generado pue
 
 Capacidades actuales:
 
+- `documentation-pack` (incluida por defecto)
+- `eval-harness`
+- `external-runtime`
+- `git-publish`
 - `mutation-testing`
+- `performance-testing`
+- `remote-notifications`
+- `security-scanning`
+- `tool-telemetry`
 - `windows-validation`
 
 ## Plano De Control

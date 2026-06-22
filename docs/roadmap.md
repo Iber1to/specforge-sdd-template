@@ -15,7 +15,7 @@ Donde vive cada cosa:
 Convencion: un item se mueve a **Hecho** cuando entra en un release del CHANGELOG.
 Los IDs `T-0xx` siguen el documento de tareas v1.
 
-_Ultima actualizacion: 2026-06-10._
+_Ultima actualizacion: 2026-06-21._
 
 ---
 
@@ -25,15 +25,49 @@ _Ultima actualizacion: 2026-06-10._
 gates, plano de control durable) y las capabilities `documentation-pack`,
 `mutation-testing` (python), `performance-testing`, `security-scanning`,
 `git-publish`, `external-runtime`. Experimental: `windows-validation` (codigo listo
-y cubierto offline; pendiente validar en Windows real). 48 tests del generador en
+y cubierto offline; pendiente validar en Windows real). 59 tests del generador en
 verde.
 
 En `[Unreleased]`: capability `remote-notifications` (avisos Telegram del leader,
-hooks `Stop`/`Notification` y gateway bidireccional; ver CHANGELOG).
+hooks `Stop`/`Notification` y gateway bidireccional; ver CHANGELOG) y capability
+`eval-harness` (graders ejecutables por escenario `SCN-XXX`, metricas
+`pass_at_k` / `pass_caret_k`; ver ADR-0002 y CHANGELOG). Ademas, `qa-reviewer`
+endurecido con sesgo por defecto a `CHANGES_REQUESTED`, disparadores de fallo
+automatico y pre-report gate (adoptado de ECC / agency-agents); todos los
+agentes llevan una "Defensa de prompt (línea base)" anti-inyeccion; y `leader` e
+`implementer` tratan el contexto reinyectado tras reanudacion/compactacion como
+referencia historica (guard stale-replay, adoptado de ECC). `architect` e
+`implementer` incorporan recuperacion de contexto iterativa (DISPATCH/EVALUA/
+REFINA/PARA, max 3 ciclos; adoptado de ECC iterative-retrieval). Y nueva
+capability `tool-telemetry`: hooks `PreToolUse`/`PostToolUse` que registran cada
+llamada a herramienta como JSONL con scrubbing de secretos (sustrato de ECC
+continuous-learning; el motor de instintos se descarta por no determinista).
+Ademas, `complete_review.py` genera junto al JSON un informe QA en Markdown de
+campos fijos (`evidence/reviews/<feature>.md`), legible y diffable (report
+template, adoptado de agency-agents). Con esto quedan adoptadas las 7
+recomendaciones de ECC/agency-agents.
 
 ---
 
 ## Now — en curso o siguiente
+
+### Capability `eval-harness` — verificacion trazable por escenario  (`T-015`)
+
+- **Por que.** Los escenarios `SCN-XXX` son hoy un contrato documental: no se
+  ejecutan. Falta el eslabon `SCN-XXX -> grader -> evidencia` para que la
+  aceptacion sea maquina-comprobable. Decision en
+  [`adr-0002-eval-harness-verification-gate.md`](adr-0002-eval-harness-verification-gate.md).
+- **Alcance MVP.** Graders `code` y `rule` deterministas declarados en
+  `specs/features/<FEATURE>/evals.json`; runner `run_evals.py` con metricas
+  `pass_at_k` / `pass_caret_k`; validador y schema; politica con `mode`
+  observe/enforce; gate `EVAL-001` en `qa_full`. Graders `model`/`human`
+  declarables pero solo consultivos.
+- **Inspiracion.** `affaan-m/ECC` (`skills/eval-harness/SKILL.md`), adaptado a
+  ejecucion determinista; se descarta su `verification-loop` (prosa, no
+  determinista) y su continuous-learning (aprendizaje implicito, contrario a SDD).
+- **Done when.** `create_project.py` instala la capability; el proyecto generado
+  ejecuta `run_evals.py` y produce evidencia validada; test E2E del generador en
+  verde; documentada en `quality-and-capabilities.md` y la matriz.
 
 ### Validacion real en hardware: Windows y SSH  (`T-008E`, `T-008F`)
 

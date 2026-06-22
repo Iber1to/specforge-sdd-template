@@ -705,6 +705,13 @@ class GeneratorTests(unittest.TestCase):
             "--summary",
             "Deterministic lifecycle fixture approved after full gates.",
         )
+
+        review_report = worktree / "evidence" / "reviews" / "F-001.md"
+        self.assertTrue(review_report.is_file())
+        report_text = review_report.read_text(encoding="utf-8")
+        self.assertIn("# QA Review Report - F-001", report_text)
+        self.assertIn("| Veredicto | APPROVED |", report_text)
+
         self.harness_python(
             output,
             "scripts/finalize_feature.py",
@@ -1141,6 +1148,156 @@ class GeneratorTests(unittest.TestCase):
         evidence = self.read_capability_evidence(state, "security-scanning")
         self.assertIn("SEC-NODE-INSTALL-HOOK", {item["id"] for item in evidence["findings"]})
 
+    def test_generates_eval_harness_capability(self) -> None:
+        output = self.generate("generic", "[eval-harness]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        gates = json.loads((output / "state" / "quality-gates.json").read_text(encoding="utf-8"))
+        gates_by_id = {gate["id"]: gate for gate in gates["gates"]}
+
+        self.assertIn("eval-harness", state["capabilities"])
+        self.assertTrue((output / "scripts" / "run_evals.py").is_file())
+        self.assertTrue((output / "scripts" / "validate_eval_result.py").is_file())
+        self.assertTrue((output / "state" / "capabilities" / "eval-harness.json").is_file())
+        self.assertTrue(
+            (output / "specs" / "schemas" / "eval-result.schema.json").is_file()
+        )
+        self.assertEqual("observe", gates_by_id["EVAL-001"]["mode"])
+        self.assertFalse(gates_by_id["EVAL-001"]["blocking"])
+
+    def write_evals(self, output: Path, graders: list[dict]) -> None:
+        feature_dir = output / "specs" / "features" / "F-001"
+        feature_dir.mkdir(parents=True, exist_ok=True)
+        (feature_dir / "evals.json").write_text(
+            json.dumps(
+                {"schema_version": 1, "feature_id": "F-001", "graders": graders},
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    def test_eval_harness_runs_code_and_rule_graders(self) -> None:
+        output = self.generate("generic", "[eval-harness]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.write_evals(
+            output,
+            [
+                {
+                    "id": "G-001",
+                    "scenario": "SCN-001",
+                    "type": "code",
+                    "command": ["python3", "-c", "import sys; sys.exit(0)"],
+                    "gate": True,
+                    "release_critical": True,
+                },
+                {
+                    "id": "G-002",
+                    "scenario": "SCN-002",
+                    "type": "rule",
+                    "rule": {"kind": "file_exists", "path": "state/project.json"},
+                    "gate": True,
+                },
+                {
+                    "id": "G-003",
+                    "scenario": "SCN-003",
+                    "type": "model",
+                    "rubric": "La salida explica el rango.",
+                    "gate": False,
+                },
+            ],
+        )
+
+        self.harness_python(
+            output, "scripts/run_evals.py", "--feature", "F-001", "--scope", "repository"
+        )
+        evidence = self.read_capability_evidence(state, "eval-harness")
+
+        self.assertEqual("eval-harness", evidence["gate_id"])
+        self.assertEqual("PASSED", evidence["status"])
+        self.assertEqual(2, evidence["eval_summary"]["passed"])
+        self.assertEqual(1, evidence["eval_summary"]["advisory"])
+        checks = {item["id"]: item for item in evidence["checks"]}
+        self.assertTrue(checks["G-001"]["pass_caret_k"])
+        self.assertEqual("SKIPPED", checks["G-003"]["status"])
+
+    def test_eval_harness_enforce_blocks_on_failure(self) -> None:
+        output = self.generate("generic", "[eval-harness]")
+        policy_path = output / "state" / "capabilities" / "eval-harness.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        policy["mode"] = "enforce"
+        policy_path.write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
+        self.write_evals(
+            output,
+            [
+                {
+                    "id": "G-001",
+                    "scenario": "SCN-001",
+                    "type": "code",
+                    "command": ["python3", "-c", "import sys; sys.exit(1)"],
+                    "gate": True,
+                }
+            ],
+        )
+
+        result = self.run_unchecked_harness(
+            output, "scripts/run_evals.py --feature F-001 --scope repository"
+        )
+        self.assertEqual(2, result.returncode)
+
+    def test_tool_telemetry_records_and_scrubs(self) -> None:
+        output = self.generate("generic", "[tool-telemetry]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        self.assertIn("tool-telemetry", state["capabilities"])
+        self.assertTrue((output / "scripts" / "tool_telemetry_hook.py").is_file())
+        self.assertTrue(
+            (output / "state" / "capabilities" / "tool-telemetry.json").is_file()
+        )
+
+        payload = json.dumps(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "session_id": "s1",
+                "agent_type": "implementer",
+                "tool_input": {"command": "deploy --token=SECRET123456 now"},
+            }
+        )
+        result = subprocess.run(
+            ["bash", "scripts/hook_entrypoint.sh", "tool_telemetry"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            input=payload,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(output)},
+        )
+        self.assertEqual(0, result.returncode)
+
+        telemetry_dir = (
+            Path(state["artifact_root"]) / "capabilities" / "tool-telemetry"
+        )
+        files = list(telemetry_dir.glob("observations-*.jsonl"))
+        self.assertEqual(1, len(files))
+        content = files[0].read_text(encoding="utf-8")
+        self.assertIn('"tool": "Bash"', content)
+        self.assertIn("[REDACTED]", content)
+        self.assertNotIn("SECRET123456", content)
+
+    def test_tool_telemetry_noop_without_capability(self) -> None:
+        output = self.generate("generic")
+        self.assertFalse((output / "scripts" / "tool_telemetry_hook.py").exists())
+        result = subprocess.run(
+            ["bash", "scripts/hook_entrypoint.sh", "tool_telemetry"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            input="{}",
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(output)},
+        )
+        self.assertEqual(0, result.returncode)
+
     def test_performance_gate_updates_baseline(self) -> None:
         output = self.generate("generic", "[performance-testing]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
@@ -1268,6 +1425,7 @@ class GeneratorTests(unittest.TestCase):
             "docs/30-quality/mutation-testing.md",
             "docs/30-quality/performance-testing.md",
             "docs/30-quality/security-scanning.md",
+            "docs/30-quality/eval-harness.md",
             "docs/30-quality/threat-model.md",
             "docs/30-quality/data-classification.md",
             "docs/40-operations/runbook.md",

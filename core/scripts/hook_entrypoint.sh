@@ -50,6 +50,14 @@ case "$HOOK_NAME" in
         fi
         exec "$PYTHON_BIN" scripts/notify_hook.py "$@"
         ;;
+    tool_telemetry)
+        # Capability opcional tool-telemetry: si no esta instalada,
+        # el hook es un no-op (no debe romper proyectos sin la capability).
+        if [ ! -f scripts/tool_telemetry_hook.py ]; then
+            exit 0
+        fi
+        exec "$PYTHON_BIN" scripts/tool_telemetry_hook.py "$@"
+        ;;
     *)
         echo "[HOOK_FATAL] Hook desconocido: $HOOK_NAME" >&2
         exit 2
