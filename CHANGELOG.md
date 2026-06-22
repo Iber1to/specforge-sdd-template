@@ -23,6 +23,17 @@ Changelog; the project uses Conventional Commits.
   `CHANGES_REQUESTED`, disparadores de fallo automatico y pre-report gate; guard
   stale-replay en `leader`/`implementer`; recuperacion de contexto iterativa en
   `architect`/`implementer`.
+- Tope de reintentos de QA con escalado: `complete_review.py` cuenta los
+  `CHANGES_REQUESTED` en `qa_attempts`; `start_implementation.py` rechaza un
+  nuevo intento cuando se alcanza `maximum_qa_attempts` (default 3 en
+  `state/project.json`) y el `leader` escala a decision humana. Evita bucles
+  infinitos QA<->implementer (adoptado de agency-agents handoff-templates).
+- `implementer` con disciplina de cambio minimo y Scope Self-Check (cada linea
+  del diff justificable por `AC-XXX`, sin scope creep; adoptado de agency-agents
+  minimal-change-engineer).
+- `specifier` con seccion "Contrato de capacidad" (promesa observable vs
+  implementacion, invariantes, estados/transiciones, incertidumbre como `Q-XXX`,
+  no-goals; adoptado de ECC product-capability).
 
 ### Changed
 

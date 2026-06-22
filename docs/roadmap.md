@@ -25,7 +25,7 @@ _Ultima actualizacion: 2026-06-21._
 gates, plano de control durable) y las capabilities `documentation-pack`,
 `mutation-testing` (python), `performance-testing`, `security-scanning`,
 `git-publish`, `external-runtime`. Experimental: `windows-validation` (codigo listo
-y cubierto offline; pendiente validar en Windows real). 59 tests del generador en
+y cubierto offline; pendiente validar en Windows real). 60 tests del generador en
 verde.
 
 En `[Unreleased]`: capability `remote-notifications` (avisos Telegram del leader,
@@ -45,7 +45,10 @@ continuous-learning; el motor de instintos se descarta por no determinista).
 Ademas, `complete_review.py` genera junto al JSON un informe QA en Markdown de
 campos fijos (`evidence/reviews/<feature>.md`), legible y diffable (report
 template, adoptado de agency-agents). Con esto quedan adoptadas las 7
-recomendaciones de ECC/agency-agents.
+recomendaciones de ECC/agency-agents. Segunda tanda (del catálogo completo):
+tope de reintentos de QA con escalado (`qa_attempts`/`maximum_qa_attempts`,
+`complete_review.py` + `start_implementation.py` + `leader`), Scope Self-Check de
+cambio mínimo en `implementer`, y "Contrato de capacidad" en `specifier`.
 
 ---
 

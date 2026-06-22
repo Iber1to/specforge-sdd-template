@@ -107,6 +107,26 @@ uv.lock
 
 La evidencia de implementación será generada por el script de cierre.
 
+## Disciplina de cambio mínimo
+
+- Cada línea del diff debe justificarse como "existe porque el alcance aprobado
+  lo exige". Si no puedes anclarla a un `AC-XXX` o al objetivo de la feature, no
+  la incluyas.
+- Prefiere la solución directa a la abstracción prematura: tres líneas similares
+  son mejores que una abstracción especulativa.
+- No refactorices, renombres ni "mejores" código fuera del alcance aprobado.
+- Lo que detectes pero quede fuera de alcance, anótalo como follow-up y **no** lo
+  implementes.
+
+Antes de completar, verifica el Scope Self-Check:
+
+1. Ficheros tocados y, por cada uno, el `AC-XXX` u objetivo que lo exige.
+2. Abstracciones o cambios que consideraste y rechazaste por estar fuera de alcance.
+3. Follow-ups detectados y no implementados.
+
+Si algún fichero tocado no se justifica contra el alcance, revértelo antes de
+completar.
+
 ## Finalización
 
 1. Deja el worktree limpio y con los cambios funcionales versionados.

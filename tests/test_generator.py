@@ -1244,6 +1244,35 @@ class GeneratorTests(unittest.TestCase):
         )
         self.assertEqual(2, result.returncode)
 
+    def test_start_implementation_blocks_after_max_qa_attempts(self) -> None:
+        output = self.generate("generic")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.assertEqual(3, state["maximum_qa_attempts"])
+
+        self.harness_python(
+            output,
+            "scripts/register_feature.py",
+            "--title",
+            "Retry Cap",
+            "--slug",
+            "retry-cap",
+            "--description",
+            "QA retry cap fixture.",
+        )
+
+        queue_path = Path(state["control_root"]) / "queue.json"
+        queue = json.loads(queue_path.read_text(encoding="utf-8"))
+        feature = next(item for item in queue["features"] if item["id"] == "F-001")
+        feature["state"] = "CHANGES_REQUESTED"
+        feature["qa_attempts"] = 3
+        queue_path.write_text(json.dumps(queue, indent=2) + "\n", encoding="utf-8")
+
+        result = self.run_unchecked_harness(
+            output, "scripts/start_implementation.py --feature F-001 --agent-id impl-cap"
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("intentos de QA", result.stderr)
+
     def test_tool_telemetry_records_and_scrubs(self) -> None:
         output = self.generate("generic", "[tool-telemetry]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))

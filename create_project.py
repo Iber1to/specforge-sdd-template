@@ -259,6 +259,7 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
         "control_root": str(control_root),
         "artifact_root": str(artifact_root),
         "maximum_active_implementers": 1,
+        "maximum_qa_attempts": 3,
         "windows_validation_available": "windows-validation" in config["capabilities"],
         "canonical_branch": "main",
         "implementation_branch_prefix": "feature",

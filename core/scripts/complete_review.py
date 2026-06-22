@@ -268,6 +268,9 @@ def main() -> int:
                 reason=arguments.summary.strip(),
             )
 
+            if arguments.verdict == "CHANGES_REQUESTED":
+                feature["qa_attempts"] = int(feature.get("qa_attempts", 0)) + 1
+
             run_path = paths["runs"] / f"{lease['run_id']}.json"
             run = load_json(run_path)
 

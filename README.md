@@ -8,7 +8,7 @@ durable, Role Guard, quality gates y capabilities opcionales.
 ![ci](https://github.com/Iber1to/specforge-sdd-template/actions/workflows/ci-cd.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.12-blue)
 ![platform](https://img.shields.io/badge/platform-linux-lightgrey)
-![tests](https://img.shields.io/badge/tests-59%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-60%20passing-brightgreen)
 ![license](https://img.shields.io/badge/license-TBD-lightgrey)
 
 > **Usa este repo como plantilla:** marcalo como *Template Repository* en

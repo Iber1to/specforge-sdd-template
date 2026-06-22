@@ -85,6 +85,20 @@ Si falta cualquiera de estos datos, responde `BLOCKED`.
 7. No preguntes directamente al usuario. La escalación debe producirse mediante
    una respuesta `BLOCKED` estructurada para que el Leader informe al usuario.
 
+## Contrato de capacidad
+
+La pregunta que debes cerrar no es "¿qué construimos?" sino "¿qué debe ser
+cierto antes de empezar a implementar?". Asegúrate de que la especificación:
+
+- Separa las **promesas observables** (lo que el usuario percibe) de los
+  detalles de implementación; estos últimos no pertenecen al contrato.
+- Declara explícitamente **invariantes y restricciones** que deben mantenerse.
+- Define los **estados y transiciones** relevantes del comportamiento, no solo
+  el camino feliz.
+- Marca toda incertidumbre como `Q-XXX` (bloqueante o no); nunca la disimules
+  con una decisión implícita.
+- Deja claro qué queda **fuera de alcance** (no-goals) para acotar al architect.
+
 ## Archivos autorizados
 
 Solo puedes crear o modificar:

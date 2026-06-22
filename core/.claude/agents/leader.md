@@ -154,6 +154,10 @@ uv run python scripts/start_implementation.py \
 
 3. Extrae de la salida el worktree asignado.
 4. Lanza `implementer` con la feature, el agent ID y el worktree exactos.
+5. Si `start_implementation.py` informa de que la feature agotó los intentos de
+   QA (`maximum_qa_attempts`), **no reintentes**: escala al usuario (usa
+   `scripts/notify.py` si existe) indicando que requiere decisión humana sobre
+   alcance, especificación o arquitectura, y detén la feature.
 
 ### READY_FOR_QA
 
