@@ -248,7 +248,7 @@ def _add_existing_worktree(
 OK_PREFIXES = [
     "[OK] Feature:  ",
     "[OK] Run:      ",
-    "[OK] Rama:     ",
+    "[OK] Branch:   ",
     "[OK] Worktree: ",
     "[OK] Lease:    ",
 ]

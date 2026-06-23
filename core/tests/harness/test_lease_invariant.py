@@ -250,7 +250,7 @@ def _control_snapshot(control_root: Path) -> dict[str, object]:
 OK_PREFIXES = [
     "[OK] Feature:  ",
     "[OK] Run:      ",
-    "[OK] Rama:     ",
+    "[OK] Branch:   ",
     "[OK] Worktree: ",
     "[OK] Lease:    ",
 ]
@@ -535,7 +535,7 @@ def test_own_lease_rejection_preserved(tmp_path: Path) -> None:
     """E6 (SCN-005/AC-005): own lease already present in an eligible state -> exit 2.
 
     Rejection due to an own lease is evaluated before the foreign-lease guard and
-    must preserve the current message ("Ya existe un lease activo"). To exercise
+    must preserve the current message ("An active lease already exists"). To exercise
     that branch the own lease is created manually while the feature remains in an
     eligible state (not IN_PROGRESS).
     """
