@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Operaciones deterministas sobre la fase del ciclo de vida."""
+"""Deterministic operations on the lifecycle phase."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def current_lifecycle_phase(
     project: dict[str, Any],
     runtime: dict[str, Any],
 ) -> str:
-    """Devuelve la fase operativa actual."""
+    """Return the current operational phase."""
 
     return str(
         runtime.get(
@@ -39,7 +39,7 @@ def apply_lifecycle_transition(
     actor: str,
     reason: str,
 ) -> bool:
-    """Aplica una transición válida. Devuelve False cuando ya está aplicada."""
+    """Apply a valid transition. Returns False when it is already applied."""
 
     current_phase = current_lifecycle_phase(project, runtime)
 
@@ -50,7 +50,7 @@ def apply_lifecycle_transition(
 
     if allowed_targets is None or target_phase not in allowed_targets:
         raise ControlPlaneError(
-            f"Transición de ciclo de vida no permitida: {current_phase} -> {target_phase}"
+            f"Lifecycle transition not allowed: {current_phase} -> {target_phase}"
         )
 
     if target_phase == "ACTIVE_DEVELOPMENT":
@@ -59,7 +59,7 @@ def apply_lifecycle_transition(
         ]
 
         if not completed_features:
-            raise ControlPlaneError("ACTIVE_DEVELOPMENT requiere al menos una feature DONE")
+            raise ControlPlaneError("ACTIVE_DEVELOPMENT requires at least one DONE feature")
 
     timestamp = utc_now()
 

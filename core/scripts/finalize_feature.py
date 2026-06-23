@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Integra una feature aprobada y realiza la transición exclusiva a DONE."""
+"""Integrate an approved feature and perform the exclusive transition to DONE."""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ from worktree_common import (
 
 
 class FinalizationError(ControlPlaneError):
-    """Error controlado durante la finalización."""
+    """Controlled error during finalization."""
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -58,7 +58,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--feature", required=True)
     parser.add_argument(
         "--reason",
-        default="Feature validada, integrada y finalizada",
+        default="Feature validated, integrated, and finalized",
     )
 
     return parser.parse_args()
@@ -152,7 +152,7 @@ def validate_qa_chain(
     reviewed_commit = review["reviewed_commit"]
 
     if not is_ancestor(worktree, reviewed_commit, branch_head):
-        raise FinalizationError("El commit revisado por QA no pertenece a la rama actual")
+        raise FinalizationError("The QA-reviewed commit does not belong to the current branch")
 
     additional_commits = commits_between(
         worktree,
@@ -162,9 +162,9 @@ def validate_qa_chain(
 
     if additional_commits != 1:
         raise FinalizationError(
-            "Después del commit revisado debe existir exactamente "
-            "un commit de evidencia QA; "
-            f"se detectaron {additional_commits}"
+            "After the reviewed commit there must be exactly "
+            "one QA evidence commit; "
+            f"{additional_commits} were detected"
         )
 
     required_review_path = f"evidence/reviews/{feature['id']}.json"
@@ -172,7 +172,7 @@ def validate_qa_chain(
         required_review_path,
         f"evidence/reviews/{feature['id']}.md",
     }
-    # Features con mutation-testing pliegan su informe en el mismo commit de QA.
+    # Features with mutation-testing fold their report into the same QA commit.
     if mutation_testing_required(feature):
         allowed_review_paths.add(f"evidence/mutation-reviews/{feature['id']}.json")
     modifications = changed_files(
@@ -185,7 +185,7 @@ def validate_qa_chain(
 
     if unexpected or required_review_path not in modifications:
         raise FinalizationError(
-            "La rama contiene cambios posteriores no revisados por QA: " + ", ".join(modifications)
+            "The branch contains later changes not reviewed by QA: " + ", ".join(modifications)
         )
 
     run_path = paths["runs"] / f"{review['run_id']}.json"
@@ -205,7 +205,7 @@ def validate_qa_chain(
 
         if received != expected:
             raise FinalizationError(
-                f"El run QA contiene {key}={received!r}; se esperaba {expected!r}"
+                f"The QA run contains {key}={received!r}; {expected!r} was expected"
             )
 
     return review, qa_run, branch_head
@@ -228,7 +228,7 @@ def run_full_verification(
             phase="finalization",
         )
     except QualityGateError as exc:
-        raise FinalizationError(f"La verificación completa falló durante {phase!r}: {exc}") from exc
+        raise FinalizationError(f"Full verification failed during {phase!r}: {exc}") from exc
 
     gate_logs = [Path(gate["log"]) for gate in quality_gates["gates"]]
     return gate_logs[0] if gate_logs else Path(quality_gates["evidence"])
@@ -327,7 +327,7 @@ def merge_feature(
 
         details = result.stderr.strip() or result.stdout.strip()
 
-        raise FinalizationError("No se pudo preparar el merge sin conflictos:\n" + details)
+        raise FinalizationError("Could not prepare the merge without conflicts:\n" + details)
 
     try:
         cached_check = run_git(
@@ -340,7 +340,7 @@ def merge_feature(
 
         if cached_check.returncode != 0:
             raise FinalizationError(
-                "El merge preparado contiene errores de formato:\n" + cached_check.stdout.strip()
+                "The prepared merge contains formatting errors:\n" + cached_check.stdout.strip()
             )
 
         log_path = run_full_verification(
@@ -376,13 +376,13 @@ def cleanup_feature_worktree(
     try:
         remove_worktree(worktree)
     except ControlPlaneError as exc:
-        warnings.append(f"No se pudo eliminar el worktree: {exc}")
+        warnings.append(f"Could not remove the worktree: {exc}")
 
     try:
         if branch_exists(canonical, branch):
             run_git(canonical, "branch", "-d", branch)
     except ControlPlaneError as exc:
-        warnings.append(f"No se pudo eliminar la rama: {exc}")
+        warnings.append(f"Could not remove the branch: {exc}")
 
     return warnings
 
@@ -401,32 +401,32 @@ def main() -> int:
         paths = control_paths()
 
         if Path.cwd().resolve() != canonical:
-            raise FinalizationError("La finalización debe ejecutarse desde el repositorio canónico")
+            raise FinalizationError("Finalization must be run from the canonical repository")
 
         ensure_clean_repository(canonical)
 
         if current_branch(canonical) != canonical_branch:
-            raise FinalizationError(f"El repositorio canónico debe estar en {canonical_branch}")
+            raise FinalizationError(f"The canonical repository must be on {canonical_branch}")
 
         with queue_lock(exclusive=False):
             queue = load_queue()
             feature = find_feature(queue, arguments.feature)
 
             if feature["state"] == "DONE":
-                print(f"[OK] {feature['id']} ya está finalizada.")
-                print(f"[OK] Commit integrado: {feature.get('merged_commit', 'desconocido')}")
+                print(f"[OK] {feature['id']} is already finalized.")
+                print(f"[OK] Integrated commit: {feature.get('merged_commit', 'unknown')}")
                 return 0
 
             if feature["state"] != "APPROVED":
                 raise FinalizationError(
-                    f"{feature['id']} no puede finalizarse desde {feature['state']}"
+                    f"{feature['id']} cannot be finalized from {feature['state']}"
                 )
 
             lease_path = paths["leases"] / f"{feature['id']}.json"
 
             if lease_path.exists():
                 raise FinalizationError(
-                    f"Existe un lease activo para {feature['id']}: {lease_path}"
+                    f"An active lease exists for {feature['id']}: {lease_path}"
                 )
 
         worktree, branch, _ = ensure_review_worktree(feature)
@@ -481,7 +481,7 @@ def main() -> int:
                 )
             except ImportError as exc:
                 raise FinalizationError(
-                    "windows-validation requiere instalar su capability"
+                    "windows-validation requires installing its capability"
                 ) from exc
             except WindowsEvidenceValidationError as exc:
                 raise FinalizationError(str(exc)) from exc
@@ -491,7 +491,7 @@ def main() -> int:
             )
 
             if windows_evidence["status"] != "PASS":
-                raise FinalizationError("La evidencia Windows no tiene estado PASS")
+                raise FinalizationError("The Windows evidence does not have PASS status")
 
         with queue_lock():
             queue = load_queue()
@@ -500,19 +500,19 @@ def main() -> int:
 
             if feature["state"] != "APPROVED":
                 raise FinalizationError(
-                    f"El estado cambió durante la finalización: {feature['state']}"
+                    f"The state changed during finalization: {feature['state']}"
                 )
 
             lease_path = paths["leases"] / f"{feature['id']}.json"
 
             if lease_path.exists():
-                raise FinalizationError("Se creó un lease durante la finalización")
+                raise FinalizationError("A lease was created during finalization")
 
             ensure_clean_repository(canonical)
             ensure_clean_repository(worktree)
 
             if git_head(worktree) != branch_head:
-                raise FinalizationError("La rama cambió durante la finalización")
+                raise FinalizationError("The branch changed during finalization")
 
             merge_commit, merge_log = merge_feature(
                 canonical=canonical,
@@ -551,7 +551,7 @@ def main() -> int:
                 runtime=runtime,
                 target_phase="ACTIVE_DEVELOPMENT",
                 actor="finalizer",
-                reason=f"Primera feature finalizada: {feature['id']}",
+                reason=f"First feature finalized: {feature['id']}",
             )
 
             runtime["last_completed_run"] = operation_id
@@ -579,19 +579,19 @@ def main() -> int:
         )
 
         print(f"[OK] Feature:             {feature['id']}")
-        print("[OK] Estado:              DONE")
-        print(f"[OK] Commit revisado:     {reviewed_commit}")
-        print(f"[OK] Head de feature:     {branch_head}")
-        print(f"[OK] Commit integrado:    {merge_commit}")
-        print(f"[OK] Log rama aprobada:   {branch_log}")
-        print(f"[OK] Log integración:     {merge_log}")
+        print("[OK] State:               DONE")
+        print(f"[OK] Reviewed commit:     {reviewed_commit}")
+        print(f"[OK] Feature head:        {branch_head}")
+        print(f"[OK] Integrated commit:   {merge_commit}")
+        print(f"[OK] Approved branch log: {branch_log}")
+        print(f"[OK] Integration log:     {merge_log}")
 
         if metrics_snapshot_file is not None:
-            print(f"[OK] Snapshot métricas:    {metrics_snapshot_file}")
+            print(f"[OK] Metrics snapshot:    {metrics_snapshot_file}")
 
         if metrics_snapshot_warning is not None:
             print(
-                "[WARN] No se pudo regenerar el snapshot de métricas: " + metrics_snapshot_warning,
+                "[WARN] Could not regenerate the metrics snapshot: " + metrics_snapshot_warning,
                 file=sys.stderr,
             )
 

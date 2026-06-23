@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ejecuta benchmarks simples y produce evidencia de performance-testing."""
+"""Run simple benchmarks and produce performance-testing evidence."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def benchmark_policy(policy: dict, benchmark_id: str) -> dict:
         if benchmark.get("id") == benchmark_id:
             return benchmark
 
-    raise CapabilityError(f"Benchmark no registrado: {benchmark_id}")
+    raise CapabilityError(f"Benchmark not registered: {benchmark_id}")
 
 
 def git_head() -> str:
@@ -58,7 +58,7 @@ def git_head() -> str:
 
 
 def update_baseline(benchmark_id: str, p95_ms: float, commit: str) -> None:
-    """Actualiza el baseline del benchmark en la policy (commit base + p95)."""
+    """Update the benchmark baseline in the policy (base commit + p95)."""
 
     path = repo_root() / "state" / "capabilities" / f"{CAPABILITY}.json"
     policy = json.loads(path.read_text(encoding="utf-8"))
@@ -115,7 +115,7 @@ def main() -> int:
 
         command = args.command or benchmark.get("command")
         if not isinstance(command, list) or not command:
-            raise CapabilityError("El benchmark requiere command como lista")
+            raise CapabilityError("The benchmark requires command as a list")
 
         warmup_runs = args.warmup_runs
         if warmup_runs is None:
@@ -140,7 +140,7 @@ def main() -> int:
         max_regression_percent = float(benchmark.get("max_regression_percent", 0))
 
         if warmup_runs < 0 or measured_runs < 1:
-            raise CapabilityError("warmup_runs debe ser >= 0 y measured_runs >= 1")
+            raise CapabilityError("warmup_runs must be >= 0 and measured_runs >= 1")
 
         started_at = utc_now()
         started = monotonic_seconds()
@@ -243,7 +243,7 @@ def main() -> int:
 
         print(f"[OK] Performance: {evidence['status']}")
         print(f"[OK] p95_ms:      {stats['p95_ms']}")
-        print(f"[OK] Evidencia:   {evidence_path}")
+        print(f"[OK] Evidence:    {evidence_path}")
         return 0 if status == "PASSED" else 2
 
     except CapabilityError as exc:

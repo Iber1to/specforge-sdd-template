@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publica una feature finalizada en Git local o remoto con evidencia auditada."""
+"""Publish a finalized feature to local or remote Git with audited evidence."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ PUBLICATION_MODES = {"configured", "disabled", "local", "dry_run", "push"}
 
 
 class GitPublicationError(ControlPlaneError):
-    """Error controlado durante la publicacion Git."""
+    """Controlled error during Git publication."""
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -41,13 +41,13 @@ def parse_arguments() -> argparse.Namespace:
         "--mode",
         choices=sorted(PUBLICATION_MODES),
         default="configured",
-        help="Modo de publicacion. 'configured' usa state/project.json.",
+        help="Publication mode. 'configured' uses state/project.json.",
     )
-    parser.add_argument("--remote", help="Remote Git a usar para dry_run o push.")
-    parser.add_argument("--branch", help="Rama remota/canonica a publicar.")
+    parser.add_argument("--remote", help="Git remote to use for dry_run or push.")
+    parser.add_argument("--branch", help="Remote/canonical branch to publish.")
     parser.add_argument(
         "--reason",
-        default="Feature finalizada publicada por el harness",
+        default="Finalized feature published by the harness",
     )
 
     return parser.parse_args()
@@ -91,7 +91,7 @@ def redact_sensitive_text(value: str) -> str:
 
 
 def hash_remote_url(value: str | None) -> str | None:
-    """Hash estable del remote para auditar sin exponer la URL ni credenciales."""
+    """Stable hash of the remote for auditing without exposing the URL or credentials."""
 
     if not value:
         return None
@@ -111,7 +111,7 @@ def publication_config(
         configured = {}
 
     if not isinstance(configured, dict):
-        raise GitPublicationError("state/project.json contiene git_publication invalido")
+        raise GitPublicationError("state/project.json contains invalid git_publication")
 
     capabilities = project.get("capabilities", [])
     capability_enabled = isinstance(capabilities, list) and "git-publish" in capabilities
@@ -121,7 +121,7 @@ def publication_config(
     mode = configured_mode if mode_override == "configured" else mode_override
 
     if mode not in PUBLICATION_MODES - {"configured"}:
-        raise GitPublicationError(f"Modo de publicacion Git no soportado: {mode}")
+        raise GitPublicationError(f"Unsupported Git publication mode: {mode}")
 
     if not enabled and mode_override == "configured":
         mode = "disabled"
@@ -145,29 +145,29 @@ def validate_feature_ready(
 ) -> tuple[str, str]:
     if feature.get("state") != "DONE":
         raise GitPublicationError(
-            f"{feature.get('id')} debe estar en DONE antes de publicar; "
-            f"estado actual: {feature.get('state')}"
+            f"{feature.get('id')} must be in DONE before publishing; "
+            f"current state: {feature.get('state')}"
         )
 
     merged_commit = str(feature.get("merged_commit", "")).strip()
     if not merged_commit:
-        raise GitPublicationError(f"{feature.get('id')} no contiene merged_commit")
+        raise GitPublicationError(f"{feature.get('id')} does not contain merged_commit")
 
     head = git_head(repository)
 
     if not is_ancestor(repository, merged_commit, head):
-        raise GitPublicationError("El merged_commit de la feature no pertenece al HEAD canonico")
+        raise GitPublicationError("The feature merged_commit is not part of the canonical HEAD")
 
     if require_merged_head and head != merged_commit:
         raise GitPublicationError(
-            "El HEAD canonico contiene commits posteriores a la feature; "
-            "publica la ultima feature o desactiva require_merged_head"
+            "The canonical HEAD contains commits later than the feature; "
+            "publish the latest feature or disable require_merged_head"
         )
 
     branch = current_branch(repository)
     if branch != canonical_branch:
         raise GitPublicationError(
-            f"El repositorio canonico debe estar en {canonical_branch}; rama actual: {branch}"
+            f"The canonical repository must be on {canonical_branch}; current branch: {branch}"
         )
 
     return merged_commit, head
@@ -177,7 +177,7 @@ def remote_url(repository: Path, remote: str) -> str:
     result = run_git(repository, "remote", "get-url", remote, check=False)
 
     if result.returncode != 0:
-        raise GitPublicationError(f"No existe el remote Git requerido: {remote}")
+        raise GitPublicationError(f"The required Git remote does not exist: {remote}")
 
     return sanitize_remote_url(result.stdout.strip())
 
@@ -248,7 +248,7 @@ def main() -> int:
 
         if root != canonical or Path.cwd().resolve() != canonical:
             raise GitPublicationError(
-                "La publicacion debe ejecutarse desde el repositorio canonico"
+                "Publication must run from the canonical repository"
             )
 
         ensure_clean_repository(canonical)
@@ -311,14 +311,14 @@ def main() -> int:
         )
 
         if status != "PASS":
-            raise GitPublicationError(f"La publicacion Git fallo. Evidencia: {evidence_path}")
+            raise GitPublicationError(f"Git publication failed. Evidence: {evidence_path}")
 
         with queue_lock():
             queue = load_queue()
             feature = find_feature(queue, args.feature)
 
             if feature.get("state") != "DONE":
-                raise GitPublicationError("El estado cambio durante la publicacion")
+                raise GitPublicationError("The state changed during publication")
 
             feature["git_publication"] = {
                 "status": evidence["publication_status"],
@@ -346,9 +346,9 @@ def main() -> int:
             save_queue(queue)
 
         print(f"[OK] Feature:             {args.feature}")
-        print(f"[OK] Publicacion Git:     {evidence['publication_status']}")
-        print(f"[OK] Commit publicado:    {published_commit}")
-        print(f"[OK] Evidencia:           {evidence_path}")
+        print(f"[OK] Git publication:     {evidence['publication_status']}")
+        print(f"[OK] Published commit:    {published_commit}")
+        print(f"[OK] Evidence:            {evidence_path}")
 
         return 0
 

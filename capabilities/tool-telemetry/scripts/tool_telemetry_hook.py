@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Hook de telemetria de uso de herramientas (capability tool-telemetry).
+"""Tool usage telemetry hook (capability tool-telemetry).
 
-Registra cada PreToolUse/PostToolUse como una linea JSONL determinista, con
-scrubbing de secretos. Fail-soft: nunca rompe la llamada a la herramienta
-(siempre devuelve exit 0).
+Records each PreToolUse/PostToolUse as a deterministic JSONL line, with secret
+scrubbing. Fail-soft: never breaks the tool call (always returns exit 0).
 """
 
 from __future__ import annotations

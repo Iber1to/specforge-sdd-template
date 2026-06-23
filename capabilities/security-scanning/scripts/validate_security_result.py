@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida evidencia de security-scanning."""
+"""Validate security-scanning evidence."""
 
 from __future__ import annotations
 
@@ -31,13 +31,13 @@ def main() -> int:
         findings = evidence.get("findings")
 
         if not isinstance(summary, dict):
-            raise CapabilityError("La evidencia security no contiene security_summary")
+            raise CapabilityError("Security evidence does not contain security_summary")
 
         if not isinstance(findings, list):
-            raise CapabilityError("La evidencia security no contiene findings")
+            raise CapabilityError("Security evidence does not contain findings")
 
         if args.require_pass and evidence["status"] != "PASSED":
-            raise CapabilityError("La evidencia security no esta en PASSED")
+            raise CapabilityError("Security evidence is not in PASSED state")
 
         print(f"[OK] Security evidence valid: {args.evidence}")
         return 0

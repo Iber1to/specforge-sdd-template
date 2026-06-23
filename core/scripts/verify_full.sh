@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verificación completa Linux previa a revisión o finalización.
+# Full Linux verification prior to review or finalization.
 
 set -euo pipefail
 
@@ -33,15 +33,15 @@ if [ -d .venv ]; then
   \) -exec chmod +x {} + 2>/dev/null || true
 fi
 
-echo "── Política de agentes ─────────────────────────────────"
+echo "── Agent policy ───────────────────────────────────────"
 "${run_python[@]}" scripts/validate_agent_budgets.py
 echo
 
-echo "── Documentación técnica ───────────────────────────────"
+echo "── Technical documentation ────────────────────────────"
 "${run_python[@]}" scripts/validate_documentation_structure.py
 echo
 
-echo "── Compilación Python ─────────────────────────────────"
+echo "── Python compilation ─────────────────────────────────"
 PYTHONDONTWRITEBYTECODE=1 "${run_python[@]}" -m compileall -q scripts src tests
 
 echo
@@ -53,12 +53,12 @@ echo "── Ruff format ──────────────────�
 "${run_ruff[@]}" format --check .
 
 echo
-echo "── Suite completa de tests ────────────────────────────"
+echo "── Full test suite ────────────────────────────────────"
 PYTHONDONTWRITEBYTECODE=1 "${run_pytest[@]}" -q -p no:cacheprovider
 
 echo
-echo "── Integridad Git ─────────────────────────────────────"
+echo "── Git integrity ──────────────────────────────────────"
 git diff --check
 
 echo
-echo "[OK] Verificación completa Linux completada."
+echo "[OK] Full Linux verification complete."

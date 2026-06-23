@@ -1,98 +1,113 @@
-# Estado Y Roadmap Del Harness Agentico
+# State And Roadmap Of The Agentic Harness
 
-Fecha de cierre: 2026-06-06  
-Repositorio harness fuente: `/srv/agentic/workspace/desktop-overlay-assistant`  
-Repositorio template: `/srv/agentic/workspace/agentic-sdd-template`
+Closure date: 2026-06-06  
+Source harness repository: `/srv/agentic/workspace/desktop-overlay-assistant`  
+Template repository: `/srv/agentic/workspace/agentic-sdd-template`
 
-## Estado Ejecutivo
+## Executive State
 
-Roadmap cerrado. El harness ya soporta Spec Partner v2, mantenimiento controlado del propio harness, revision semantica de arquitectura, quality gates versionados, mutation testing determinista, mutation reviewer, external runtime, performance testing, security scanning, publicacion Git auditada, documentation pack por defecto, gate documental de finalizacion y extraccion de template con perfiles `generic`, `python` y `node`.
+Roadmap closed. The harness already supports Spec Partner v2, controlled
+maintenance of the harness itself, semantic architecture review, versioned
+quality gates, deterministic mutation testing, mutation reviewer, external
+runtime, performance testing, security scanning, audited Git publication,
+documentation pack by default, a documentation finalization gate and template
+extraction with the `generic`, `python` and `node` profiles.
 
-La fuente ejecutable sigue siendo Git, schemas, scripts y plano de control. Este documento conserva el roadmap original y lo completa con el estado final, evidencias y decisiones tecnicas aplicadas.
+The executable source remains Git, schemas, scripts and the control plane. This
+document keeps the original roadmap and completes it with the final state,
+evidence and applied technical decisions.
 
-## Resumen De Cumplimiento
+## Compliance Summary
 
-| Bloque | Estado | Evidencia |
+| Block | State | Evidence |
 | --- | --- | --- |
-| `31A.1C` Spec Partner v2 y bootstrap | Completado | `e16a7f4`, `state/specification-policy.json`, `specs/schemas/acceptance-v2.schema.json` |
-| `change_domain` y Role Guard de mantenimiento | Completado | `scripts/register_feature.py`, `scripts/role_guard.py`, tests de Role Guard |
-| Docs SDD/Windows corregidas | Completado | `docs/conventions/spec-driven-development.md`, `docs/windows-runner/evidence-contract.md` |
-| `31B` Semantic Architect Review | Completado | `specs/templates/architecture.md`, `scripts/feature_validation.py`, agente `architect` |
-| `31C` Quality Gates Framework | Completado | `state/quality-gates.json`, `scripts/quality_gates.py`, integracion en implementacion, QA y finalizacion |
-| `31D-31E` Mutation Capability | Completado | `scripts/mutation_runner.py`, capability `mutation-testing`, agente `mutation-reviewer` |
-| Mutation Reviewer bloqueante | Completado | `scripts/mutation_review_validation.py`, `specs/schemas/mutation-review.schema.json`, bloqueo en QA |
-| `31F` Validacion end-to-end | Completado | proyectos `test-generic-project`, `test-python-project`, `test-node-project` con `F-001` en `DONE` |
-| Template extraction | Completado | `/srv/agentic/workspace/agentic-sdd-template` con `core/`, `profiles/`, `capabilities/`, `generator/`, `tests/` |
-| `32A` Git Publish Capability | Completado | `scripts/publish_feature.py`, agente `repository-publisher`, tests `test_git_publish.py` |
-| `32B` External Runtime Capability | Completado | `scripts/run_external_runtime.py`, `state/capabilities/external-runtime.json`, evidencia smoke |
-| `32C` Performance Testing Capability | Completado | `scripts/run_performance_gate.py`, `state/capabilities/performance-testing.json`, evidencia smoke |
-| `32D` Security Scanning Capability | Completado | `scripts/run_security_scan.py`, `state/capabilities/security-scanning.json`, evidencia smoke |
-| `CAP-009` Documentation Pack | Completado | `state/capabilities/documentation-pack.json`, `docs/00-project/`, `scripts/refresh_project_docs.py`, tests del generador |
-| `CAP-010` Documentation Finalization Gate | Completado | `scripts/documentation_validation.py`, `scripts/finalize_feature.py`, `acceptance.yaml documentation`, tests unitarios |
+| `31A.1C` Spec Partner v2 and bootstrap | Completed | `e16a7f4`, `state/specification-policy.json`, `specs/schemas/acceptance-v2.schema.json` |
+| `change_domain` and maintenance Role Guard | Completed | `scripts/register_feature.py`, `scripts/role_guard.py`, Role Guard tests |
+| SDD/Windows docs fixed | Completed | `docs/conventions/spec-driven-development.md`, `docs/windows-runner/evidence-contract.md` |
+| `31B` Semantic Architect Review | Completed | `specs/templates/architecture.md`, `scripts/feature_validation.py`, `architect` agent |
+| `31C` Quality Gates Framework | Completed | `state/quality-gates.json`, `scripts/quality_gates.py`, integration in implementation, QA and finalization |
+| `31D-31E` Mutation Capability | Completed | `scripts/mutation_runner.py`, `mutation-testing` capability, `mutation-reviewer` agent |
+| Blocking Mutation Reviewer | Completed | `scripts/mutation_review_validation.py`, `specs/schemas/mutation-review.schema.json`, QA blocking |
+| `31F` End-to-end validation | Completed | projects `test-generic-project`, `test-python-project`, `test-node-project` with `F-001` in `DONE` |
+| Template extraction | Completed | `/srv/agentic/workspace/agentic-sdd-template` with `core/`, `profiles/`, `capabilities/`, `generator/`, `tests/` |
+| `32A` Git Publish Capability | Completed | `scripts/publish_feature.py`, `repository-publisher` agent, tests `test_git_publish.py` |
+| `32B` External Runtime Capability | Completed | `scripts/run_external_runtime.py`, `state/capabilities/external-runtime.json`, smoke evidence |
+| `32C` Performance Testing Capability | Completed | `scripts/run_performance_gate.py`, `state/capabilities/performance-testing.json`, smoke evidence |
+| `32D` Security Scanning Capability | Completed | `scripts/run_security_scan.py`, `state/capabilities/security-scanning.json`, smoke evidence |
+| `CAP-009` Documentation Pack | Completed | `state/capabilities/documentation-pack.json`, `docs/00-project/`, `scripts/refresh_project_docs.py`, generator tests |
+| `CAP-010` Documentation Finalization Gate | Completed | `scripts/documentation_validation.py`, `scripts/finalize_feature.py`, `acceptance.yaml documentation`, unit tests |
 
-## Cambios Implementados
+## Implemented Changes
 
-### 31A.1C Y Bootstrap De Self-Maintenance
+### 31A.1C And Self-Maintenance Bootstrap
 
-Se cerro el bootstrap con un commit directo auditado de operador. El harness quedo preparado para que, desde ese punto, el mantenimiento pase por features del propio harness.
+The bootstrap was closed with a direct audited operator commit. The harness was
+prepared so that, from that point, maintenance goes through features of the
+harness itself.
 
-Implementado:
+Implemented:
 
-- Spec Partner v2 activado mediante `state/specification-policy.json`.
-- Schema v2 en `specs/schemas/acceptance-v2.schema.json`.
-- Template v2 por defecto en `specs/templates/acceptance.yaml`.
-- Soporte de contratos legacy v1 para `F-001`.
-- Documentacion de agentes `specifier` y `leader` actualizada.
-- Correccion de bloques Markdown rotos en convenciones SDD.
-- Correccion del contrato Windows y eliminacion de duplicacion.
-- Campo `change_domain` con valores `product`, `harness`, `template`; default `product`.
-- Role Guard ampliado para permitir cambios controlados de mantenimiento en dominio `harness`.
+- Spec Partner v2 activated via `state/specification-policy.json`.
+- Schema v2 in `specs/schemas/acceptance-v2.schema.json`.
+- Template v2 by default in `specs/templates/acceptance.yaml`.
+- Support for legacy v1 contracts for `F-001`.
+- `specifier` and `leader` agent documentation updated.
+- Fix of broken Markdown blocks in the SDD conventions.
+- Fix of the Windows contract and removal of duplication.
+- `change_domain` field with values `product`, `harness`, `template`; default
+  `product`.
+- Role Guard extended to allow controlled maintenance changes in the `harness`
+  domain.
 
-Restriccion mantenida: `change_domain: harness` no autoriza edicion directa del plano de control externo.
+Constraint maintained: `change_domain: harness` does not authorize direct editing
+of the external control plane.
 
-Commits principales:
+Main commits:
 
 - `e16a7f4 feat: close spec partner bootstrap`
 - `08c5945 feat: validate structured acceptance contracts v2`
 
 ### 31B Semantic Architect Review
 
-El Architect debe revisar semanticamente la especificacion antes del diseno.
+The Architect must semantically review the specification before the design.
 
-Implementado:
+Implemented:
 
-- `architecture.md` requiere seccion `Specification Review` para acceptance v2.
-- La validacion bloquea `DESIGN_READY` si faltan conclusiones criticas.
-- El agente `architect` fue actualizado para revisar contradicciones, criterios no verificables, dependencias no declaradas, alcance ambiguo y preguntas criticas sin resolver.
+- `architecture.md` requires a `Specification Review` section for acceptance v2.
+- The validation blocks `DESIGN_READY` if critical conclusions are missing.
+- The `architect` agent was updated to review contradictions, non-verifiable
+  criteria, undeclared dependencies, ambiguous scope and unresolved critical
+  questions.
 
-Archivos principales:
+Main files:
 
 - `specs/templates/architecture.md`
 - `scripts/feature_validation.py`
 - `.claude/agents/architect.md`
 
-Commit principal:
+Main commit:
 
 - `0a7c859 feat: add semantic gates and mutation capability`
 
 ### 31C Quality Gates Framework
 
-Se agrego un framework versionado de quality gates por fase.
+A versioned framework of per-phase quality gates was added.
 
-Implementado:
+Implemented:
 
-- Configuracion en `state/quality-gates.json`.
-- Fases: `implementation_fast`, `qa_full`, `finalization`, `optional_capability`.
-- Compatibilidad con `scripts/verify_fast.sh` y `scripts/verify_full.sh` como defaults.
-- Evidencia estructurada JSON.
-- Logs pesados fuera de Git en `artifact_root/quality-gates/<feature>/`.
-- Gates bloqueantes impiden avanzar segun fase:
-  - `implementation_fast` bloquea `READY_FOR_QA`.
-  - `qa_full` impide `APPROVED`.
-  - `finalization` bloquea `DONE`.
-- Scripts de verificacion robustecidos para sesiones SSH no interactivas.
+- Configuration in `state/quality-gates.json`.
+- Phases: `implementation_fast`, `qa_full`, `finalization`, `optional_capability`.
+- Compatibility with `scripts/verify_fast.sh` and `scripts/verify_full.sh` as
+  defaults.
+- Structured JSON evidence.
+- Heavy logs outside Git in `artifact_root/quality-gates/<feature>/`.
+- Blocking gates prevent advancing per phase:
+  - `implementation_fast` blocks `READY_FOR_QA`.
+  - `qa_full` prevents `APPROVED`.
+  - `finalization` blocks `DONE`.
+- Verification scripts hardened for non-interactive SSH sessions.
 
-Archivos principales:
+Main files:
 
 - `scripts/quality_gates.py`
 - `state/quality-gates.json`
@@ -102,7 +117,7 @@ Archivos principales:
 - `scripts/verify_fast.sh`
 - `scripts/verify_full.sh`
 
-Commits principales:
+Main commits:
 
 - `0a7c859 feat: add semantic gates and mutation capability`
 - `d83012c fix: harden verification gates for noninteractive runs`
@@ -110,35 +125,36 @@ Commits principales:
 
 ### 31D-31E Mutation Capability
 
-Se implemento mutation testing determinista con runner propio, sin herramienta externa.
+Deterministic mutation testing was implemented with its own runner, without an
+external tool.
 
-Implementado:
+Implemented:
 
-- Runner Python en `scripts/mutation_runner.py`.
-- Alcance inicial `changed_code`.
+- Python runner in `scripts/mutation_runner.py`.
+- Initial scope `changed_code`.
 - Defaults:
   - `max_mutants: 100`
   - `max_duration_seconds: 600`
-- Mutaciones deterministas iniciales:
-  - booleanos
-  - comparadores
-  - operadores aritmeticos simples
-  - operadores logicos
-- El runner aplica mutantes, ejecuta tests, restaura archivos y clasifica:
+- Initial deterministic mutations:
+  - booleans
+  - comparators
+  - simple arithmetic operators
+  - logical operators
+- The runner applies mutants, runs tests, restores files and classifies:
   - `killed`
   - `survived`
   - `invalid`
-- Capability opcional `mutation-testing` activable por feature.
-- Agente `mutation-reviewer` autorizado por Leader.
-- Presupuesto de agente en `state/agent-budgets.json`.
-- Evidencia validada por schema y script determinista.
+- Optional `mutation-testing` capability activatable per feature.
+- `mutation-reviewer` agent authorized by the Leader.
+- Agent budget in `state/agent-budgets.json`.
+- Evidence validated by schema and a deterministic script.
 
-Criterio de aprobacion:
+Approval criterion:
 
-- Cero mutantes supervivientes relevantes sin justificar.
-- Cualquier `test_gap` fuerza `CHANGES_REQUESTED`.
+- Zero relevant surviving mutants without justification.
+- Any `test_gap` forces `CHANGES_REQUESTED`.
 
-Archivos principales:
+Main files:
 
 - `scripts/mutation_runner.py`
 - `scripts/mutation_review_validation.py`
@@ -146,16 +162,16 @@ Archivos principales:
 - `.claude/agents/mutation-reviewer.md`
 - `state/agent-budgets.json`
 
-Commits principales:
+Main commits:
 
 - `0a7c859 feat: add semantic gates and mutation capability`
 - `de957d3 feat: execute mutation tests deterministically`
 
-### 31F Validacion End-To-End Y Template Extraction
+### 31F End-To-End Validation And Template Extraction
 
-Se creo el template reutilizable y se valido con proyectos reales.
+The reusable template was created and validated with real projects.
 
-Estructura final del template:
+Final template structure:
 
 ```text
 agentic-sdd-template/
@@ -173,33 +189,33 @@ agentic-sdd-template/
   project.example.yaml
 ```
 
-Generador:
+Generator:
 
 ```bash
 python3 create_project.py --config project.yaml
 ```
 
-Proyectos validados:
+Validated projects:
 
 - `/srv/agentic/workspace/test-generic-project`
 - `/srv/agentic/workspace/test-python-project`
 - `/srv/agentic/workspace/test-node-project`
 
-Cada proyecto completo una feature real `F-001` hasta `DONE`.
+Each project completed a real feature `F-001` up to `DONE`.
 
-Evidencia especial:
+Special evidence:
 
-- Python proyecto generado ejecuto mutation testing con resultado:
+- The generated Python project ran mutation testing with the result:
   - `generated: 1`
   - `killed: 1`
   - `survived: 0`
   - `invalid: 0`
-- Evidencia mutation:
+- Mutation evidence:
   - `/srv/agentic/workspace/data/test-python-project/artifacts/mutation-tests/F-001/latest.json`
-- Revision mutation:
+- Mutation review:
   - `/srv/agentic/workspace/test-python-project/evidence/mutation-reviews/F-001.json`
 
-Commits principales del template:
+Main template commits:
 
 - `036fa17 chore: initialize agentic sdd template`
 - `cc607ad chore: sync template core with harness`
@@ -209,13 +225,14 @@ Commits principales del template:
 
 ### CAP-009 Documentation Pack
 
-Se convirtio la documentacion tecnica de los proyectos generados en contrato del
-template.
+The technical documentation of the generated projects was turned into a template
+contract.
 
-Implementado:
+Implemented:
 
-- Capability `documentation-pack` activa por defecto en perfiles `generic`, `python` y `node`.
-- Estructura base:
+- `documentation-pack` capability active by default in the `generic`, `python`
+  and `node` profiles.
+- Base structure:
   - `docs/00-project/`
   - `docs/10-architecture/`
   - `docs/20-runtime/`
@@ -223,63 +240,67 @@ Implementado:
   - `docs/40-operations/`
   - `docs/50-releases/`
   - `docs/90-generated/`
-- ADR inicial `docs/10-architecture/adr/ADR-0001-template-baseline.md`.
-- Documentacion especifica de perfil:
+- Initial ADR `docs/10-architecture/adr/ADR-0001-template-baseline.md`.
+- Profile-specific documentation:
   - `docs/20-runtime/python-environment.md`
   - `docs/20-runtime/node-environment.md`
-- Documentacion adicional cuando `windows-validation` esta activa:
+- Additional documentation when `windows-validation` is active:
   - `docs/20-runtime/windows-runner.md`
   - `docs/30-quality/windows-validation.md`
-- Scripts regenerables:
+- Regenerable scripts:
   - `scripts/generate_docs_index.py`
   - `scripts/refresh_project_docs.py`
   - `scripts/refresh_feature_index.py`
   - `scripts/refresh_quality_summary.py`
   - `scripts/refresh_metrics_summary.py`
-- Politica versionada en `state/capabilities/documentation-pack.json`.
+- Versioned policy in `state/capabilities/documentation-pack.json`.
 - Schema `specs/schemas/documentation-policy.schema.json`.
 
 Decision:
 
-- `docs/` contiene documentacion viva y estable del proyecto.
-- `specs/features/` conserva la trazabilidad de features.
-- `docs/90-generated/` no es fuente de verdad.
-- No se agrega un agente `technical-writer`; cada agente mantiene la documentacion que corresponde a su responsabilidad y los resumenes se generan por scripts deterministas.
+- `docs/` contains living and stable project documentation.
+- `specs/features/` keeps the traceability of features.
+- `docs/90-generated/` is not a source of truth.
+- A `technical-writer` agent is not added; each agent maintains the documentation
+  that corresponds to its responsibility and the summaries are generated by
+  deterministic scripts.
 
 ### CAP-010 Documentation Finalization Gate
 
-Se agrego enforcement documental en la finalizacion.
+Documentation enforcement was added at finalization.
 
-Implementado:
+Implemented:
 
-- `acceptance.yaml` soporta bloque opcional:
+- `acceptance.yaml` supports an optional block:
   - `requires_adr`
   - `requires_runtime_update`
   - `requires_operations_update`
   - `requires_quality_update`
-- Schema actualizado en `specs/schemas/acceptance-v2.schema.json`.
-- Template actualizado en `specs/templates/acceptance.yaml`.
-- Validador determinista `scripts/documentation_validation.py`.
-- `scripts/finalize_feature.py` valida el diff entre el `merge-base` y el commit revisado por QA.
-- Si una requirement documental esta marcada como `true` y no hay cambio correspondiente, la feature no avanza a `DONE`.
+- Schema updated in `specs/schemas/acceptance-v2.schema.json`.
+- Template updated in `specs/templates/acceptance.yaml`.
+- Deterministic validator `scripts/documentation_validation.py`.
+- `scripts/finalize_feature.py` validates the diff between the `merge-base` and
+  the QA-reviewed commit.
+- If a documentation requirement is marked `true` and there is no corresponding
+  change, the feature does not advance to `DONE`.
 
-Mapeo de requirements:
+Requirement mapping:
 
 - `requires_adr`: `docs/10-architecture/adr/*.md`
 - `requires_runtime_update`: `docs/20-runtime/*.md`
 - `requires_operations_update`: `docs/40-operations/*.md`
 - `requires_quality_update`: `docs/30-quality/*.md`
 
-## Pruebas Ejecutadas
+## Tests Run
 
-Harness fuente:
+Source harness:
 
 ```bash
 cd /srv/agentic/workspace/desktop-overlay-assistant
 bash scripts/verify_full.sh
 ```
 
-Resultado final:
+Final result:
 
 - agent budget validation OK
 - `compileall` OK
@@ -295,7 +316,7 @@ cd /srv/agentic/workspace/agentic-sdd-template
 python3 -m unittest discover -s tests -v
 ```
 
-Resultado final:
+Final result:
 
 - `test_generates_generic_project`: OK
 - `test_generates_python_project`: OK
@@ -306,175 +327,200 @@ Resultado final:
 - `test_generates_windows_validation_documentation`: OK
 - `Ran 8 tests`: OK
 
-Proyectos generados:
+Generated projects:
 
 ```bash
 python3 scripts/project_status.py
 ```
 
-Resultado final:
+Final result:
 
 - `test-generic-project`: `F-001 DONE`
 - `test-python-project`: `F-001 DONE`
 - `test-node-project`: `F-001 DONE`
 
-## Decisiones Tecnicas
+## Technical Decisions
 
-- El bootstrap inicial se permitio como unico commit directo de operador.
-- El mantenimiento posterior debe pasar por el propio harness.
-- `change_domain` separa cambios de producto, harness y template.
-- Mutation testing usa runner propio determinista para controlar alcance, reproducibilidad y evidencia.
-- Quality gates mantienen compatibilidad con `verify_fast.sh` y `verify_full.sh`.
-- Logs pesados quedan en `artifact_root`; Git conserva evidencias pequenas y revisables.
-- Windows validation queda como capability opcional, no dependencia core.
-- Node es el primer perfil no Python y usa `npm`, ESM y `node:test`.
-- La publicacion Git remota queda separada de `finalize_feature.py`: primero se integra localmente y luego `repository-publisher` ejecuta `scripts/publish_feature.py`.
-- Role Guard bloquea `git push` directo; el push real solo puede ocurrir dentro del script determinista de publicacion.
+- The initial bootstrap was allowed as the only direct operator commit.
+- Subsequent maintenance must go through the harness itself.
+- `change_domain` separates product, harness and template changes.
+- Mutation testing uses its own deterministic runner to control scope,
+  reproducibility and evidence.
+- Quality gates keep compatibility with `verify_fast.sh` and `verify_full.sh`.
+- Heavy logs stay in `artifact_root`; Git keeps small, reviewable evidence.
+- Windows validation remains an optional capability, not a core dependency.
+- Node is the first non-Python profile and uses `npm`, ESM and `node:test`.
+- Remote Git publication is separated from `finalize_feature.py`: first it is
+  integrated locally and then `repository-publisher` runs
+  `scripts/publish_feature.py`.
+- Role Guard blocks a direct `git push`; the real push can only happen inside the
+  deterministic publication script.
 
-## Roadmap De Capabilities
+## Capabilities Roadmap
 
-Esta matriz convierte las capacidades del harness en un backlog mantenible. Incluye capacidades ya cerradas, nuevas capacidades incorporadas y extensiones recomendadas.
+This matrix turns the harness capabilities into a maintainable backlog. It
+includes already closed capabilities, newly incorporated capabilities and
+recommended extensions.
 
-| ID | Capability | Estado | Prioridad | Resultado |
+| ID | Capability | State | Priority | Result |
 | --- | --- | --- | --- | --- |
-| `CAP-001` | Quality Gates Framework | Completado | Alta | Gates versionados por fase con evidencia estructurada |
-| `CAP-002` | External Runtime | Completado | Alta | Target local/manual-drop, runner, validador, schema y evidencia |
-| `CAP-003` | Windows Validation | Completado | Alta | Policy, runner minimo, evidencia Windows validada por schema y bloqueo cuando se requiere |
-| `CAP-004` | Performance Testing | Completado | Media | Runner local con warmup, mediciones, p95 y validador |
-| `CAP-005` | Security Scanning | Completado | Media | Scanner determinista de secretos/ficheros sensibles en modo observe |
-| `CAP-006` | Mutation Testing | Completado | Alta | Runner Python determinista con mutation reviewer |
-| `CAP-007` | Template Generator | Completado | Alta | Perfiles `generic`, `python`, `node` generables y validados |
-| `CAP-008` | Git Publish | Completado | Alta | Publicacion local/remota auditada mediante `repository-publisher` |
+| `CAP-001` | Quality Gates Framework | Completed | High | Versioned per-phase gates with structured evidence |
+| `CAP-002` | External Runtime | Completed | High | local/manual-drop target, runner, validator, schema and evidence |
+| `CAP-003` | Windows Validation | Completed | High | Policy, minimal runner, Windows evidence validated by schema and blocking when required |
+| `CAP-004` | Performance Testing | Completed | Medium | Local runner with warmup, measurements, p95 and validator |
+| `CAP-005` | Security Scanning | Completed | Medium | Deterministic scanner of secrets/sensitive files in observe mode |
+| `CAP-006` | Mutation Testing | Completed | High | Deterministic Python runner with mutation reviewer |
+| `CAP-007` | Template Generator | Completed | High | `generic`, `python`, `node` profiles generable and validated |
+| `CAP-008` | Git Publish | Completed | High | local/remote publication audited via `repository-publisher` |
 
 ### 32A Git Publish Capability
 
-Motivacion:
+Motivation:
 
-El harness ya podia trabajar con Git local: los implementadores trabajan en worktrees, QA revisa ramas de feature y `finalize_feature.py` integra en la rama canonica local. Faltaba una capacidad explicita, segura y auditable para publicar tareas completadas en un remote.
+The harness could already work with local Git: the implementers work in
+worktrees, QA reviews feature branches and `finalize_feature.py` integrates into
+the local canonical branch. An explicit, safe and auditable capability to publish
+completed tasks to a remote was missing.
 
-Implementado:
+Implemented:
 
-- Nuevo script `scripts/publish_feature.py`.
-- Nuevo agente `repository-publisher`.
-- Nuevo presupuesto en `state/agent-budgets.json`.
-- Role Guard reconoce `repository-publisher`.
-- Role Guard bloquea `git push` directo y solo permite publicacion mediante script.
-- Configuracion `git_publication` en `state/project.json`.
-- Generador acepta capability `git-publish`.
-- Template genera `git_publication` en proyectos nuevos.
-- Tests unitarios cubren modo local, push a remote bare, rechazo de features no `DONE` y bloqueo de `git push` directo.
-- Ejecucion operativa sobre proyecto generado:
-  - proyecto: `/srv/agentic/workspace/test-generic-project`
+- New script `scripts/publish_feature.py`.
+- New agent `repository-publisher`.
+- New budget in `state/agent-budgets.json`.
+- Role Guard recognizes `repository-publisher`.
+- Role Guard blocks a direct `git push` and only allows publication via the
+  script.
+- `git_publication` configuration in `state/project.json`.
+- The generator accepts the `git-publish` capability.
+- The template generates `git_publication` in new projects.
+- Unit tests cover local mode, push to a bare remote, rejection of non-`DONE`
+  features and blocking of a direct `git push`.
+- Operational run on a generated project:
+  - project: `/srv/agentic/workspace/test-generic-project`
   - feature: `F-001`
-  - resultado: `LOCAL_RECORDED`
-  - evidencia: `/srv/agentic/workspace/data/test-generic-project/artifacts/git-publish/F-001/latest.json`
+  - result: `LOCAL_RECORDED`
+  - evidence: `/srv/agentic/workspace/data/test-generic-project/artifacts/git-publish/F-001/latest.json`
 
-Modos soportados:
+Supported modes:
 
 - `disabled`
 - `local`
 - `dry_run`
 - `push`
 
-Respuesta a la duda operativa:
+Answer to the operational question:
 
-Si, el montaje ya trabaja con Git local mediante ramas, worktrees y merges deterministas. Con `git-publish`, tambien puede trabajar con Git remoto: un agente especializado puede subir tareas completadas al repositorio configurado, pero no mediante comandos libres, sino mediante un script auditado que valida estado, commit, rama, limpieza del repo y remote.
+Yes, the setup already works with local Git via branches, worktrees and
+deterministic merges. With `git-publish`, it can also work with remote Git: a
+specialized agent can push completed tasks to the configured repository, but not
+via free commands, rather via an audited script that validates state, commit,
+branch, repo cleanliness and remote.
 
 ### 32B External Runtime Capability
 
-Implementado:
+Implemented:
 
-- Politica versionada `state/capabilities/external-runtime.json`.
+- Versioned policy `state/capabilities/external-runtime.json`.
 - Schema `specs/schemas/external-runtime-result.schema.json`.
-- Helper comun `scripts/capability_common.py`.
+- Common helper `scripts/capability_common.py`.
 - Runner `scripts/run_external_runtime.py`.
-- Validador `scripts/validate_external_runtime_result.py`.
-- Target `local` para ejecucion determinista.
-- Target `manual-drop` para normalizar resultados externos.
-- Tests unitarios en `tests/unit/test_capability_runners.py`.
+- Validator `scripts/validate_external_runtime_result.py`.
+- `local` target for deterministic execution.
+- `manual-drop` target to normalize external results.
+- Unit tests in `tests/unit/test_capability_runners.py`.
 
-Evidencia smoke real:
+Real smoke evidence:
 
-- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- project: `/srv/agentic/workspace/test-capabilities-project`
 - feature: `F-001`
-- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/external-runtime/F-001/latest.json`
-- estado: `PASSED`
+- evidence: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/external-runtime/F-001/latest.json`
+- state: `PASSED`
 
 ### 32B.1 Windows Validation Runner
 
-Implementado:
+Implemented:
 
-- Politica versionada `state/capabilities/windows-validation.json`.
-- Runner minimo `scripts/collect_windows_evidence.py`.
-- Validador `scripts/validate_windows_evidence.py`.
+- Versioned policy `state/capabilities/windows-validation.json`.
+- Minimal runner `scripts/collect_windows_evidence.py`.
+- Validator `scripts/validate_windows_evidence.py`.
 - Schema `specs/schemas/windows-evidence.schema.json`.
-- Integracion de finalizacion: `finalize_feature.py` bloquea `DONE` si una feature requiere Windows y falta evidencia valida.
-- Tests unitarios en `tests/unit/test_windows_validation.py`.
+- Finalization integration: `finalize_feature.py` blocks `DONE` if a feature
+  requires Windows and valid evidence is missing.
+- Unit tests in `tests/unit/test_windows_validation.py`.
 
-Evidencia smoke real:
+Real smoke evidence:
 
-- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- project: `/srv/agentic/workspace/test-capabilities-project`
 - feature: `F-001`
-- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/windows-tests/F-001/latest.json`
-- estado: `PASS`
-- nota: ejecutado en Jarvis con `--allow-non-windows` para validar infraestructura; en workstation Windows real el check de plataforma no necesita override.
+- evidence: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/windows-tests/F-001/latest.json`
+- state: `PASS`
+- note: run on Jarvis with `--allow-non-windows` to validate infrastructure; on a
+  real Windows workstation the platform check needs no override.
 
 ### 32C Performance Testing Capability
 
-Implementado:
+Implemented:
 
-- Politica versionada `state/capabilities/performance-testing.json`.
+- Versioned policy `state/capabilities/performance-testing.json`.
 - Schema `specs/schemas/performance-result.schema.json`.
 - Runner `scripts/run_performance_gate.py`.
-- Validador `scripts/validate_performance_result.py`.
-- Warmup configurable.
-- Runs medidos.
+- Validator `scripts/validate_performance_result.py`.
+- Configurable warmup.
+- Measured runs.
 - Timeout.
-- Estadisticas `min_ms`, `median_ms`, `p95_ms`, `max_ms`.
-- Modo inicial `observe`.
-- Tests unitarios en `tests/unit/test_capability_runners.py`.
+- `min_ms`, `median_ms`, `p95_ms`, `max_ms` statistics.
+- Initial `observe` mode.
+- Unit tests in `tests/unit/test_capability_runners.py`.
 
-Evidencia smoke real:
+Real smoke evidence:
 
-- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- project: `/srv/agentic/workspace/test-capabilities-project`
 - feature: `F-001`
-- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/performance-testing/F-001/latest.json`
-- estado: `PASSED`
+- evidence: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/performance-testing/F-001/latest.json`
+- state: `PASSED`
 
 ### 32D Security Scanning Capability
 
-Implementado:
+Implemented:
 
-- Politica versionada `state/capabilities/security-scanning.json`.
+- Versioned policy `state/capabilities/security-scanning.json`.
 - Schema `specs/schemas/security-result.schema.json`.
 - Runner `scripts/run_security_scan.py`.
-- Validador `scripts/validate_security_result.py`.
-- Scanner determinista de secretos y ficheros sensibles.
-- Redaccion de muestras sensibles.
-- Modo inicial `observe`.
-- Tests unitarios en `tests/unit/test_capability_runners.py`.
+- Validator `scripts/validate_security_result.py`.
+- Deterministic scanner of secrets and sensitive files.
+- Redaction of sensitive samples.
+- Initial `observe` mode.
+- Unit tests in `tests/unit/test_capability_runners.py`.
 
-Evidencia smoke real:
+Real smoke evidence:
 
-- proyecto: `/srv/agentic/workspace/test-capabilities-project`
+- project: `/srv/agentic/workspace/test-capabilities-project`
 - feature: `F-001`
-- evidencia: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/security-scanning/F-001/latest.json`
-- estado: `PASSED`
+- evidence: `/srv/agentic/workspace/data/test-capabilities-project/artifacts/capabilities/security-scanning/F-001/latest.json`
+- state: `PASSED`
 
-## Extensiones Futuras No Incluidas En Esta Ejecucion
+## Future Extensions Not Included In This Execution
 
-Estas ideas quedan documentadas como evolucion posterior, no como capabilities pendientes del cierre actual:
+These ideas are documented as later evolution, not as capabilities pending from
+the current closure:
 
-- Remote PR Publishing: crear PRs reales con provider concreto cuando exista repositorio remoto y credenciales de plataforma.
-- Release Tagging: etiquetar milestones o releases cuando el template tenga politica de versionado.
-- Perfiles adicionales: `frontend`, `go`, `rust` segun demanda real de proyectos.
+- Remote PR Publishing: create real PRs with a concrete provider when there is a
+  remote repository and platform credentials.
+- Release Tagging: tag milestones or releases when the template has a versioning
+  policy.
+- Additional profiles: `frontend`, `go`, `rust` according to real project demand.
 
-## Estado Residual
+## Residual State
 
-No quedan bloques abiertos del roadmap original, del documento de capabilities pendientes ni de `CAP-008 Git Publish`. Los siguientes pasos ya no son cierre del roadmap, sino mejora continua:
+There are no open blocks left from the original roadmap, the pending capabilities
+document or `CAP-008 Git Publish`. The following steps are no longer closure of
+the roadmap, but continuous improvement:
 
-- Publicar version/tag del template.
-- Crear mas perfiles (`go`, `rust`, `frontend`) si aparecen proyectos reales.
-- Ampliar mutation testing a mas lenguajes cuando exista necesidad.
-- Anadir documentacion de ejemplos end-to-end con capturas de salida reales si se quiere usar como onboarding.
-- Implementar `Remote PR Publishing` si se prefiere abrir pull requests en vez de push directo a rama canonica.
+- Publish a template version/tag.
+- Create more profiles (`go`, `rust`, `frontend`) if real projects appear.
+- Extend mutation testing to more languages when there is a need.
+- Add end-to-end example documentation with real output captures if it is to be
+  used for onboarding.
+- Implement `Remote PR Publishing` if opening pull requests is preferred over a
+  direct push to the canonical branch.
+```

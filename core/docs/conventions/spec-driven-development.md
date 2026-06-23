@@ -1,12 +1,12 @@
-# Convenciones Spec Driven Development
+# Spec Driven Development Conventions
 
-## Documentos obligatorios por feature
+## Mandatory documents per feature
 
-Cada feature se almacena en:
+Each feature is stored in:
 
 `specs/features/<feature-id>-<slug>/`
 
-Y debe contener:
+And must contain:
 
 - `specification.md`
 - `acceptance.yaml`
@@ -14,25 +14,25 @@ Y debe contener:
 - `implementation-plan.md`
 - `test-plan.md`
 
-## Reglas para criterios de aceptación
+## Rules for acceptance criteria
 
-- Cada criterio tiene un identificador secuencial: `AC-001`, `AC-002`, etc.
-- Los identificadores no pueden repetirse.
-- Todos los criterios deben ser objetivamente verificables.
-- Todos los criterios deben aparecer en `test-plan.md`.
-- No se admiten propiedades distintas de las definidas en el esquema.
-- Las features que requieran validación Windows deben incluir al menos un criterio
-  verificado mediante `windows_e2e`.
+- Each criterion has a sequential identifier: `AC-001`, `AC-002`, etc.
+- Identifiers cannot be repeated.
+- All criteria must be objectively verifiable.
+- All criteria must appear in `test-plan.md`.
+- No properties other than those defined in the schema are allowed.
+- Features that require Windows validation must include at least one criterion
+  verified through `windows_e2e`.
 
-## Reglas Markdown
+## Markdown rules
 
-- Todos los documentos deben tener un título H1.
-- Todas las secciones obligatorias deben existir.
-- Las secciones obligatorias no pueden quedar vacías.
-- No pueden permanecer marcadores `<!-- REQUIRED: ... -->`.
-- Antes de solicitar una transición deben ejecutarse los validadores correspondientes.
+- Every document must have an H1 title.
+- All mandatory sections must exist.
+- Mandatory sections cannot be left empty.
+- No `<!-- REQUIRED: ... -->` markers may remain.
+- The corresponding validators must be run before requesting a transition.
 
-## Validación manual
+## Manual validation
 
 ```bash
 uv run python scripts/validate_spec.py --feature F-001
@@ -40,24 +40,23 @@ uv run python scripts/validate_design.py --feature F-001 --level architecture
 uv run python scripts/validate_design.py --feature F-001 --level ready
 ```
 
-## Spec Partner autónomo
+## Autonomous Spec Partner
 
-Las nuevas features utilizan `acceptance.yaml` con `schema_version: 2`.
+New features use `acceptance.yaml` with `schema_version: 2`.
 
-El agente técnico `specifier` actúa como Spec Partner autónomo:
+The technical agent `specifier` acts as an autonomous Spec Partner:
 
-- analiza y endurece la idea funcional inicial;
-- documenta hipótesis mediante `ASM-XXX`;
-- documenta decisiones funcionales mediante `DEC-XXX`;
-- registra preguntas pendientes mediante `Q-XXX`;
-- bloquea únicamente cuando una pregunta crítica no puede resolverse de forma
-  segura;
-- genera escenarios estructurados `SCN-XXX` con `given`, `when` y `then`;
-- asegura la cobertura de todos los criterios obligatorios `AC-XXX`.
+- analyzes and hardens the initial functional idea;
+- documents assumptions through `ASM-XXX`;
+- documents functional decisions through `DEC-XXX`;
+- records open questions through `Q-XXX`;
+- blocks only when a critical question cannot be resolved safely;
+- generates structured scenarios `SCN-XXX` with `given`, `when` and `then`;
+- ensures coverage of all mandatory `AC-XXX` criteria.
 
-Los escenarios no son Gherkin ejecutable ni implican TDD. Constituyen un
-contrato estructurado y trazable para arquitectura, implementación y QA.
+Scenarios are not executable Gherkin and do not imply TDD. They constitute a
+structured, traceable contract for architecture, implementation and QA.
 
-Las features históricas declaradas en
-`state/specification-policy.json::legacy_v1_features` pueden conservar
-contratos `schema_version: 1`.
+Legacy features declared in
+`state/specification-policy.json::legacy_v1_features` may retain
+`schema_version: 1` contracts.

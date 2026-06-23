@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Completa una implementación validada y la envía a READY_FOR_QA."""
+"""Complete a validated implementation and move it to READY_FOR_QA."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--agent-id", required=True)
     parser.add_argument(
         "--reason",
-        default="Implementación completada y verificada",
+        default="Implementation completed and verified",
     )
 
     return parser.parse_args()
@@ -153,25 +153,25 @@ def main() -> int:
             feature = find_feature(queue, arguments.feature)
 
             if feature["state"] != "IN_PROGRESS":
-                raise ControlPlaneError(f"{feature['id']} no está en estado IN_PROGRESS")
+                raise ControlPlaneError(f"{feature['id']} is not in IN_PROGRESS state")
 
             lease_path = paths["leases"] / f"{feature['id']}.json"
             lease = load_json(lease_path)
 
             if lease.get("agent_id") != arguments.agent_id:
                 raise ControlPlaneError(
-                    f"El lease pertenece a {lease.get('agent_id')}, no a {arguments.agent_id}"
+                    f"The lease belongs to {lease.get('agent_id')}, not to {arguments.agent_id}"
                 )
 
             if Path(lease["worktree"]).resolve() != worktree:
-                raise ControlPlaneError("El cierre debe ejecutarse desde el worktree asignado")
+                raise ControlPlaneError("The closeout must be run from the assigned worktree")
 
         ensure_clean_repository(worktree)
 
         canonical_branch = config.get("canonical_branch", "main")
 
         if commits_ahead(worktree, canonical_branch) < 1:
-            raise ControlPlaneError("La rama de implementación no contiene commits propios")
+            raise ControlPlaneError("The implementation branch contains no commits of its own")
 
         tested_commit = git_head(worktree)
 
@@ -200,7 +200,7 @@ def main() -> int:
             current_lease = load_json(lease_path)
 
             if current_lease.get("run_id") != lease["run_id"]:
-                raise ControlPlaneError("El lease cambió durante el cierre de implementación")
+                raise ControlPlaneError("The lease changed during the implementation closeout")
 
             apply_transition(
                 queue=queue,
@@ -247,10 +247,10 @@ def main() -> int:
             lease_path.unlink()
 
         print(f"[OK] Feature:          {feature['id']}")
-        print("[OK] Estado:           READY_FOR_QA")
-        print(f"[OK] Commit probado:   {tested_commit}")
-        print(f"[OK] Commit evidencia: {evidence_commit}")
-        print(f"[OK] Evidencia:        {evidence_path}")
+        print("[OK] State:            READY_FOR_QA")
+        print(f"[OK] Tested commit:    {tested_commit}")
+        print(f"[OK] Evidence commit:  {evidence_commit}")
+        print(f"[OK] Evidence:         {evidence_path}")
         print(f"[OK] Log:              {log_path}")
 
         return 0

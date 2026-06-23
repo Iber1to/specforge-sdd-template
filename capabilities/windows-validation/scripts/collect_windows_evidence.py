@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runner minimo para generar evidencia Windows compatible con el harness."""
+"""Minimal runner to generate Windows evidence compatible with the harness."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--allow-non-windows",
         action="store_true",
-        help="Permite ejecutar smoke tests de infraestructura fuera de Windows.",
+        help="Allow running infrastructure smoke tests outside of Windows.",
     )
     return parser.parse_args()
 
@@ -145,7 +145,7 @@ def main() -> int:
         )
 
         print(f"[OK] Windows evidence: {status}")
-        print(f"[OK] Evidencia:        {evidence_path}")
+        print(f"[OK] Evidence:         {evidence_path}")
         return 0 if status == "PASS" else 2
 
     except (ControlPlaneError, WindowsEvidenceValidationError) as exc:

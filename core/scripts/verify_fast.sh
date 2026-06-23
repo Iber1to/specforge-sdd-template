@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verificación rápida para el ciclo habitual de desarrollo.
+# Fast verification for the regular development cycle.
 
 set -euo pipefail
 
@@ -33,8 +33,8 @@ echo "── Ruff format ──────────────────�
 "${run_ruff[@]}" format --check scripts tests/unit
 
 echo
-echo "── Tests unitarios ────────────────────────────────────"
+echo "── Unit tests ─────────────────────────────────────────"
 PYTHONDONTWRITEBYTECODE=1 "${run_pytest[@]}" -q tests/unit -p no:cacheprovider
 
 echo
-echo "[OK] Verificación rápida completada."
+echo "[OK] Fast verification complete."

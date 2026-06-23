@@ -1,22 +1,22 @@
 # Capability: Eval Harness
 
-Capacidad opcional para convertir cada escenario `SCN-XXX` de una feature en
-*graders* ejecutables y exigir su resultado como evidencia de calidad. Cierra la
-trazabilidad `AC-XXX -> SCN-XXX -> grader -> evidencia`.
+Optional capability to convert each `SCN-XXX` scenario of a feature into
+executable *graders* and require their result as quality evidence. It closes the
+`AC-XXX -> SCN-XXX -> grader -> evidence` traceability.
 
-Inspirada en el patron `eval-harness` de `affaan-m/ECC` (MIT), reexpresado como
-artefacto determinista gobernado por scripts del harness. Decision registrada en
+Inspired by the `eval-harness` pattern of `affaan-m/ECC` (MIT), reexpressed as a
+deterministic artifact governed by harness scripts. Decision recorded in
 `docs/adr-0002-eval-harness-verification-gate.md`.
 
-## Activacion
+## Activation
 
-Por proyecto:
+Per project:
 
 ```yaml
 capabilities: [eval-harness]
 ```
 
-Por feature:
+Per feature:
 
 ```bash
 python3 scripts/register_feature.py \
@@ -26,9 +26,9 @@ python3 scripts/register_feature.py \
   --capability eval-harness
 ```
 
-## Definicion de graders
+## Grader definition
 
-Cada feature declara sus graders en `specs/features/<FEATURE>/evals.json`:
+Each feature declares its graders in `specs/features/<FEATURE>/evals.json`:
 
 ```json
 {
@@ -61,15 +61,15 @@ Cada feature declara sus graders en `specs/features/<FEATURE>/evals.json`:
 }
 ```
 
-Tipos de grader:
+Grader types:
 
-- `code` -- ejecuta un comando; pasa si el exit code es `0`. Elegible para gate.
-- `rule` -- restriccion determinista sobre ficheros. Elegible para gate.
-- `model` -- LLM-as-judge con rubrica. Consultivo, nunca decide el gate automatico.
-- `human` -- adjudicacion manual. Consultivo.
+- `code` -- runs a command; passes if the exit code is `0`. Eligible for gate.
+- `rule` -- deterministic constraint over files. Eligible for gate.
+- `model` -- LLM-as-judge with a rubric. Advisory, never decides the automatic gate.
+- `human` -- manual adjudication. Advisory.
 
-Reglas `rule` soportadas (`kind`): `file_exists`, `file_contains` (con `pattern`
-regex) y `file_absent`.
+Supported `rule` rules (`kind`): `file_exists`, `file_contains` (with `pattern`
+regex) and `file_absent`.
 
 ## Runner
 
@@ -77,20 +77,20 @@ regex) y `file_absent`.
 python3 scripts/run_evals.py --feature F-001 --scope repository
 ```
 
-Cada grader elegible se ejecuta `runs` veces (politica). Se calculan `pass_at_k`
-(al menos una ejecucion pasa) y `pass_caret_k` (todas pasan).
+Each eligible grader runs `runs` times (policy). `pass_at_k`
+(at least one run passes) and `pass_caret_k` (all pass) are computed.
 
-## Politica
+## Policy
 
 `state/capabilities/eval-harness.json`:
 
-- `mode`: `observe` (no bloquea) o `enforce` (bloquea en fallo).
-- `runs`: repeticiones por grader (default 1).
-- `pass_at_k_min`: ratio minimo para graders de capacidad.
-- `require_pass_caret_k_for_release_critical`: exige `pass_caret_k = 1.00` en graders `release_critical`.
-- `grader_timeout_seconds`: limite por comando `code`.
+- `mode`: `observe` (does not block) or `enforce` (blocks on failure).
+- `runs`: repetitions per grader (default 1).
+- `pass_at_k_min`: minimum ratio for capability graders.
+- `require_pass_caret_k_for_release_critical`: requires `pass_caret_k = 1.00` on `release_critical` graders.
+- `grader_timeout_seconds`: limit per `code` command.
 
-## Evidencia y validacion
+## Evidence and validation
 
 ```text
 artifact_root/capabilities/eval-harness/<feature>/latest.json
@@ -105,12 +105,12 @@ python3 scripts/validate_eval_result.py \
 
 Schema: `specs/schemas/eval-result.schema.json`.
 
-## Regla de aprobacion
+## Approval rule
 
-- En `enforce`, cualquier grader `code`/`rule` elegible que no pase produce
-  `status=FAILED` y devuelve exit code 2.
-- Los graders `release_critical` exigen `pass_caret_k = 1.00` cuando
-  `require_pass_caret_k_for_release_critical` esta activo.
-- Los graders `model`/`human` se registran como `SKIPPED` consultivo y nunca bloquean.
-- Un escenario `SCN-XXX` sin al menos un grader `code` o `rule` se reporta en
+- In `enforce`, any eligible `code`/`rule` grader that does not pass produces
+  `status=FAILED` and returns exit code 2.
+- `release_critical` graders require `pass_caret_k = 1.00` when
+  `require_pass_caret_k_for_release_critical` is active.
+- `model`/`human` graders are recorded as `SKIPPED` advisory and never block.
+- An `SCN-XXX` scenario without at least one `code` or `rule` grader is reported in
   `unverifiable_scenarios`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Helpers compartidos para capabilities opcionales del harness."""
+"""Shared helpers for optional harness capabilities."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ CAPABILITY_STATUSES = {"PASSED", "FAILED", "BLOCKED", "SKIPPED"}
 
 
 class CapabilityError(ControlPlaneError):
-    """Error controlado para runners y validadores de capabilities."""
+    """Controlled error for capability runners and validators."""
 
 
 def utc_now() -> str:
@@ -48,25 +48,25 @@ def capability_policy(capability: str) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise CapabilityError(f"No existe la politica de capability: {path}") from exc
+        raise CapabilityError(f"Capability policy does not exist: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise CapabilityError(f"Politica JSON invalida en {path}: {exc}") from exc
+        raise CapabilityError(f"Invalid JSON policy in {path}: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise CapabilityError(f"La politica {path} debe contener un objeto JSON")
+        raise CapabilityError(f"Policy {path} must contain a JSON object")
 
     return data
 
 
 def ensure_policy_enabled(policy: dict[str, Any], capability: str) -> None:
     if policy.get("schema_version") != 1:
-        raise CapabilityError(f"{capability}: schema_version debe ser 1")
+        raise CapabilityError(f"{capability}: schema_version must be 1")
 
     if policy.get("enabled") is not True:
-        raise CapabilityError(f"{capability}: capability deshabilitada por politica")
+        raise CapabilityError(f"{capability}: capability disabled by policy")
 
     if policy.get("mode") not in {"observe", "enforce"}:
-        raise CapabilityError(f"{capability}: mode debe ser observe o enforce")
+        raise CapabilityError(f"{capability}: mode must be observe or enforce")
 
 
 def validate_capability_evidence(
@@ -88,28 +88,28 @@ def validate_capability_evidence(
     missing = sorted(required - set(evidence))
 
     if missing:
-        raise CapabilityError("Evidencia incompleta: " + ", ".join(missing))
+        raise CapabilityError("Incomplete evidence: " + ", ".join(missing))
 
     if evidence["schema_version"] != 1:
-        raise CapabilityError("schema_version debe ser 1")
+        raise CapabilityError("schema_version must be 1")
 
     if evidence["feature_id"] != feature_id:
-        raise CapabilityError(f"Evidencia no corresponde a {feature_id}")
+        raise CapabilityError(f"Evidence does not correspond to {feature_id}")
 
     if evidence["gate_id"] != capability:
-        raise CapabilityError(f"gate_id debe ser {capability}")
+        raise CapabilityError(f"gate_id must be {capability}")
 
     if evidence["status"] not in CAPABILITY_STATUSES:
-        raise CapabilityError(f"status invalido: {evidence['status']}")
+        raise CapabilityError(f"invalid status: {evidence['status']}")
 
     if not isinstance(evidence["duration_seconds"], int) or evidence["duration_seconds"] < 0:
-        raise CapabilityError("duration_seconds debe ser entero no negativo")
+        raise CapabilityError("duration_seconds must be a non-negative integer")
 
     if not isinstance(evidence["checks"], list):
-        raise CapabilityError("checks debe ser una lista")
+        raise CapabilityError("checks must be a list")
 
     if not isinstance(evidence["artifacts"], list):
-        raise CapabilityError("artifacts debe ser una lista")
+        raise CapabilityError("artifacts must be a list")
 
 
 def write_capability_evidence(
@@ -137,11 +137,11 @@ def load_evidence(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise CapabilityError(f"No existe evidencia: {path}") from exc
+        raise CapabilityError(f"Evidence does not exist: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise CapabilityError(f"Evidencia JSON invalida en {path}: {exc}") from exc
+        raise CapabilityError(f"Invalid JSON evidence in {path}: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise CapabilityError(f"La evidencia debe ser un objeto JSON: {path}")
+        raise CapabilityError(f"Evidence must be a JSON object: {path}")
 
     return data

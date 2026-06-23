@@ -1,16 +1,16 @@
-# Quality Gates Y Capacidades
+# Quality Gates And Capabilities
 
-Este documento resume los gates y capacidades opcionales del template.
+This document summarizes the gates and optional capabilities of the template.
 
 ## Quality Gates
 
-La configuracion versionada vive en:
+The versioned configuration lives in:
 
 ```text
 state/quality-gates.json
 ```
 
-Ejemplo base:
+Base example:
 
 ```json
 {
@@ -27,62 +27,62 @@ Ejemplo base:
 }
 ```
 
-Campos:
+Fields:
 
-- `id`: identificador estable.
-- `phase`: fase donde se ejecuta.
-- `command`: comando como lista de strings.
-- `blocking`: si `true`, un fallo bloquea la transicion.
-- `timeout_seconds`: limite de ejecucion.
+- `id`: stable identifier.
+- `phase`: phase where it runs.
+- `command`: command as a list of strings.
+- `blocking`: if `true`, a failure blocks the transition.
+- `timeout_seconds`: execution limit.
 
-## Fases
+## Phases
 
 `implementation_fast`:
 
-- Se ejecuta al completar implementacion.
-- Bloquea `READY_FOR_QA` si falla un gate bloqueante.
+- Runs when implementation is completed.
+- Blocks `READY_FOR_QA` if a blocking gate fails.
 - Default: `bash scripts/verify_fast.sh`.
 
 `qa_full`:
 
-- Se ejecuta al completar QA.
-- Impide `APPROVED` si falla un gate bloqueante.
+- Runs when QA is completed.
+- Prevents `APPROVED` if a blocking gate fails.
 - Default: `bash scripts/verify_full.sh`.
 
 `finalization`:
 
-- Se ejecuta antes de finalizar.
-- Bloquea `DONE` si falla un gate bloqueante.
+- Runs before finalizing.
+- Blocks `DONE` if a blocking gate fails.
 - Default: `bash scripts/verify_full.sh`.
 
 `optional_capability`:
 
-- Reservada para capacidades que tengan verificaciones propias.
-- Puede usarse para mutation testing u otras capacidades futuras.
+- Reserved for capabilities that have their own checks.
+- Can be used for mutation testing or other future capabilities.
 
-## Evidencia De Gates
+## Gate Evidence
 
-Cada ejecucion produce:
+Each run produces:
 
-- evidencia JSON estructurada
-- log completo de stdout/stderr
+- structured JSON evidence
+- a full stdout/stderr log
 
-Ubicacion:
+Location:
 
 ```text
 artifact_root/quality-gates/<feature>/<run>-<phase>.json
 artifact_root/quality-gates/<feature>/<run>-<phase>-<gate>.log
 ```
 
-Estados:
+States:
 
-- `PASS`: todos los gates pasaron.
-- `WARN`: fallaron gates no bloqueantes.
-- `FAIL`: fallo al menos un gate bloqueante.
+- `PASS`: all gates passed.
+- `WARN`: non-blocking gates failed.
+- `FAIL`: at least one blocking gate failed.
 
 ## Capability: Mutation Testing
 
-Activacion por feature:
+Activation per feature:
 
 ```bash
 python3 scripts/register_feature.py \
@@ -103,35 +103,36 @@ python3 scripts/mutation_runner.py \
   --test-command python3 -m pytest -q
 ```
 
-Alcance inicial:
+Initial scope:
 
 - Python.
-- Codigo cambiado.
-- Mutaciones deterministas de booleanos, comparadores, operadores aritmeticos simples y operadores logicos.
+- Changed code.
+- Deterministic mutations of booleans, comparators, simple arithmetic operators
+  and logical operators.
 
-Salida:
+Output:
 
 - `generated`
 - `killed`
 - `survived`
 - `invalid`
-- lista de mutantes con ubicacion, operador y resultado
+- list of mutants with location, operator and result
 
-Revision:
+Review:
 
-- Agente: `mutation-reviewer`.
-- Evidencia: `evidence/mutation-reviews/<feature>.json`.
+- Agent: `mutation-reviewer`.
+- Evidence: `evidence/mutation-reviews/<feature>.json`.
 - Schema: `specs/schemas/mutation-review.schema.json`.
-- Validador: `scripts/mutation_review_validation.py`.
+- Validator: `scripts/mutation_review_validation.py`.
 
-Regla de bloqueo:
+Blocking rule:
 
-- Si hay `test_gap`, QA debe emitir `CHANGES_REQUESTED`.
-- Si sobreviven mutantes relevantes sin justificacion, no se debe aprobar.
+- If there is a `test_gap`, QA must emit `CHANGES_REQUESTED`.
+- If relevant mutants survive without justification, it must not be approved.
 
 ## Capability: External Runtime
 
-Activacion de proyecto o feature:
+Project or feature activation:
 
 ```yaml
 capabilities: [external-runtime]
@@ -146,7 +147,7 @@ python3 scripts/run_external_runtime.py \
   --command-id python-version
 ```
 
-Validador:
+Validator:
 
 ```bash
 python3 scripts/validate_external_runtime_result.py \
@@ -155,11 +156,12 @@ python3 scripts/validate_external_runtime_result.py \
   --require-pass
 ```
 
-El MVP incluye target `local` y `manual-drop`. SSH queda como extension futura.
+The MVP includes the `local` and `manual-drop` targets. SSH remains a future
+extension.
 
 ## Capability: Performance Testing
 
-Activacion:
+Activation:
 
 ```yaml
 capabilities: [performance-testing]
@@ -174,11 +176,12 @@ python3 scripts/run_performance_gate.py \
   --measured-runs 3
 ```
 
-Produce estadisticas `min_ms`, `median_ms`, `p95_ms` y `max_ms`. El modo inicial es `observe`; `enforce` puede bloquear cuando se estabilicen benchmarks criticos.
+Produces `min_ms`, `median_ms`, `p95_ms` and `max_ms` statistics. The initial
+mode is `observe`; `enforce` can block once critical benchmarks stabilize.
 
 ## Capability: Security Scanning
 
-Activacion:
+Activation:
 
 ```yaml
 capabilities: [security-scanning]
@@ -190,34 +193,38 @@ Runner:
 python3 scripts/run_security_scan.py --feature F-001
 ```
 
-El MVP detecta secretos por regex, ficheros sensibles como `.env`, claves privadas y tokens comunes. Redacta muestras sensibles en la evidencia.
+The MVP detects secrets by regex, sensitive files such as `.env`, private keys
+and common tokens. It redacts sensitive samples in the evidence.
 
 ## Capability: Eval Harness
 
-Activacion:
+Activation:
 
 ```yaml
 capabilities: [eval-harness]
 ```
 
-Objetivo:
+Goal:
 
-- convertir cada escenario `SCN-XXX` de una feature en graders ejecutables
-- cerrar la trazabilidad `AC-XXX -> SCN-XXX -> grader -> evidencia`
-- decidir el gate de calidad de forma determinista, sin depender del juicio del modelo
+- convert each feature's `SCN-XXX` scenario into executable graders
+- close the `AC-XXX -> SCN-XXX -> grader -> evidence` traceability
+- decide the quality gate deterministically, without depending on the model's
+  judgment
 
-Definicion de graders por feature:
+Definition of graders per feature:
 
 ```text
 specs/features/<FEATURE>/evals.json
 ```
 
-Tipos de grader:
+Grader types:
 
-- `code`: ejecuta un comando; pasa si el exit code es `0`. Elegible para gate.
-- `rule`: restriccion determinista sobre ficheros (`file_exists`, `file_contains`, `file_absent`). Elegible para gate.
-- `model`: LLM-as-judge con rubrica. Consultivo, nunca decide el gate automatico.
-- `human`: adjudicacion manual. Consultivo.
+- `code`: runs a command; passes if the exit code is `0`. Eligible for gate.
+- `rule`: deterministic constraint over files (`file_exists`, `file_contains`,
+  `file_absent`). Eligible for gate.
+- `model`: LLM-as-judge with a rubric. Advisory, never decides the automatic
+  gate.
+- `human`: manual adjudication. Advisory.
 
 Runner:
 
@@ -225,10 +232,10 @@ Runner:
 python3 scripts/run_evals.py --feature F-001 --scope repository
 ```
 
-Cada grader elegible se ejecuta `runs` veces (politica). Se calculan `pass_at_k`
-(al menos una ejecucion pasa) y `pass_caret_k` (todas pasan).
+Each eligible grader runs `runs` times (policy). `pass_at_k` (at least one run
+passes) and `pass_caret_k` (all pass) are computed.
 
-Validador:
+Validator:
 
 ```bash
 python3 scripts/validate_eval_result.py \
@@ -237,92 +244,97 @@ python3 scripts/validate_eval_result.py \
   --require-pass
 ```
 
-Politica:
+Policy:
 
 ```text
 state/capabilities/eval-harness.json
 ```
 
-Campos:
+Fields:
 
-- `mode`: `observe` (no bloquea) o `enforce` (bloquea en fallo).
-- `runs`: repeticiones por grader (default 1).
-- `pass_at_k_min`: ratio minimo para graders de capacidad.
-- `require_pass_caret_k_for_release_critical`: exige `pass_caret_k = 1.00` en graders `release_critical`.
-- `grader_timeout_seconds`: limite por comando `code`.
+- `mode`: `observe` (does not block) or `enforce` (blocks on failure).
+- `runs`: repetitions per grader (default 1).
+- `pass_at_k_min`: minimum ratio for capability graders.
+- `require_pass_caret_k_for_release_critical`: requires `pass_caret_k = 1.00` for
+  `release_critical` graders.
+- `grader_timeout_seconds`: limit per `code` command.
 
 Gate:
 
-- `EVAL-001` en fase `qa_full`, modo `observe` por defecto.
-- En `enforce`, cualquier grader `code`/`rule` elegible que no pase produce `FAILED`.
-- Los graders `model`/`human` se registran como `SKIPPED` consultivo y no bloquean.
+- `EVAL-001` in the `qa_full` phase, `observe` mode by default.
+- In `enforce`, any eligible `code`/`rule` grader that does not pass produces
+  `FAILED`.
+- `model`/`human` graders are recorded as advisory `SKIPPED` and do not block.
 
-Schema de evidencia: `specs/schemas/eval-result.schema.json`. Decision:
+Evidence schema: `specs/schemas/eval-result.schema.json`. Decision:
 `docs/adr-0002-eval-harness-verification-gate.md`. Capability source:
-`affaan-m/ECC` (`skills/eval-harness/SKILL.md`), adaptado a ejecucion determinista.
+`affaan-m/ECC` (`skills/eval-harness/SKILL.md`), adapted to deterministic
+execution.
 
 ## Capability: Tool Telemetry
 
-Activacion:
+Activation:
 
 ```yaml
 capabilities: [tool-telemetry]
 ```
 
-Objetivo:
+Goal:
 
-- registrar cada llamada a herramienta (`PreToolUse`/`PostToolUse`) como una
-  linea JSONL determinista (telemetria/evidencia de que herramientas usa cada rol)
-- redactar secretos antes de persistir
-- alimentar auditoria y observabilidad sin alterar el comportamiento de los agentes
+- record each tool call (`PreToolUse`/`PostToolUse`) as a deterministic JSONL
+  line (telemetry/evidence of which tools each role uses)
+- redact secrets before persisting
+- feed auditing and observability without altering the agents' behavior
 
-No es un gate ni aprende patrones: es la capa de sustrato (hooks -> JSONL)
-inspirada en el continuous-learning de `affaan-m/ECC`. Se descarto a proposito el
-motor de "instintos" auto-aprendidos por ser contrario al determinismo SDD.
+It is neither a gate nor does it learn patterns: it is the substrate layer
+(hooks -> JSONL) inspired by the continuous-learning of `affaan-m/ECC`. The
+self-learned "instincts" engine was deliberately discarded for being contrary to
+SDD determinism.
 
-Cableado de hooks:
+Hook wiring:
 
-- `core/.claude/settings.json` cablea `PreToolUse` (matcher `""`) y `PostToolUse`
-  a `hook_entrypoint.sh tool_telemetry`.
-- Si la capability no esta instalada, el hook es **no-op** (no rompe el proyecto).
-- Script: `scripts/tool_telemetry_hook.py` (fail-soft: siempre exit 0).
+- `core/.claude/settings.json` wires `PreToolUse` (matcher `""`) and
+  `PostToolUse` to `hook_entrypoint.sh tool_telemetry`.
+- If the capability is not installed, the hook is **no-op** (it does not break
+  the project).
+- Script: `scripts/tool_telemetry_hook.py` (fail-soft: always exit 0).
 
-Politica:
+Policy:
 
 ```text
 state/capabilities/tool-telemetry.json
 ```
 
-Campos:
+Fields:
 
-- `enabled`: activa/desactiva la captura.
-- `scrub_secrets`: redacta api_key/token/secret/password/claves privadas/AWS.
-- `max_value_chars`: trunca `tool_input`/`tool_response` largos.
+- `enabled`: enables/disables the capture.
+- `scrub_secrets`: redacts api_key/token/secret/password/private keys/AWS.
+- `max_value_chars`: truncates long `tool_input`/`tool_response`.
 
-Evidencia:
+Evidence:
 
 ```text
 artifact_root/capabilities/tool-telemetry/observations-<YYYYMMDD>.jsonl
 ```
 
-Cada linea incluye `timestamp`, `event`, `tool`, `session`, `agent` y, si
-existen, `tool_input`/`tool_response` redactados y truncados.
+Each line includes `timestamp`, `event`, `tool`, `session`, `agent` and, if they
+exist, redacted and truncated `tool_input`/`tool_response`.
 
 ## Capability: Windows Validation
 
-Activacion de proyecto:
+Project activation:
 
 ```yaml
 capabilities: [windows-validation]
 ```
 
-Efecto:
+Effect:
 
-- `state/project.json` marca `windows_validation_available`.
-- La obligatoriedad de evidencia Windows es por feature, no global.
-- El proyecto conserva scripts y schemas para validar evidencia Windows.
+- `state/project.json` marks `windows_validation_available`.
+- The requirement for Windows evidence is per feature, not global.
+- The project keeps scripts and schemas to validate Windows evidence.
 
-Archivos principales:
+Main files:
 
 - `scripts/collect_windows_evidence.py`
 - `scripts/windows_validation.py`
@@ -330,32 +342,34 @@ Archivos principales:
 - `specs/schemas/windows-evidence.schema.json`
 - `docs/windows-runner/evidence-contract.md`
 
-La validacion Windows es opcional en el template core. No bloquea proyectos que no la activen.
+Windows validation is optional in the core template. It does not block projects
+that do not enable it.
 
-Runner minimo:
+Minimal runner:
 
 ```bash
 python3 scripts/collect_windows_evidence.py --feature F-001 --commit <commit>
 ```
 
-En Jarvis puede ejecutarse un smoke de infraestructura con `--allow-non-windows`; en Windows real el check de plataforma debe pasar sin override.
+On Jarvis an infrastructure smoke can be run with `--allow-non-windows`; on real
+Windows the platform check must pass without an override.
 
 ## Capability: Documentation Pack
 
-Activacion:
+Activation:
 
 ```yaml
 capabilities: [documentation-pack]
 ```
 
-Esta capability esta activa por defecto en todos los perfiles generados.
+This capability is active by default in all generated profiles.
 
-Objetivo:
+Goal:
 
-- crear una estructura tecnica minima en `docs/`
-- separar documentacion estable de specs por feature
-- documentar runtime, arquitectura, calidad, operaciones y releases
-- regenerar indices y resumenes derivados en `docs/90-generated/`
+- create a minimal technical structure under `docs/`
+- separate stable documentation from per-feature specs
+- document runtime, architecture, quality, operations and releases
+- regenerate indexes and derived summaries in `docs/90-generated/`
 
 Scripts:
 
@@ -367,21 +381,22 @@ python3 scripts/refresh_quality_summary.py
 python3 scripts/refresh_metrics_summary.py
 ```
 
-Politica:
+Policy:
 
 ```text
 state/capabilities/documentation-pack.json
 specs/schemas/documentation-policy.schema.json
 ```
 
-Regla de autoridad:
+Authority rule:
 
-- `docs/90-generated/` no es fuente de verdad.
-- La fuente de verdad sigue siendo `state/`, `control_root`, `specs/features/`, `evidence/` y Git.
+- `docs/90-generated/` is not a source of truth.
+- The source of truth remains `state/`, `control_root`, `specs/features/`,
+  `evidence/` and Git.
 
-Gate de finalizacion:
+Finalization gate:
 
-`acceptance.yaml` puede declarar requirements documentales:
+`acceptance.yaml` can declare documentation requirements:
 
 ```yaml
 documentation:
@@ -391,14 +406,14 @@ documentation:
   requires_quality_update: false
 ```
 
-`scripts/finalize_feature.py` valida los cambios revisados por QA antes de
-integrar la feature. Si una requirement documental esta marcada como `true` y
-el diff revisado no contiene el documento correspondiente, la feature no pasa a
-`DONE`.
+`scripts/finalize_feature.py` validates the QA-reviewed changes before
+integrating the feature. If a documentation requirement is marked `true` and the
+reviewed diff does not contain the corresponding document, the feature does not
+move to `DONE`.
 
 ## Capability: Git Publish
 
-Activacion de proyecto:
+Project activation:
 
 ```yaml
 capabilities: [git-publish]
@@ -408,11 +423,11 @@ git_publish_branch: main
 git_publish_auto: false
 ```
 
-Objetivo:
+Goal:
 
-- registrar o publicar features ya finalizadas (`DONE`) en Git local o remoto
-- impedir `git push` directo desde agentes
-- guardar evidencia auditada de la publicacion
+- register or publish already finalized features (`DONE`) to local or remote Git
+- prevent direct `git push` from agents
+- store audited evidence of the publication
 
 Script:
 
@@ -420,95 +435,98 @@ Script:
 uv run python scripts/publish_feature.py --feature F-001
 ```
 
-Agente:
+Agent:
 
 - `repository-publisher`
 
-Modos:
+Modes:
 
-- `local`: registra que el merge local quedo integrado.
-- `dry_run`: valida el push remoto con `git push --dry-run`.
-- `push`: sube `HEAD` a `refs/heads/<branch>` del remote configurado.
-- `disabled`: no publica.
+- `local`: records that the local merge was integrated.
+- `dry_run`: validates the remote push with `git push --dry-run`.
+- `push`: pushes `HEAD` to `refs/heads/<branch>` of the configured remote.
+- `disabled`: does not publish.
 
-Evidencia:
+Evidence:
 
 ```text
 artifact_root/git-publish/<feature>/<operation>.json
 artifact_root/git-publish/<feature>/latest.json
 ```
 
-Reglas de bloqueo:
+Blocking rules:
 
-- La feature debe estar en `DONE`.
-- El repo canonico debe estar limpio.
-- El `merged_commit` de la feature debe pertenecer al `HEAD`.
-- Por defecto, `merged_commit` debe ser exactamente `HEAD` para evitar publicar commits posteriores por accidente.
-- `dry_run` y `push` requieren un remote Git existente.
+- The feature must be in `DONE`.
+- The canonical repo must be clean.
+- The feature's `merged_commit` must belong to `HEAD`.
+- By default, `merged_commit` must be exactly `HEAD` to avoid accidentally
+  publishing later commits.
+- `dry_run` and `push` require an existing Git remote.
 
 ## Capability: Remote Notifications
 
-Activacion de proyecto:
+Project activation:
 
 ```yaml
 capabilities: [remote-notifications]
 ```
 
-Objetivo:
+Goal:
 
-- avisar por Telegram cuando el leader se detiene, bloquea una feature o
-  completa el trabajo (`scripts/notify.py`, instruido en `leader.md`)
-- red de seguridad determinista via hooks `Stop`/`Notification` de Claude Code
-  (`scripts/notify_hook.py` a traves de `hook_entrypoint.sh notify`; no-op si la
-  capability no esta instalada)
-- gateway bidireccional opcional (`scripts/telegram_gateway.py`): `/status`,
-  `/tail` y texto libre inyectado como prompt en la sesion tmux del leader
+- alert via Telegram when the leader stops, blocks a feature or completes the
+  work (`scripts/notify.py`, instructed in `leader.md`)
+- a deterministic safety net via Claude Code `Stop`/`Notification` hooks
+  (`scripts/notify_hook.py` through `hook_entrypoint.sh notify`; no-op if the
+  capability is not installed)
+- an optional bidirectional gateway (`scripts/telegram_gateway.py`): `/status`,
+  `/tail` and free text injected as a prompt into the leader's tmux session
 
-Notificacion explicita:
+Explicit notification:
 
 ```bash
 uv run python scripts/notify.py --event blocked --feature F-001 --message "<motivo>"
 ```
 
-Gateway (sesion tmux persistente):
+Gateway (persistent tmux session):
 
 ```bash
 bash scripts/run_gateway.sh
 ```
 
-Politica:
+Policy:
 
 ```text
 state/capabilities/remote-notifications.json
 ```
 
-Reglas:
+Rules:
 
-- Fail-soft: una notificacion fallida nunca bloquea el harness (exit 0 salvo
+- Fail-soft: a failed notification never blocks the harness (exit 0 unless
   `--strict`).
-- Credenciales fuera de Git (`~/.config/agentic-harness/telegram.env`); el token
-  se redacta en errores.
-- Solo el `chat_id` autorizado puede hablar con el gateway.
+- Credentials outside Git (`~/.config/agentic-harness/telegram.env`); the token
+  is redacted in errors.
+- Only the authorized `chat_id` can talk to the gateway.
 
-Setup completo: `docs/notifications/setup.md` (en el proyecto generado) o
-`capabilities/remote-notifications/docs/notifications/setup.md` (en el template).
+Full setup: `docs/notifications/setup.md` (in the generated project) or
+`capabilities/remote-notifications/docs/notifications/setup.md` (in the template).
 
-## Perfil Node Y Gates Adicionales
+## Node Profile And Additional Gates
 
-El perfil `node` agrega gates especificos:
+The `node` profile adds specific gates:
 
-- `npm test` en `implementation_fast`
-- `npm test` en `qa_full`
-- `npm run lint` en `qa_full`
-- `npm test` en `finalization`
+- `npm test` in `implementation_fast`
+- `npm test` in `qa_full`
+- `npm run lint` in `qa_full`
+- `npm test` in `finalization`
 
-Esto permite que el proyecto generado valide tanto el harness Python como el stack Node.
+This lets the generated project validate both the Python harness and the Node
+stack.
 
-## Buenas Practicas
+## Best Practices
 
-- Mantener gates rapidos en `implementation_fast`.
-- Reservar suites completas para `qa_full` y `finalization`.
-- Guardar logs pesados fuera de Git.
-- Hacer que cada gate tenga un proposito claro y nombre estable.
-- Evitar gates no deterministas como requisito bloqueante.
-- Para capacidades opcionales, documentar siempre evidencia, validador y regla de bloqueo.
+- Keep gates fast in `implementation_fast`.
+- Reserve full suites for `qa_full` and `finalization`.
+- Store heavy logs outside Git.
+- Make each gate have a clear purpose and a stable name.
+- Avoid non-deterministic gates as a blocking requirement.
+- For optional capabilities, always document evidence, validator and blocking
+  rule.

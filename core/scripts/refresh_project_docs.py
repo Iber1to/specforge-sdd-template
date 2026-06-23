@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenera los documentos derivados de estado del proyecto."""
+"""Regenerate the documents derived from project state."""
 
 from __future__ import annotations
 

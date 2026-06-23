@@ -1,19 +1,19 @@
 # Capability: Performance Testing
 
-Capacidad opcional para medir comandos repetibles y generar evidencia de rendimiento sin mezclarla con tests funcionales.
+Optional capability to measure repeatable commands and generate performance evidence without mixing it with functional tests.
 
-## Alcance MVP
+## MVP Scope
 
-- Politica versionada en `state/capabilities/performance-testing.json`.
-- Runner local de comandos repetidos.
-- Warmup opcional.
-- Medicion con reloj monotono.
-- Timeout por run.
-- Estadisticas `min_ms`, `median_ms`, `p95_ms`, `max_ms`.
-- Validador determinista.
-- Evidencia en `artifact_root/capabilities/performance-testing/<feature>/`.
+- Versioned policy in `state/capabilities/performance-testing.json`.
+- Local runner for repeated commands.
+- Optional warmup.
+- Measurement with a monotonic clock.
+- Per-run timeout.
+- Statistics `min_ms`, `median_ms`, `p95_ms`, `max_ms`.
+- Deterministic validator.
+- Evidence in `artifact_root/capabilities/performance-testing/<feature>/`.
 
-## Uso
+## Usage
 
 ```bash
 python3 scripts/run_performance_gate.py \
@@ -22,7 +22,7 @@ python3 scripts/run_performance_gate.py \
   --measured-runs 3
 ```
 
-Validacion:
+Validation:
 
 ```bash
 python3 scripts/validate_performance_result.py \
@@ -31,6 +31,6 @@ python3 scripts/validate_performance_result.py \
   --require-pass
 ```
 
-## Estado
+## Status
 
-Modo inicial: `observe`. En `observe`, un presupuesto excedido queda registrado sin bloquear salvo que la politica pase a `enforce`.
+Initial mode: `observe`. In `observe`, an exceeded budget is recorded without blocking unless the policy moves to `enforce`.

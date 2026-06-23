@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ejecuta los graders de una feature (eval-harness) y produce evidencia normalizada."""
+"""Run a feature's graders (eval-harness) and produce normalized evidence."""
 
 from __future__ import annotations
 
@@ -40,23 +40,23 @@ def load_graders(path: Path) -> list[dict]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise CapabilityError(f"No existe el fichero de graders: {path}") from exc
+        raise CapabilityError(f"Graders file does not exist: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise CapabilityError(f"Graders JSON invalido en {path}: {exc}") from exc
+        raise CapabilityError(f"Invalid graders JSON in {path}: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise CapabilityError(f"El fichero de graders debe ser un objeto JSON: {path}")
+        raise CapabilityError(f"The graders file must be a JSON object: {path}")
 
     graders = data.get("graders")
     if not isinstance(graders, list):
-        raise CapabilityError("El fichero de graders debe contener 'graders' como lista")
+        raise CapabilityError("The graders file must contain 'graders' as a list")
 
     return graders
 
 
 def run_code_grader(command: list, runs: int, timeout: int, root: Path) -> int:
     if not all(isinstance(part, str) for part in command):
-        raise CapabilityError("El comando del grader debe ser una lista de strings")
+        raise CapabilityError("The grader command must be a list of strings")
 
     successes = 0
     for _ in range(runs):
@@ -69,7 +69,7 @@ def run_code_grader(command: list, runs: int, timeout: int, root: Path) -> int:
                 timeout=timeout,
             )
         except FileNotFoundError as exc:
-            raise CapabilityError(f"Comando del grader no encontrado: {command[0]}") from exc
+            raise CapabilityError(f"Grader command not found: {command[0]}") from exc
         except subprocess.TimeoutExpired:
             continue
         if result.returncode == 0:
@@ -83,9 +83,9 @@ def evaluate_rule(rule: dict, root: Path) -> bool:
     path = rule.get("path")
 
     if kind not in RULE_KINDS:
-        raise CapabilityError(f"rule kind no soportado: {kind}")
+        raise CapabilityError(f"unsupported rule kind: {kind}")
     if not isinstance(path, str) or not path:
-        raise CapabilityError("rule requiere 'path' como string")
+        raise CapabilityError("rule requires 'path' as a string")
 
     target = root / path
 
@@ -96,7 +96,7 @@ def evaluate_rule(rule: dict, root: Path) -> bool:
 
     pattern = rule.get("pattern")
     if not isinstance(pattern, str) or not pattern:
-        raise CapabilityError("file_contains requiere 'pattern'")
+        raise CapabilityError("file_contains requires 'pattern'")
     if not target.is_file():
         return False
     try:
@@ -142,7 +142,7 @@ def main() -> int:
         for grader in graders:
             grader_id = grader.get("id")
             if not grader_id:
-                raise CapabilityError("Cada grader requiere 'id'")
+                raise CapabilityError("Each grader requires 'id'")
 
             grader_type = grader.get("type")
             scenario = grader.get("scenario")
@@ -166,7 +166,7 @@ def main() -> int:
                         "successes": 0,
                         "pass_at_k": None,
                         "pass_caret_k": None,
-                        "note": "consultivo: no decide el gate automatico",
+                        "note": "advisory: does not decide the automatic gate",
                     }
                 )
                 continue
@@ -175,7 +175,7 @@ def main() -> int:
                 command = grader.get("command")
                 if not isinstance(command, list) or not command:
                     raise CapabilityError(
-                        f"{grader_id}: grader code requiere 'command' como lista"
+                        f"{grader_id}: code grader requires 'command' as a list"
                     )
                 runs_executed = runs
                 successes = run_code_grader(command, runs, timeout, root)
@@ -183,13 +183,13 @@ def main() -> int:
                 rule = grader.get("rule")
                 if not isinstance(rule, dict):
                     raise CapabilityError(
-                        f"{grader_id}: grader rule requiere 'rule' como objeto"
+                        f"{grader_id}: rule grader requires 'rule' as an object"
                     )
                 runs_executed = 1
                 successes = 1 if evaluate_rule(rule, root) else 0
             else:
                 raise CapabilityError(
-                    f"{grader_id}: tipo de grader no soportado: {grader_type}"
+                    f"{grader_id}: unsupported grader type: {grader_type}"
                 )
 
             pass_at_k = successes >= 1
@@ -241,7 +241,7 @@ def main() -> int:
             "completed_at": utc_now(),
             "duration_seconds": duration_seconds(started),
             "scope": args.scope,
-            "summary": "Eval harness completado",
+            "summary": "Eval harness completed",
             "checks": checks,
             "artifacts": [],
             "graders": checks,
@@ -271,10 +271,10 @@ def main() -> int:
 
         print(f"[OK] Eval harness:  {status}")
         print(f"[OK] Graders gate:  {passed} passed / {failed} failed")
-        print(f"[OK] Consultivos:   {advisory}")
+        print(f"[OK] Advisory:      {advisory}")
         if unverifiable:
-            print(f"[WARN] Escenarios sin grader de gate: {', '.join(unverifiable)}")
-        print(f"[OK] Evidencia:     {evidence_path}")
+            print(f"[WARN] Scenarios without a gate grader: {', '.join(unverifiable)}")
+        print(f"[OK] Evidence:      {evidence_path}")
         return 0 if status == "PASSED" else 2
 
     except CapabilityError as exc:

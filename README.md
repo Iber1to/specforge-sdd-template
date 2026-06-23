@@ -1,8 +1,8 @@
 # SpecForge SDD Template
 
-Template reutilizable que **genera proyectos con un harness agentico de
-Spec-Driven Development** para Claude Code: roles gobernados, plano de control
-durable, Role Guard, quality gates y capabilities opcionales.
+Reusable template that **generates projects with an agentic Spec-Driven
+Development harness** for Claude Code: governed roles, a durable control plane,
+Role Guard, quality gates and optional capabilities.
 
 ![status](https://img.shields.io/badge/status-v2.0.0-blue)
 ![ci](https://github.com/Iber1to/specforge-sdd-template/actions/workflows/ci-cd.yml/badge.svg)
@@ -11,44 +11,44 @@ durable, Role Guard, quality gates y capabilities opcionales.
 ![tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)
 ![license](https://img.shields.io/badge/license-TBD-lightgrey)
 
-> **Usa este repo como plantilla:** marcalo como *Template Repository* en
-> Settings y pulsa **"Use this template"** para arrancar uno nuevo. O clona y
-> genera con `create_project.py` (ver Quickstart).
+> **Use this repo as a template:** mark it as a *Template Repository* in
+> Settings and click **"Use this template"** to start a new one. Or clone and
+> generate with `create_project.py` (see Quickstart).
 
-> **Primera vez?** Empieza por **[De Zero a Hero](docs/zero-to-hero.md)**: del
-> clone de GitHub a operar en semiautomatico, paso a paso.
+> **First time?** Start with **[Zero to Hero](docs/zero-to-hero.md)**: from a
+> GitHub clone to semi-automatic operation, step by step.
 
 ---
 
-## Que es
+## What it is
 
-El **template** genera **proyectos**. Cada proyecto incluye un harness agentico
-de Spec-Driven Development:
+The **template** generates **projects**. Each project includes an agentic
+Spec-Driven Development harness:
 
-- **Roles gobernados**: el `leader` orquesta y delega; `specifier`/`architect`
-  escriben spec y arquitectura; `implementer` codifica en un worktree aislado;
-  `qa-reviewer` revisa. Un **Role Guard** (hooks de Claude Code) aplica los
-  permisos por rol antes de cada operacion.
-- **Workflow SDD**: `DRAFT -> SPEC_READY -> DESIGN_READY ->
+- **Governed roles**: the `leader` orchestrates and delegates;
+  `specifier`/`architect` write the spec and architecture; `implementer` codes
+  in an isolated worktree; `qa-reviewer` reviews. A **Role Guard** (Claude Code
+  hooks) enforces per-role permissions before every operation.
+- **SDD workflow**: `DRAFT -> SPEC_READY -> DESIGN_READY ->
   READY_FOR_DEVELOPMENT -> IN_PROGRESS -> READY_FOR_QA -> APPROVED -> DONE`
-  (con `BLOCKED`/`CHANGES_REQUESTED`). Solo `finalize_feature.py` llega a `DONE`.
-- **Plano de control durable** fuera de Git (`queue.json`, `leases/`, `runs/`):
-  el estado sobrevive a caidas de sesion; los leases caducan y se recuperan.
-- **Quality gates** versionados y **capabilities** opcionales.
+  (with `BLOCKED`/`CHANGES_REQUESTED`). Only `finalize_feature.py` reaches `DONE`.
+- **Durable control plane** outside Git (`queue.json`, `leases/`, `runs/`):
+  state survives session crashes; leases expire and are recovered.
+- Versioned **quality gates** and optional **capabilities**.
 
 ---
 
 ## Quickstart
 
 ```bash
-# 1. Clonar
+# 1. Clone
 git clone https://github.com/Iber1to/specforge-sdd-template.git
 cd specforge-sdd-template
 
-# 2. Comprobar el entorno
+# 2. Check the environment
 python3 core/scripts/check_environment.py
 
-# 3. Describir tu proyecto (project.yaml)
+# 3. Describe your project (project.yaml)
 cat > project.yaml <<'YAML'
 project_id: mi-proyecto
 name: Mi Proyecto
@@ -57,121 +57,123 @@ profile: python
 capabilities: [security-scanning, performance-testing]
 YAML
 
-# 4. Generar
+# 4. Generate
 python3 create_project.py --config project.yaml
 
-# 5. Verificar el proyecto generado
+# 5. Verify the generated project
 cd /srv/agentic/workspace/mi-proyecto
 bash scripts/verify_full.sh
 
-# 6. Lanzar el leader (sesion persistente en tmux)
+# 6. Launch the leader (persistent tmux session)
 bash scripts/run_leader.sh
 ```
 
-Detalle completo, configuracion, primera feature y **modo semiautomatico** en
+Full detail, configuration, first feature and **semi-automatic mode** in
 [`docs/zero-to-hero.md`](docs/zero-to-hero.md).
 
 ---
 
-## Perfiles y capabilities
+## Profiles and capabilities
 
-| Perfil | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish | remote-notifications | eval-harness | tool-telemetry |
+| Profile | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish | remote-notifications | eval-harness | tool-telemetry |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| generic | si | no | si | opcional | si | si | si | opcional | opcional | opcional |
-| python | si | si | si | opcional | si | si | si | opcional | opcional | opcional |
-| node | si | no (futuro) | si | opcional | si | si | si | opcional | opcional | opcional |
-| android | si | no | si | opcional | si | si | si | opcional | opcional | opcional |
+| generic | yes | no | yes | optional | yes | yes | yes | optional | optional | optional |
+| python | yes | yes | yes | optional | yes | yes | yes | optional | optional | optional |
+| node | yes | no (future) | yes | optional | yes | yes | yes | optional | optional | optional |
+| android | yes | no | yes | optional | yes | yes | yes | optional | optional | optional |
 
-`documentation-pack` se incluye siempre. Detalle y reglas en
+`documentation-pack` is always included. Detail and rules in
 [`docs/profile-capability-matrix.md`](docs/profile-capability-matrix.md).
 
 ---
 
-## Estructura del repositorio
+## Repository structure
 
 ```text
-core/            harness comun que se copia a cada proyecto generado
-profiles/        adaptadores de stack: generic, python, node, android
-capabilities/    capacidades opcionales (security, performance, mutation, ...)
-generator/       notas del generador determinista
-docs/            documentacion del template
-tests/           suite del generador (tests/test_generator.py)
-create_project.py   generador determinista
+core/            common harness copied into each generated project
+profiles/        stack adapters: generic, python, node, android
+capabilities/    optional capabilities (security, performance, mutation, ...)
+generator/       deterministic generator notes
+docs/            template documentation
+tests/           generator suite (tests/test_generator.py)
+create_project.py   deterministic generator
 ```
 
 ---
 
-## Requisitos y plataforma
+## Requirements and platform
 
-El harness de orquestacion esta disenado para **Linux**. Necesitas: Python 3.12,
-`uv`, `git`, `bash`, `tmux`, y Claude Code. `node` solo para el perfil `node`.
-Windows interviene solo como runner opcional de `windows-validation`.
+The orchestration harness is designed for **Linux**. You need: Python 3.12,
+`uv`, `git`, `bash`, `tmux`, and Claude Code. `node` only for the `node` profile.
+Windows participates only as the optional `windows-validation` runner.
 
-Comprueba todo con `python3 core/scripts/check_environment.py`. En entornos sin
-acceso a descargar Python, exporta `UV_PYTHON_DOWNLOADS=never`.
+Check everything with `python3 core/scripts/check_environment.py`. In
+environments without access to download Python, export
+`UV_PYTHON_DOWNLOADS=never`.
 
 ---
 
-## Operar el leader
+## Operating the leader
 
-- **Persistente** (sobrevive a desconexiones SSH): `bash scripts/run_leader.sh`
-  lanza el leader en `tmux` con `CLAUDE_HARNESS_ROLE=leader`. Detach con
-  `Ctrl-b d`; reconecta con `tmux attach -t leader`.
-- **Semiautomatico**: dale al leader el prompt de operacion autonoma y procesara
-  la cola solo.
+- **Persistent** (survives SSH disconnections): `bash scripts/run_leader.sh`
+  launches the leader in `tmux` with `CLAUDE_HARNESS_ROLE=leader`. Detach with
+  `Ctrl-b d`; reconnect with `tmux attach -t leader`.
+- **Semi-automatic**: give the leader the autonomous operation prompt and it
+  will process the queue on its own.
 
-Guia completa (incluido `mosh`, observacion y recuperacion) en
+Full guide (including `mosh`, observation and recovery) in
 [`docs/leader-operation.md`](docs/leader-operation.md).
 
-> Claude Code reporta la sesion principal como `agent_type: "claude"`; por eso el
-> rol se toma de `CLAUDE_HARNESS_ROLE`. Sin esa variable la sesion queda
-> `unscoped` (solo lectura).
+> Claude Code reports the main session as `agent_type: "claude"`; that is why
+> the role is taken from `CLAUDE_HARNESS_ROLE`. Without that variable the
+> session stays `unscoped` (read-only).
 
 ---
 
-## Documentacion
+## Documentation
 
-| Doc | Para que |
+| Doc | For what |
 |---|---|
-| [zero-to-hero.md](docs/zero-to-hero.md) | Manual de operacion de cero a semiautomatico (empieza aqui) |
-| [leader-operation.md](docs/leader-operation.md) | Operar el leader persistente y autonomo |
-| [ci-cd.md](docs/ci-cd.md) | Ciclo CI/CD, checks, release y configuracion GitHub |
-| [profile-capability-matrix.md](docs/profile-capability-matrix.md) | Combinaciones perfil x capability |
-| [quality-and-capabilities.md](docs/quality-and-capabilities.md) | Quality gates y todas las capabilities opcionales |
-| [adr-0002-eval-harness-verification-gate.md](docs/adr-0002-eval-harness-verification-gate.md) | Decision: eval-harness como puerta de verificacion trazable |
-| [real-validation-runbook.md](docs/real-validation-runbook.md) | Validacion real Windows / SSH |
-| [architecture/harness-contract.md](core/docs/architecture/harness-contract.md) | Contrato operativo del harness |
-| [architecture/role-guard.md](core/docs/architecture/role-guard.md) | Role Guard y resolucion de rol |
-| [naming-and-contracts.md](docs/naming-and-contracts.md) | Vocabulario canonico de contratos JSON |
-| [language-and-style.md](docs/language-and-style.md) | Convencion de idioma y estilo |
-| [roadmap.md](docs/roadmap.md) | Roadmap vivo post-`v1.0`: que viene en Now / Next / Later |
-| [notifications/setup.md](capabilities/remote-notifications/docs/notifications/setup.md) | Setup de notificaciones Telegram y gateway (capability `remote-notifications`) |
-| [CHANGELOG.md](CHANGELOG.md) | Historial de versiones |
+| [zero-to-hero.md](docs/zero-to-hero.md) | Operation manual from zero to semi-automatic (start here) |
+| [leader-operation.md](docs/leader-operation.md) | Operate the persistent and autonomous leader |
+| [ci-cd.md](docs/ci-cd.md) | CI/CD cycle, checks, release and GitHub configuration |
+| [profile-capability-matrix.md](docs/profile-capability-matrix.md) | Profile x capability combinations |
+| [quality-and-capabilities.md](docs/quality-and-capabilities.md) | Quality gates and all optional capabilities |
+| [adr-0002-eval-harness-verification-gate.md](docs/adr-0002-eval-harness-verification-gate.md) | Decision: eval-harness as a traceable verification gate |
+| [real-validation-runbook.md](docs/real-validation-runbook.md) | Real Windows / SSH validation |
+| [architecture/harness-contract.md](core/docs/architecture/harness-contract.md) | Operational contract of the harness |
+| [architecture/role-guard.md](core/docs/architecture/role-guard.md) | Role Guard and role resolution |
+| [naming-and-contracts.md](docs/naming-and-contracts.md) | Canonical vocabulary of JSON contracts |
+| [language-and-style.md](docs/language-and-style.md) | Language and style convention |
+| [roadmap.md](docs/roadmap.md) | Living roadmap post-`v1.0`: what comes in Now / Next / Later |
+| [notifications/setup.md](capabilities/remote-notifications/docs/notifications/setup.md) | Telegram notifications and gateway setup (capability `remote-notifications`) |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
 
 ---
 
-## Estado
+## Status
 
-`v2.0.0` (2026-06-23). Estable: perfiles `generic`/`python`/`node`/`android`,
-workflow + Role Guard + gates + plano de control, y capabilities
+`v2.0.0` (2026-06-23). Stable: profiles `generic`/`python`/`node`/`android`,
+workflow + Role Guard + gates + control plane, and capabilities
 `documentation-pack`, `mutation-testing` (python), `performance-testing`,
 `security-scanning`, `git-publish`, `external-runtime`. Experimental:
-`windows-validation` (codigo listo y cubierto offline; pendiente validar en
-Windows real). Incorporado en v2.0.0: `remote-notifications` (Telegram),
-`eval-harness` (graders ejecutables por escenario `SCN-XXX`), `tool-telemetry`
-(telemetria de herramientas en JSONL), informe QA en Markdown, y endurecimiento
-de los agentes (defensa anti-inyeccion, guard de estado reinyectado,
-recuperacion de contexto iterativa y QA con pre-report gate) — adoptados de
-ECC/agency-agents. El perfil `android` (Kotlin/Gradle) se valido en un piloto real
-(proyectos PokeCards): Role Guard *profile-aware* (autoriza el modulo `app/`, el
-wrapper `gradle/` y los Gradle de raiz para producto android, y los subtrees de
-documentacion de feature bajo `docs/` para cualquier perfil), build Android real
-via `external-runtime` (`android-assemble`/`android-unit-tests`) y gates Android en
-modo observe. Ver [`CHANGELOG.md`](CHANGELOG.md) para el historial y
-[`roadmap.md`](docs/roadmap.md) para lo que viene (Now / Next / Later).
+`windows-validation` (code ready and covered offline; pending validation on
+real Windows). Added in v2.0.0: `remote-notifications` (Telegram),
+`eval-harness` (graders executable per `SCN-XXX` scenario), `tool-telemetry`
+(tool telemetry in JSONL), a QA report in Markdown, and hardening of the
+agents (anti-injection defense, reinjected-state guard, iterative context
+recovery and QA with a pre-report gate) — adopted from ECC/agency-agents. The
+`android` profile (Kotlin/Gradle) was validated in a real pilot (PokeCards
+projects): *profile-aware* Role Guard (authorizes the `app/` module, the
+`gradle/` wrapper and the root Gradle files for an android product, and the
+feature documentation subtrees under `docs/` for any profile), real Android
+build via `external-runtime` (`android-assemble`/`android-unit-tests`) and
+Android gates in observe mode. See [`CHANGELOG.md`](CHANGELOG.md) for the
+history and [`roadmap.md`](docs/roadmap.md) for what comes next (Now / Next /
+Later).
 
 ---
 
-## Licencia
+## License
 
 TBD.

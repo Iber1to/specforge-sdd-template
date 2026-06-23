@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Muestra el estado actual del plano de control."""
+"""Display the current status of the control plane."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--json",
         action="store_true",
-        help="Devuelve el estado completo como JSON.",
+        help="Return the full status as JSON.",
     )
     return parser.parse_args()
 
@@ -61,23 +61,23 @@ def main() -> int:
             )
             return 0
 
-        print("=== PLANO DE CONTROL ===")
-        print(f"Proyecto:       {project['name']}")
-        print(f"Fase:           {lifecycle_phase}")
-        print(f"Feature activa: {runtime.get('active_feature') or 'ninguna'}")
+        print("=== CONTROL PLANE ===")
+        print(f"Project:        {project['name']}")
+        print(f"Phase:          {lifecycle_phase}")
+        print(f"Active feature: {runtime.get('active_feature') or 'none'}")
         print(f"Features:       {len(queue['features'])}")
-        print("Métricas:       " + format_metrics_snapshot_status(metrics_snapshot))
+        print("Metrics:        " + format_metrics_snapshot_status(metrics_snapshot))
         print()
 
         if not queue["features"]:
-            print("No hay features registradas.")
+            print("No features registered.")
             return 0
 
-        print(f"{'ID':<8} {'ESTADO':<24} {'PRIO':<6} {'WIN':<5} TITULO")
+        print(f"{'ID':<8} {'STATE':<24} {'PRIO':<6} {'WIN':<5} TITLE")
         print("-" * 90)
 
         for feature in queue["features"]:
-            windows = "sí" if feature.get("windows_validation_required", False) else "no"
+            windows = "yes" if feature.get("windows_validation_required", False) else "no"
 
             print(
                 f"{feature['id']:<8} "

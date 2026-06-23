@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida estructura documental, enlaces locales y frontmatter YAML."""
+"""Validate documentation structure, local links and YAML frontmatter."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ STABLE_DOC_PATTERN = re.compile(
 
 
 class DocumentationStructureError(RuntimeError):
-    """Error controlado de estructura documental."""
+    """Controlled documentation structure error."""
 
 
 def markdown_headings(content: str) -> set[str]:
@@ -60,12 +60,12 @@ def validate_last_verified(path: Path, value: object) -> None:
         return
 
     if not isinstance(value, str):
-        raise DocumentationStructureError(f"last_verified debe ser fecha ISO en {path}")
+        raise DocumentationStructureError(f"last_verified must be an ISO date in {path}")
 
     try:
         datetime.strptime(value, "%Y-%m-%d")
     except ValueError as exc:
-        raise DocumentationStructureError(f"last_verified debe usar YYYY-MM-DD en {path}") from exc
+        raise DocumentationStructureError(f"last_verified must use YYYY-MM-DD in {path}") from exc
 
 
 def validate_frontmatter(root: Path, path: Path, content: str) -> None:
@@ -73,28 +73,28 @@ def validate_frontmatter(root: Path, path: Path, content: str) -> None:
 
     if not content.startswith("---\n"):
         if requires_frontmatter:
-            raise DocumentationStructureError(f"Falta frontmatter owner/last_verified: {path}")
+            raise DocumentationStructureError(f"Missing owner/last_verified frontmatter: {path}")
         return
 
     parts = content.split("---", 2)
     if len(parts) < 3:
-        raise DocumentationStructureError(f"Frontmatter sin cierre: {path}")
+        raise DocumentationStructureError(f"Unclosed frontmatter: {path}")
 
     try:
         value = yaml.safe_load(parts[1])
     except yaml.YAMLError as exc:
-        raise DocumentationStructureError(f"Frontmatter YAML invalido en {path}: {exc}") from exc
+        raise DocumentationStructureError(f"Invalid YAML frontmatter in {path}: {exc}") from exc
 
     if not isinstance(value, dict):
-        raise DocumentationStructureError(f"Frontmatter debe ser objeto YAML: {path}")
+        raise DocumentationStructureError(f"Frontmatter must be a YAML object: {path}")
 
     if requires_frontmatter:
         owner = value.get("owner")
         if not isinstance(owner, str) or not owner.strip():
-            raise DocumentationStructureError(f"Frontmatter requiere owner en {path}")
+            raise DocumentationStructureError(f"Frontmatter requires owner in {path}")
 
         if "last_verified" not in value:
-            raise DocumentationStructureError(f"Frontmatter requiere last_verified en {path}")
+            raise DocumentationStructureError(f"Frontmatter requires last_verified in {path}")
 
         validate_last_verified(path, value["last_verified"])
 
@@ -123,24 +123,24 @@ def validate_links(root: Path, path: Path, content: str) -> None:
 
         if not resolved.exists():
             relative = path.relative_to(root)
-            raise DocumentationStructureError(f"Enlace local roto en {relative}: {target}")
+            raise DocumentationStructureError(f"Broken local link in {relative}: {target}")
 
 
 def validate_required_docs(root: Path) -> None:
     for relative, required_headings in REQUIRED_DOCS.items():
         path = root / relative
         if not path.is_file():
-            raise DocumentationStructureError(f"Falta documento requerido: {relative}")
+            raise DocumentationStructureError(f"Missing required document: {relative}")
 
         content = path.read_text(encoding="utf-8")
         if not re.search(r"^#\s+\S", content, flags=re.MULTILINE):
-            raise DocumentationStructureError(f"{relative} no contiene H1")
+            raise DocumentationStructureError(f"{relative} does not contain an H1")
 
         headings = markdown_headings(content)
         missing = [heading for heading in required_headings if heading not in headings]
         if missing:
             raise DocumentationStructureError(
-                f"{relative} no contiene secciones requeridas: {', '.join(missing)}"
+                f"{relative} does not contain required sections: {', '.join(missing)}"
             )
 
 
@@ -172,7 +172,7 @@ def main() -> int:
 
     try:
         validate_documentation_structure(args.root.resolve() if args.root else None)
-        print("[OK] Documentacion tecnica valida")
+        print("[OK] Technical documentation valid")
         return 0
     except DocumentationStructureError as exc:
         print(f"[ERROR] {exc}", file=sys.stderr)

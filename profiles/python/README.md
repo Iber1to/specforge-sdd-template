@@ -1,14 +1,14 @@
-# Perfil Python
+# Python Profile
 
-Perfil para proyectos Python con layout `src/`, tests y gates del harness.
+Profile for Python projects with a `src/` layout, tests and harness gates.
 
-## Incluye
+## Includes
 
-- Core completo del harness.
-- Paquete Python bajo `src/<project_name>/`.
+- Complete harness core.
+- Python package under `src/<project_name>/`.
 - `tests/unit/test_profile_smoke.py`.
 - `tests/unit/test_harness_smoke.py`.
-- `pyproject.toml` y `uv.lock` heredados del core.
+- `pyproject.toml` and `uv.lock` inherited from the core.
 
 ## Toolchain
 
@@ -16,9 +16,9 @@ Perfil para proyectos Python con layout `src/`, tests y gates del harness.
 - `pytest`
 - `ruff`
 - `compileall`
-- `uv` recomendado, con fallback a `.venv/bin` en scripts de verificacion.
+- `uv` recommended, with a fallback to `.venv/bin` in verification scripts.
 
-## Validacion
+## Validation
 
 ```bash
 bash scripts/verify_fast.sh
@@ -27,9 +27,9 @@ bash scripts/verify_full.sh
 
 ## Mutation Testing
 
-Este perfil es el objetivo inicial de `mutation-testing`.
+This profile is the initial target of `mutation-testing`.
 
-Ejemplo:
+Example:
 
 ```bash
 python3 scripts/mutation_runner.py \
@@ -38,4 +38,4 @@ python3 scripts/mutation_runner.py \
   --test-command python3 -m pytest -q
 ```
 
-El runner aplica mutantes Python, ejecuta tests y restaura los archivos modificados.
+The runner applies Python mutants, runs tests and restores the modified files.

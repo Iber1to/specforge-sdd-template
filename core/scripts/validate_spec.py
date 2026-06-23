@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida la especificación y los criterios de aceptación de una feature."""
+"""Validate the specification and acceptance criteria of a feature."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def main() -> int:
         acceptance = validate_specification(repo_root(), feature)
 
         print(
-            f"[OK] {feature['id']}: especificación válida ({len(acceptance['criteria'])} criterios)"
+            f"[OK] {feature['id']}: specification valid ({len(acceptance['criteria'])} criteria)"
         )
         return 0
 

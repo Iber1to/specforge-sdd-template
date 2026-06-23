@@ -1,40 +1,40 @@
 # Capability: Remote Notifications
 
-Capacidad opcional de notificacion remota e interaccion con el leader.
+Optional capability for remote notification and interaction with the leader.
 
-## Que aporta
+## What It Provides
 
-- El leader avisa por Telegram cuando una feature queda `BLOCKED`, cuando
-  necesita intervencion humana o cuando completa el trabajo y se detiene
-  (`scripts/notify.py`, instruido en `leader.md`).
-- Red de seguridad determinista: hooks `Stop` y `Notification` de Claude Code
-  notifican aunque el modelo omita la llamada explicita
+- The leader notifies via Telegram when a feature becomes `BLOCKED`, when it
+  needs human intervention or when it completes the work and stops
+  (`scripts/notify.py`, instructed in `leader.md`).
+- Deterministic safety net: Claude Code `Stop` and `Notification` hooks
+  notify even if the model omits the explicit call
   (`scripts/notify_hook.py` via `hook_entrypoint.sh notify`).
-- Gateway bidireccional opcional (`scripts/telegram_gateway.py`): desde el
-  movil, `/status`, `/tail` y texto libre inyectado como prompt en la sesion
-  tmux del leader. Long-polling: sin endpoint publico ni tunel.
+- Optional bidirectional gateway (`scripts/telegram_gateway.py`): from the
+  phone, `/status`, `/tail` and free text injected as a prompt into the leader's
+  tmux session. Long-polling: no public endpoint or tunnel.
 
-## Activacion
+## Activation
 
-En la configuracion del generador:
+In the generator configuration:
 
 ```yaml
 capabilities: [remote-notifications]
 ```
 
-Setup de credenciales y uso: `docs/notifications/setup.md`.
+Credentials setup and usage: `docs/notifications/setup.md`.
 
-## Transporte
+## Transport
 
-`telegram` (unico soportado). El transporte esta abstraido en
-`scripts/notify_common.py`; un adapter WhatsApp Cloud API u otro canal se
-anade ahi sin cambiar `notify.py`, el hook ni el gateway.
+`telegram` (only one supported). The transport is abstracted in
+`scripts/notify_common.py`; a WhatsApp Cloud API adapter or other channel is
+added there without changing `notify.py`, the hook or the gateway.
 
-## Garantias
+## Guarantees
 
-- Fail-soft: una notificacion fallida nunca bloquea el harness (exit 0 salvo
+- Fail-soft: a failed notification never blocks the harness (exit 0 except with
   `--strict`).
-- Proyectos sin la capability: el hook `notify` es un no-op.
-- Secretos fuera de Git (`~/.config/agentic-harness/telegram.env`); el token
-  se redacta en errores.
-- Solo el `chat_id` autorizado puede hablar con el gateway.
+- Projects without the capability: the `notify` hook is a no-op.
+- Secrets outside Git (`~/.config/agentic-harness/telegram.env`); the token
+  is redacted in errors.
+- Only the authorized `chat_id` can talk to the gateway.

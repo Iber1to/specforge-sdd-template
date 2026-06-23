@@ -1,17 +1,17 @@
-"""Tests herméticos de la resincronización de worktrees reutilizados (F-011).
+"""Hermetic tests for the resynchronization of reused worktrees (F-011).
 
-Cubre AC-001..AC-008 / SCN-001..SCN-006 en dos niveles:
+Covers AC-001..AC-008 / SCN-001..SCN-006 at two levels:
 
-- Tests unitarios de ``resync_branch_with_canonical`` sobre repos Git
-  temporales (sin plano de control).
-- Tests E2E que ejecutan ``scripts/start_implementation.py`` por subproceso con
-  ``DOA_REPO_ROOT`` apuntando a un repositorio canónico temporal y un plano de
-  control temporal.
+- Unit tests of ``resync_branch_with_canonical`` over temporary Git repos
+  (without a control plane).
+- E2E tests that run ``scripts/start_implementation.py`` as a subprocess with
+  ``DOA_REPO_ROOT`` pointing at a temporary canonical repository and a
+  temporary control plane.
 
-Hermeticidad (NFR-1): repositorios Git y plano de control en ``tmp_path``, sin
-red, sin tmux, sin tocar el repositorio canónico real ni el plano de control
-real. La identidad Git se fija por repositorio y se aísla la configuración
-global/sistema (``GIT_CONFIG_GLOBAL`` vacío, ``GIT_CONFIG_NOSYSTEM=1``).
+Hermeticity (NFR-1): Git repositories and control plane in ``tmp_path``, with
+no network, no tmux, and without touching the real canonical repository or the
+real control plane. Git identity is pinned per repository and the global/system
+configuration is isolated (empty ``GIT_CONFIG_GLOBAL``, ``GIT_CONFIG_NOSYSTEM=1``).
 """
 
 from __future__ import annotations
@@ -37,12 +37,12 @@ FEATURE_BRANCH = "feature/F-101-sample"
 
 
 # ---------------------------------------------------------------------------
-# Infraestructura de sandbox hermético
+# Hermetic sandbox infrastructure
 # ---------------------------------------------------------------------------
 
 
 def _git_env(home: Path) -> dict[str, str]:
-    """Entorno con identidad/configuración Git aislada del host."""
+    """Environment with Git identity/configuration isolated from the host."""
 
     global_config = home / ".gitconfig-empty"
     global_config.touch()
@@ -74,7 +74,7 @@ def _git(repo: Path, *args: str, env: dict[str, str]) -> subprocess.CompletedPro
     )
     if result.returncode != 0:
         raise AssertionError(
-            f"git {' '.join(args)} falló en {repo}:\n{result.stderr}\n{result.stdout}"
+            f"git {' '.join(args)} failed in {repo}:\n{result.stderr}\n{result.stdout}"
         )
     return result
 
@@ -85,7 +85,7 @@ def _write(path: Path, content: str) -> None:
 
 
 def _init_canonical_repo(tmp_path: Path, env: dict[str, str]) -> Path:
-    """Crea un repositorio canónico de prueba con base commit en main."""
+    """Create a test canonical repository with a base commit on main."""
 
     canonical = tmp_path / "canonical"
     canonical.mkdir()
@@ -107,9 +107,9 @@ def _make_feature_branch(
     content: str = "feature work\n",
     commit_message: str = "feature commit",
 ) -> str:
-    """Crea la rama de feature con un commit propio mediante un worktree temporal.
+    """Create the feature branch with its own commit via a temporary worktree.
 
-    Devuelve el head de la rama de feature.
+    Returns the head of the feature branch.
     """
 
     tmp_wt = canonical.parent / "_seed_feature_wt"
@@ -130,10 +130,10 @@ def _advance_main(
     content: str = "advanced on main\n",
     commit_message: str = "advance main",
 ) -> str:
-    """Avanza la rama main con un commit directo en el repo canónico.
+    """Advance the main branch with a direct commit in the canonical repo.
 
-    ``main`` está checked out en el repo canónico, por lo que se commitea allí
-    directamente; el repo queda limpio tras el commit.
+    ``main`` is checked out in the canonical repo, so the commit is made there
+    directly; the repo is clean after the commit.
     """
 
     _write(canonical / file_name, content)
@@ -148,9 +148,9 @@ def _build_control_plane(
     *,
     state: str = "READY_FOR_DEVELOPMENT",
 ) -> tuple[Path, Path]:
-    """Crea project.json/workflow.json en el repo canónico y el plano de control.
+    """Create project.json/workflow.json in the canonical repo and the control plane.
 
-    Devuelve ``(control_root, worktree_root)``.
+    Returns ``(control_root, worktree_root)``.
     """
 
     control_root = tmp_path / "control"
@@ -203,7 +203,7 @@ def _build_control_plane(
 
 
 def _commit_canonical_state(canonical: Path, env: dict[str, str]) -> None:
-    """Commitea state/ en el repo canónico para que esté limpio."""
+    """Commit state/ in the canonical repo so it is clean."""
 
     _git(canonical, "add", "state", env=env)
     _git(canonical, "commit", "-m", "add harness state", env=env)
@@ -234,7 +234,7 @@ def _add_existing_worktree(
     worktree_root: Path,
     env: dict[str, str],
 ) -> Path:
-    """Crea el worktree de la feature desde su rama existente."""
+    """Create the feature's worktree from its existing branch."""
 
     worktree = worktree_root / f"{FEATURE_ID}-{FEATURE_SLUG}"
     _git(canonical, "worktree", "add", str(worktree), FEATURE_BRANCH, env=env)
@@ -242,7 +242,7 @@ def _add_existing_worktree(
 
 
 # ---------------------------------------------------------------------------
-# Helpers de aserción del contrato de salida
+# Output-contract assertion helpers
 # ---------------------------------------------------------------------------
 
 OK_PREFIXES = [
@@ -257,9 +257,9 @@ OK_PREFIXES = [
 def _assert_ok_contract(stdout: str) -> None:
     lines = stdout.splitlines()
     ok_lines = [line for line in lines if line.startswith("[OK]")]
-    assert len(ok_lines) == 5, f"se esperaban 5 líneas [OK], stdout:\n{stdout}"
+    assert len(ok_lines) == 5, f"expected 5 [OK] lines, stdout:\n{stdout}"
     for line, prefix in zip(ok_lines, OK_PREFIXES):
-        assert line.startswith(prefix), f"línea '{line}' no usa el prefijo '{prefix}'"
+        assert line.startswith(prefix), f"line '{line}' does not use the prefix '{prefix}'"
 
 
 def _is_ancestor(repo: Path, ancestor: str, descendant: str, env: dict[str, str]) -> bool:
@@ -275,7 +275,7 @@ def _is_ancestor(repo: Path, ancestor: str, descendant: str, env: dict[str, str]
 
 
 # ===========================================================================
-# Tests unitarios de resync_branch_with_canonical
+# Unit tests of resync_branch_with_canonical
 # ===========================================================================
 
 
@@ -289,15 +289,15 @@ def unit_sandbox(tmp_path: Path):
 
 
 def test_resync_noop_when_canonical_is_ancestor(unit_sandbox) -> None:
-    """AC-004: rama ya sincronizada es un no-op (acepta worktree sucio, DEC-003)."""
+    """AC-004: an already-synced branch is a no-op (accepts a dirty worktree, DEC-003)."""
 
     canonical, worktree_root, env = unit_sandbox
-    _make_feature_branch(canonical, env)  # nace de main, contiene su head
+    _make_feature_branch(canonical, env)  # born from main, contains its head
     worktree = worktree_root / "wt"
     _git(canonical, "worktree", "add", str(worktree), FEATURE_BRANCH, env=env)
 
     head_before = _git(worktree, "rev-parse", "HEAD", env=env).stdout.strip()
-    # Ensucia el worktree: el no-op no debe exigir limpieza.
+    # Dirty the worktree: the no-op must not require cleanup.
     (worktree / "dirty.txt").write_text("dirty\n", encoding="utf-8")
 
     resynced = resync_branch_with_canonical(
@@ -315,7 +315,7 @@ def test_resync_noop_when_canonical_is_ancestor(unit_sandbox) -> None:
 
 
 def test_resync_merges_when_divergent(unit_sandbox) -> None:
-    """AC-001: divergencia → merge; head canónico ancestro; commit previo alcanzable."""
+    """AC-001: divergence -> merge; canonical head is an ancestor; prior commit reachable."""
 
     canonical, worktree_root, env = unit_sandbox
     feature_head = _make_feature_branch(canonical, env)
@@ -337,10 +337,10 @@ def test_resync_merges_when_divergent(unit_sandbox) -> None:
 
 
 def test_resync_fast_forward_when_no_feature_commits(unit_sandbox) -> None:
-    """Fast-forward: rama sin commits propios → head feature == head canónico."""
+    """Fast-forward: branch with no own commits -> feature head == canonical head."""
 
     canonical, worktree_root, env = unit_sandbox
-    # Rama de feature creada en el head base, sin commits propios.
+    # Feature branch created at the base head, with no own commits.
     base_wt = canonical.parent / "_ff_seed"
     _git(canonical, "worktree", "add", "-b", FEATURE_BRANCH, str(base_wt), "main", env=env)
     _git(canonical, "worktree", "remove", "--force", str(base_wt), env=env)
@@ -363,7 +363,7 @@ def test_resync_fast_forward_when_no_feature_commits(unit_sandbox) -> None:
 
 
 def test_resync_dirty_worktree_raises_before_merge(unit_sandbox) -> None:
-    """AC-007: worktree sucio con integración requerida → error sin iniciar merge."""
+    """AC-007: dirty worktree with required integration -> error without starting a merge."""
 
     canonical, worktree_root, env = unit_sandbox
     _make_feature_branch(canonical, env)
@@ -392,10 +392,10 @@ def test_resync_dirty_worktree_raises_before_merge(unit_sandbox) -> None:
 
 
 def test_resync_conflict_raises_and_restores(unit_sandbox) -> None:
-    """AC-002: conflicto → error, worktree limpio, head previo, sin MERGE_HEAD."""
+    """AC-002: conflict -> error, clean worktree, prior head, no MERGE_HEAD."""
 
     canonical, worktree_root, env = unit_sandbox
-    # Conflicto garantizado: ambas ramas modifican tool.txt de forma incompatible.
+    # Guaranteed conflict: both branches modify tool.txt incompatibly.
     _make_feature_branch(
         canonical,
         env,
@@ -430,7 +430,7 @@ def test_resync_conflict_raises_and_restores(unit_sandbox) -> None:
 
 
 def test_resync_invalid_canonical_ref_raises(unit_sandbox) -> None:
-    """Ref canónica inexistente → ControlPlaneError (merge-base ≠ 0/1)."""
+    """Nonexistent canonical ref -> ControlPlaneError (merge-base != 0/1)."""
 
     canonical, worktree_root, env = unit_sandbox
     _make_feature_branch(canonical, env)
@@ -448,7 +448,7 @@ def test_resync_invalid_canonical_ref_raises(unit_sandbox) -> None:
 
 
 # ===========================================================================
-# Tests E2E del script start_implementation.py
+# E2E tests of the start_implementation.py script
 # ===========================================================================
 
 
@@ -457,7 +457,7 @@ def _list_dir(path: Path) -> set[str]:
 
 
 def test_reuse_existing_worktree_divergent_merges_and_succeeds(tmp_path: Path) -> None:
-    """SCN-001 / AC-001, AC-006: worktree existente divergente → merge + éxito."""
+    """SCN-001 / AC-001, AC-006: divergent existing worktree -> merge + success."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -484,7 +484,7 @@ def test_reuse_existing_worktree_divergent_merges_and_succeeds(tmp_path: Path) -
 
 
 def test_reuse_branch_without_worktree_recreates_and_merges(tmp_path: Path) -> None:
-    """SCN-002 / AC-001: rama existe, worktree no → se recrea y resincroniza."""
+    """SCN-002 / AC-001: branch exists, worktree does not -> recreated and resynced."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -495,7 +495,7 @@ def test_reuse_branch_without_worktree_recreates_and_merges(tmp_path: Path) -> N
 
     feature_head = _make_feature_branch(canonical, env)
     main_head = _advance_main(canonical, env)
-    # No se crea el worktree: solo existe la rama.
+    # The worktree is not created: only the branch exists.
 
     worktree = worktree_root / f"{FEATURE_ID}-{FEATURE_SLUG}"
     assert not worktree.exists()
@@ -514,7 +514,7 @@ def test_reuse_branch_without_worktree_recreates_and_merges(tmp_path: Path) -> N
 
 
 def test_merge_conflict_aborts_clean_with_exit_2(tmp_path: Path) -> None:
-    """SCN-003 / AC-002, AC-003: conflicto → exit 2, limpio, sin escrituras."""
+    """SCN-003 / AC-002, AC-003: conflict -> exit 2, clean, no writes."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -550,21 +550,21 @@ def test_merge_conflict_aborts_clean_with_exit_2(tmp_path: Path) -> None:
     head_after = _git(worktree, "rev-parse", "HEAD", env=env).stdout.strip()
     assert head_after == head_before
 
-    # AC-003: cero escrituras de control.
+    # AC-003: zero control writes.
     assert _list_dir(control_root / "leases") == leases_before
     assert _list_dir(control_root / "runs") == runs_before
     assert (control_root / "queue.json").read_bytes() == queue_before
 
 
 def test_already_synced_reuse_is_noop(tmp_path: Path) -> None:
-    """SCN-004 / AC-004, AC-006: ya sincronizada → no-op, sin línea Resync."""
+    """SCN-004 / AC-004, AC-006: already synced -> no-op, no Resync line."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
     control_root, worktree_root = _build_control_plane(tmp_path, canonical)
     _commit_canonical_state(canonical, env)
 
-    # Rama de feature nacida tras commitear state: contiene el head de main.
+    # Feature branch born after committing state: contains main's head.
     _make_feature_branch(canonical, env)
     _add_existing_worktree(canonical, worktree_root, env)
     head_before = _git(canonical, "rev-parse", FEATURE_BRANCH, env=env).stdout.strip()
@@ -585,7 +585,7 @@ def test_already_synced_reuse_is_noop(tmp_path: Path) -> None:
 
 
 def test_fresh_creation_unchanged(tmp_path: Path) -> None:
-    """SCN-005 / AC-005, AC-006: rama inexistente → creación desde main, sin merge."""
+    """SCN-005 / AC-005, AC-006: nonexistent branch -> created from main, no merge."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -607,7 +607,7 @@ def test_fresh_creation_unchanged(tmp_path: Path) -> None:
 
 
 def test_dirty_worktree_with_required_integration_aborts(tmp_path: Path) -> None:
-    """SCN-006 / AC-007: divergencia + worktree sucio → exit 2 sin merge ni control."""
+    """SCN-006 / AC-007: divergence + dirty worktree -> exit 2 without merge or control."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)

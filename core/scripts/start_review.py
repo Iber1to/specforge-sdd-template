@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inicia una revisión QA exclusiva sobre una feature."""
+"""Start an exclusive QA review over a feature."""
 
 from __future__ import annotations
 
@@ -71,14 +71,14 @@ def main() -> int:
 
             if feature["state"] != "READY_FOR_QA":
                 raise ControlPlaneError(
-                    f"{feature['id']} no puede revisarse desde el estado {feature['state']}"
+                    f"{feature['id']} cannot be reviewed from state {feature['state']}"
                 )
 
             lease_path = paths["leases"] / f"{feature['id']}.json"
 
             if lease_path.exists():
                 raise ControlPlaneError(
-                    f"Ya existe un lease activo para {feature['id']}: {lease_path}"
+                    f"An active lease already exists for {feature['id']}: {lease_path}"
                 )
 
             worktree, branch, _ = ensure_review_worktree(feature)
@@ -91,7 +91,7 @@ def main() -> int:
 
             if implementation_evidence.get("feature_id") != feature["id"]:
                 raise ControlPlaneError(
-                    f"La evidencia de implementación no corresponde a {feature['id']}"
+                    f"The implementation evidence does not match {feature['id']}"
                 )
 
             run_id = create_run_id()
@@ -141,9 +141,9 @@ def main() -> int:
             save_runtime(runtime)
 
         print(f"[OK] Feature:         {feature['id']}")
-        print(f"[OK] Run QA:          {run_id}")
-        print(f"[OK] Rama revisada:   {branch}")
-        print(f"[OK] Commit revisado: {reviewed_commit}")
+        print(f"[OK] QA Run:          {run_id}")
+        print(f"[OK] Reviewed branch: {branch}")
+        print(f"[OK] Reviewed commit: {reviewed_commit}")
         print(f"[OK] Worktree:        {worktree}")
         print(f"[OK] Lease:           {lease_path}")
 

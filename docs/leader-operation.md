@@ -1,12 +1,12 @@
-# Operacion del Leader: persistente y autonoma
+# Leader Operation: persistent and autonomous
 
-Como operar el leader contra un servidor remoto sin perder la sesion al
-desconectar, y como dejarlo trabajando de forma autonoma.
+How to operate the leader against a remote server without losing the session
+when disconnecting, and how to leave it working autonomously.
 
-## Nivel 1 — Sesion persistente (tmux)
+## Level 1 — Persistent session (tmux)
 
-Una sesion interactiva de `claude` muere al caer la conexion SSH (SIGHUP). Para
-que sobreviva, se ejecuta dentro de `tmux` en el servidor.
+An interactive `claude` session dies when the SSH connection drops (SIGHUP). For
+it to survive, it runs inside `tmux` on the server.
 
 ```bash
 cd <proyecto-generado>
@@ -15,26 +15,26 @@ bash scripts/run_leader.sh
 
 `run_leader.sh`:
 
-- Crea (o reconecta) una sesion tmux llamada `leader`.
-- Exporta `CLAUDE_HARNESS_ROLE=leader` (necesario: Claude Code reporta la sesion
-  principal como `agent_type: "claude"`, ver `docs/architecture/role-guard.md`).
-- Lanza `claude --agent leader --permission-mode bypassPermissions`.
+- Creates (or reconnects to) a tmux session named `leader`.
+- Exports `CLAUDE_HARNESS_ROLE=leader` (required: Claude Code reports the main
+  session as `agent_type: "claude"`, see `docs/architecture/role-guard.md`).
+- Launches `claude --agent leader --permission-mode bypassPermissions`.
 
-Atajos tmux:
+tmux shortcuts:
 
-- **Detach** (dejarlo corriendo): `Ctrl-b` y luego `d`.
-- **Reconectar** desde cualquier maquina: `bash scripts/run_leader.sh` o
+- **Detach** (leave it running): `Ctrl-b` and then `d`.
+- **Reconnect** from any machine: `bash scripts/run_leader.sh` or
   `tmux attach -t leader`.
-- **Listar / matar**: `tmux ls` · `tmux kill-session -t leader`.
+- **List / kill**: `tmux ls` · `tmux kill-session -t leader`.
 
-Recomendado: usa **mosh** en vez de `ssh` para que tu conexion resista cortes y
-cambios de red. `mosh` + `tmux` = trabajas, apagas la workstation, vuelves y
-sigue en el servidor.
+Recommended: use **mosh** instead of `ssh` so your connection survives drops and
+network changes. `mosh` + `tmux` = you work, power off the workstation, come
+back and it continues on the server.
 
-## Nivel 2 — Operacion autonoma
+## Level 2 — Autonomous operation
 
-Tras lanzar el leader, dale esta instruccion permanente (pegala como primer
-mensaje) para que procese la cola sin supervision:
+After launching the leader, give it this standing instruction (paste it as the
+first message) so it processes the queue without supervision:
 
 ```text
 Opera de forma autonoma como leader:
@@ -52,31 +52,31 @@ Opera de forma autonoma como leader:
    cuales quedaron pendientes de decision humana.
 ```
 
-El harness es la red de seguridad: el Role Guard impide escrituras no
-autorizadas, los quality gates bloquean avances con fallos, y los leases con TTL
-permiten recuperar trabajo si una sesion muere (`recover_stale_leases.py`).
+The harness is the safety net: the Role Guard blocks unauthorized writes, the
+quality gates block advances with failures, and leases with a TTL allow work to
+be recovered if a session dies (`recover_stale_leases.py`).
 
-## Durabilidad y recuperacion
+## Durability and recovery
 
-El plano de control (`queue.json`, `leases/`, `runs/`, worktrees) son ficheros en
-el servidor: el estado es **durable**. Si la sesion muere a mitad:
+The control plane (`queue.json`, `leases/`, `runs/`, worktrees) are files on the
+server: the state is **durable**. If the session dies midway:
 
-- Los leases caducan por TTL y `recover_stale_leases.py` los recupera (la feature
-  pasa a BLOCKED, sin corromper estado).
-- Relanzas el leader (`bash scripts/run_leader.sh`) y continua.
-- Lo unico no recuperable es el razonamiento en vuelo de esa sesion LLM.
+- Leases expire by TTL and `recover_stale_leases.py` recovers them (the feature
+  moves to BLOCKED, without corrupting state).
+- You relaunch the leader (`bash scripts/run_leader.sh`) and it continues.
+- The only thing not recoverable is the in-flight reasoning of that LLM session.
 
-## Observacion mientras corre
+## Observation while it runs
 
 ```bash
-python3 scripts/project_status.py                 # estado de la cola
-python3 scripts/metrics_status.py                 # metricas/presupuestos
-tail -f <control_root>/role-guard/audit.jsonl      # decisiones del Role Guard
+python3 scripts/project_status.py                 # queue state
+python3 scripts/metrics_status.py                 # metrics/budgets
+tail -f <control_root>/role-guard/audit.jsonl      # Role Guard decisions
 ```
 
-## Siguiente paso (Nivel 3)
+## Next step (Level 3)
 
-Para operacion desatendida 24/7 (reinicio en boot, reinicio al fallar, procesar
-features segun llegan), el camino es un driver headless con el **Claude Agent
-SDK** (o un bucle de `claude -p`) corriendo como servicio `systemd`. Queda como
-evolucion del template cuando se valide el comportamiento del Nivel 2.
+For 24/7 unattended operation (restart on boot, restart on failure, process
+features as they arrive), the path is a headless driver with the **Claude Agent
+SDK** (or a `claude -p` loop) running as a `systemd` service. It remains as an
+evolution of the template once Level 2 behavior is validated.

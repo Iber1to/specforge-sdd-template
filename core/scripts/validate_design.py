@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida la arquitectura o la preparación completa para desarrollo."""
+"""Validate the architecture or full readiness for development."""
 
 from __future__ import annotations
 
@@ -34,10 +34,10 @@ def main() -> int:
 
         if arguments.level == "architecture":
             validate_architecture(repo_root(), feature)
-            print(f"[OK] {feature['id']}: arquitectura válida")
+            print(f"[OK] {feature['id']}: architecture valid")
         else:
             validate_development_readiness(repo_root(), feature)
-            print(f"[OK] {feature['id']}: preparada para desarrollo")
+            print(f"[OK] {feature['id']}: ready for development")
 
         return 0
 

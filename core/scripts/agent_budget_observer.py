@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Observa duración, turnos y tokens de subagentes Claude Code.
+"""Observe duration, turns and tokens of Claude Code subagents.
 
-Este hook nunca bloquea el workflow. Todos los errores se muestran como warning
-y terminan con exit code 0.
+This hook never blocks the workflow. All errors are shown as a warning
+and exit with exit code 0.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ def read_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
 
     if not isinstance(value, dict):
-        raise ValueError(f"{path} debe contener un objeto JSON")
+        raise ValueError(f"{path} must contain a JSON object")
 
     return value
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenera el snapshot derivado de métricas por feature."""
+"""Regenerate the snapshot derived from per-feature metrics."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def main() -> int:
             selected = snapshot["features"].get(arguments.feature)
 
             if selected is None:
-                raise ControlPlaneError(f"No existe la feature {arguments.feature}")
+                raise ControlPlaneError(f"Feature {arguments.feature} does not exist")
 
         if arguments.json:
             print(
@@ -61,11 +61,11 @@ def main() -> int:
                 )
             )
         else:
-            print(f"[OK] Snapshot regenerado: {snapshot_path(control_root)}")
-            print(f"[OK] Features incluidas: {len(snapshot['features'])}")
+            print(f"[OK] Snapshot regenerated: {snapshot_path(control_root)}")
+            print(f"[OK] Features included: {len(snapshot['features'])}")
             print(
-                "[OK] Registros inválidos: "
-                f"agentes={snapshot['invalid_records']['agent_metrics']}; "
+                "[OK] Invalid records: "
+                f"agents={snapshot['invalid_records']['agent_metrics']}; "
                 f"runs={snapshot['invalid_records']['runs']}"
             )
 

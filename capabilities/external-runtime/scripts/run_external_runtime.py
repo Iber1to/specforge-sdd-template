@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ejecuta o valida un job de external-runtime y produce evidencia."""
+"""Run or validate an external-runtime job and produce evidence."""
 
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--feature", required=True)
     parser.add_argument("--target", default="local")
     parser.add_argument("--scope", default="local-command")
-    parser.add_argument("--result", type=Path, help="Resultado manual-drop externo a normalizar.")
-    parser.add_argument("--fetch-artifact", help="Ruta remota opcional a copiar con scp.")
+    parser.add_argument("--result", type=Path, help="External manual-drop result to normalize.")
+    parser.add_argument("--fetch-artifact", help="Optional remote path to copy with scp.")
     parser.add_argument(
         "--command-id",
-        help="Identificador de un command template declarado en la policy del target.",
+        help="Identifier of a command template declared in the target policy.",
     )
     return parser.parse_args()
 
@@ -44,19 +44,19 @@ def target_policy(policy: dict, target_id: str) -> dict:
     for target in policy.get("targets", []):
         if target.get("id") == target_id:
             if target.get("enabled") is not True:
-                raise CapabilityError(f"Target external-runtime deshabilitado: {target_id}")
+                raise CapabilityError(f"Disabled external-runtime target: {target_id}")
             return target
 
-    raise CapabilityError(f"Target external-runtime no registrado: {target_id}")
+    raise CapabilityError(f"Unregistered external-runtime target: {target_id}")
 
 
 def resolve_command_template(target: dict, command_id: str) -> tuple[list[str], int]:
-    """Resuelve un command template declarado en la policy del target."""
+    """Resolve a command template declared in the target policy."""
 
     templates = target.get("allowed_command_templates")
 
     if not isinstance(templates, list) or not templates:
-        raise CapabilityError(f"El target '{target.get('id')}' no define allowed_command_templates")
+        raise CapabilityError(f"Target '{target.get('id')}' defines no allowed_command_templates")
 
     for template in templates:
         if not isinstance(template, dict) or template.get("id") != command_id:
@@ -64,28 +64,28 @@ def resolve_command_template(target: dict, command_id: str) -> tuple[list[str], 
 
         command = template.get("command")
         if not isinstance(command, list) or not command:
-            raise CapabilityError(f"El command template '{command_id}' no define un comando valido")
+            raise CapabilityError(f"Command template '{command_id}' defines no valid command")
 
         timeout = template.get("timeout_seconds", 60)
         if not isinstance(timeout, int) or timeout <= 0:
-            raise CapabilityError(f"El command template '{command_id}' tiene un timeout invalido")
+            raise CapabilityError(f"Command template '{command_id}' has an invalid timeout")
 
         return [str(part) for part in command], timeout
 
     raise CapabilityError(
-        f"command-id no registrado en el target '{target.get('id')}': {command_id}"
+        f"command-id not registered in target '{target.get('id')}': {command_id}"
     )
 
 
 def resolve_command(args: argparse.Namespace, target: dict) -> tuple[list[str], int, str | None]:
-    """Determina el comando a ejecutar.
+    """Determine the command to run.
 
-    El unico modo es --command-id contra allowed_command_templates. No existe
-    ejecucion de comandos libres.
+    The only mode is --command-id against allowed_command_templates. There is no
+    free-form command execution.
     """
 
     if not args.command_id:
-        raise CapabilityError("Debes indicar --command-id; los comandos libres no estan permitidos")
+        raise CapabilityError("You must provide --command-id; free-form commands are not allowed")
 
     command, timeout = resolve_command_template(target, args.command_id)
     return command, timeout, args.command_id
@@ -124,7 +124,7 @@ def run_local_command(
     command_id: str | None,
 ) -> dict:
     if not command:
-        raise CapabilityError("--command es obligatorio para targets locales")
+        raise CapabilityError("--command is required for local targets")
 
     started_at = utc_now()
     started = monotonic_seconds()
@@ -185,7 +185,7 @@ def ssh_destination(target: dict) -> str:
     user = str(target.get("user", "")).strip()
     host = str(target.get("host", "")).strip()
     if not host:
-        raise CapabilityError("Target SSH requiere host")
+        raise CapabilityError("SSH target requires host")
     return f"{user}@{host}" if user else host
 
 
@@ -200,10 +200,10 @@ def run_ssh_command(
     command_id: str | None,
 ) -> dict:
     if not command:
-        raise CapabilityError("--command es obligatorio para targets SSH")
+        raise CapabilityError("--command is required for SSH targets")
 
     if shutil.which("ssh") is None:
-        raise CapabilityError("No existe el binario ssh en PATH")
+        raise CapabilityError("The ssh binary does not exist in PATH")
 
     port = str(target.get("port", 22))
     destination = ssh_destination(target)
@@ -244,7 +244,7 @@ def run_ssh_command(
     artifacts = []
     if fetch_artifact and exit_code == 0:
         if shutil.which("scp") is None:
-            raise CapabilityError("No existe el binario scp en PATH")
+            raise CapabilityError("The scp binary does not exist in PATH")
         output_dir = artifact_root() / "capabilities" / CAPABILITY / feature_id / "remote-artifacts"
         output_dir.mkdir(parents=True, exist_ok=True)
         local_artifact = output_dir / f"{runtime_job_id}-{Path(fetch_artifact).name}"
@@ -329,7 +329,7 @@ def main() -> int:
                 command_id=command_id,
             )
         else:
-            raise CapabilityError(f"Target {args.target} requiere resultado manual con --result")
+            raise CapabilityError(f"Target {args.target} requires a manual result with --result")
 
         evidence_path = write_capability_evidence(
             capability=CAPABILITY,
@@ -339,7 +339,7 @@ def main() -> int:
         )
 
         print(f"[OK] External runtime: {evidence['status']}")
-        print(f"[OK] Evidencia:        {evidence_path}")
+        print(f"[OK] Evidence:         {evidence_path}")
         return 0 if evidence["status"] == "PASSED" else 2
 
     except CapabilityError as exc:

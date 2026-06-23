@@ -1,22 +1,22 @@
-# Implementation Plan — F-001 CLI local de health check
+# Implementation Plan — F-001 Local health check CLI
 
 ## Strategy
 
-Implementar el comando de health check con la mínima superficie posible,
-respetando la estructura del repositorio (`src/`, `tests/`, `pyproject.toml`) y
-la arquitectura de F-001. El trabajo se divide en:
+Implement the health check command with the minimal possible surface,
+respecting the repository structure (`src/`, `tests/`, `pyproject.toml`) and the
+F-001 architecture. The work is divided into:
 
-1. Exponer metadatos de aplicación en el paquete (`__init__.py`).
-2. Crear el módulo del comando con una función pura de construcción del documento
-   y un punto de entrada CLI ejecutable como módulo (`python -m`).
-3. Cubrir el comportamiento con tests unitarios (función pura) y de integración
-   (ejecución por subproceso del comando completo).
+1. Expose application metadata in the package (`__init__.py`).
+2. Create the command module with a pure document-building function and a CLI
+   entry point executable as a module (`python -m`).
+3. Cover the behavior with unit tests (pure function) and integration tests
+   (subprocess execution of the full command).
 
-El comando solo usa la biblioteca estándar (`json`, `sys`, `platform`) y los
-metadatos del paquete. No se añaden dependencias de ejecución. No se accede a
-red, base de datos ni componentes Windows.
+The command only uses the standard library (`json`, `sys`, `platform`) and the
+package metadata. No runtime dependencies are added. There is no access to
+network, database or Windows components.
 
-El contrato de invocación estable es:
+The stable invocation contract is:
 
 ```
 uv run python -m src.desktop_overlay_assistant.health_check
@@ -24,106 +24,106 @@ uv run python -m src.desktop_overlay_assistant.health_check
 
 ## Work Breakdown
 
-1. **Metadatos del paquete** — `src/desktop_overlay_assistant/__init__.py`:
-   - Definir `APPLICATION: str` con el identificador de la aplicación, una cadena
-     no vacía (por ejemplo `"desktop-overlay-assistant"`, coincidiendo con
+1. **Package metadata** — `src/desktop_overlay_assistant/__init__.py`:
+   - Define `APPLICATION: str` with the application identifier, a non-empty
+     string (for example `"desktop-overlay-assistant"`, matching
      `project.name`).
-   - Definir `VERSION: str` con la versión de la aplicación, alineada con
-     `project.version` de `pyproject.toml` (actualmente `"0.1.0"`).
-   - Mantener ambos valores como cadenas no vacías.
+   - Define `VERSION: str` with the application version, aligned with
+     `project.version` in `pyproject.toml` (currently `"0.1.0"`).
+   - Keep both values as non-empty strings.
 
-2. **Módulo del comando** — `src/desktop_overlay_assistant/health_check.py`:
-   - Importar `json`, `sys`, `platform` y los metadatos del paquete
+2. **Command module** — `src/desktop_overlay_assistant/health_check.py`:
+   - Import `json`, `sys`, `platform` and the package metadata
      (`APPLICATION`, `VERSION`).
-   - Definir la constante de estado correcto `OK_STATUS = "ok"`.
-   - Implementar `build_health_report() -> dict[str, str]` que devuelva un
-     diccionario con las claves obligatorias, en este orden:
+   - Define the healthy-state constant `OK_STATUS = "ok"`.
+   - Implement `build_health_report() -> dict[str, str]` that returns a
+     dictionary with the mandatory keys, in this order:
      `{"status": OK_STATUS, "application": APPLICATION, "version": VERSION,
-     "python_version": platform.python_version()}`. Función pura, sin E/S.
-   - Implementar `main(argv: list[str] | None = None) -> int`:
-     - Construir el documento con `build_health_report()`.
-     - Serializarlo con `json.dumps(report)` (un único documento JSON).
-     - Escribirlo en `stdout` mediante `print(...)` o
-       `sys.stdout.write(... + "\n")` (una sola línea, nada más en `stdout`).
-     - Devolver `0` cuando `report["status"] == OK_STATUS`.
-   - Añadir el guard `if __name__ == "__main__": raise SystemExit(main())`.
+     "python_version": platform.python_version()}`. Pure function, no I/O.
+   - Implement `main(argv: list[str] | None = None) -> int`:
+     - Build the document with `build_health_report()`.
+     - Serialize it with `json.dumps(report)` (a single JSON document).
+     - Write it to `stdout` via `print(...)` or
+       `sys.stdout.write(... + "\n")` (a single line, nothing else on `stdout`).
+     - Return `0` when `report["status"] == OK_STATUS`.
+   - Add the guard `if __name__ == "__main__": raise SystemExit(main())`.
 
-3. **Tests unitarios** — `tests/unit/test_health_check.py`:
-   - Verificar que `build_health_report()` devuelve las cuatro claves
-     obligatorias y que `status == "ok"`.
-   - Verificar que `application`, `version` y `python_version` son cadenas no
-     vacías y que `python_version` coincide con `platform.python_version()`.
+3. **Unit tests** — `tests/unit/test_health_check.py`:
+   - Verify that `build_health_report()` returns the four mandatory keys and
+     that `status == "ok"`.
+   - Verify that `application`, `version` and `python_version` are non-empty
+     strings and that `python_version` matches `platform.python_version()`.
 
-4. **Tests de integración** — `tests/integration/test_health_check_cli.py`:
-   - Ejecutar el comando completo por subproceso con
+4. **Integration tests** — `tests/integration/test_health_check_cli.py`:
+   - Run the full command by subprocess with
      `subprocess.run([sys.executable, "-m",
-     "src.desktop_overlay_assistant.health_check"], ...)` desde la raíz del repo,
-     capturando `stdout` y el código de salida.
-   - Verificar código de salida `0`.
-   - Parsear `stdout` con `json.loads` (JSON único y válido) y comprobar campos
-     obligatorios y `status == "ok"`.
+     "src.desktop_overlay_assistant.health_check"], ...)` from the repo root,
+     capturing `stdout` and the exit code.
+   - Verify exit code `0`.
+   - Parse `stdout` with `json.loads` (single, valid JSON) and check the
+     mandatory fields and `status == "ok"`.
 
-5. **Verificación local previa a la entrega** (sin cambiar estados):
-   - `uv run ruff check` y `uv run ruff format --check` sobre los archivos nuevos.
+5. **Local pre-delivery verification** (without changing states):
+   - `uv run ruff check` and `uv run ruff format --check` on the new files.
    - `uv run pytest tests/unit/test_health_check.py
      tests/integration/test_health_check_cli.py`.
-   - Comando manual:
+   - Manual command:
      `uv run python -m src.desktop_overlay_assistant.health_check`.
 
-Nota sobre el entry point: el mecanismo principal y obligatorio es el módulo
-ejecutable (`python -m ...`), coherente con la ausencia de `[build-system]` en
-`pyproject.toml`. **Opcionalmente**, si el implementador decide exponer además un
-script con nombre (`health-check`), deberá añadir `[build-system]` y
-`[project.scripts]` en `pyproject.toml` e instalar el paquete; esto es opcional y
-no debe romper el contrato `python -m` documentado ni introducir dependencias de
-red/base de datos.
+Note on the entry point: the primary and mandatory mechanism is the executable
+module (`python -m ...`), consistent with the absence of `[build-system]` in
+`pyproject.toml`. **Optionally**, if the implementer decides to also expose a
+named script (`health-check`), they must add `[build-system]` and
+`[project.scripts]` in `pyproject.toml` and install the package; this is
+optional and must not break the documented `python -m` contract nor introduce
+network/database dependencies.
 
 ## Files Expected to Change
 
-- `src/desktop_overlay_assistant/__init__.py` (nuevo): metadatos `APPLICATION`,
+- `src/desktop_overlay_assistant/__init__.py` (new): metadata `APPLICATION`,
   `VERSION`.
-- `src/desktop_overlay_assistant/health_check.py` (nuevo): función pura, `main`
-  y guard `__main__`.
-- `tests/unit/test_health_check.py` (nuevo): tests unitarios de la función pura.
-- `tests/integration/test_health_check_cli.py` (nuevo): tests de integración del
-  comando completo.
-- `pyproject.toml` (opcional, solo si el implementador añade el script con
-  nombre): bloques `[build-system]` y `[project.scripts]`.
+- `src/desktop_overlay_assistant/health_check.py` (new): pure function, `main`
+  and `__main__` guard.
+- `tests/unit/test_health_check.py` (new): unit tests of the pure function.
+- `tests/integration/test_health_check_cli.py` (new): integration tests of the
+  full command.
+- `pyproject.toml` (optional, only if the implementer adds the named script):
+  `[build-system]` and `[project.scripts]` blocks.
 
-No se modifica ningún otro archivo. No se tocan `runtime/windows-runner/`,
-`state/`, `scripts/` ni el plano de control.
+No other file is modified. `runtime/windows-runner/`, `state/`, `scripts/` and
+the control plane are not touched.
 
 ## Dependencies
 
-None. El comando se apoya exclusivamente en la biblioteca estándar de Python
-(`json`, `sys`, `platform`) y en los metadatos del paquete. Las dependencias de
-desarrollo necesarias (`pytest`, `ruff`) ya están declaradas en el grupo `dev`
-de `pyproject.toml`.
+None. The command relies exclusively on the Python standard library
+(`json`, `sys`, `platform`) and the package metadata. The required development
+dependencies (`pytest`, `ruff`) are already declared in the `dev` group of
+`pyproject.toml`.
 
 ## Risks
 
-- **Import path del paquete:** sin `[build-system]`, el módulo se importa como
-  `src.desktop_overlay_assistant.health_check`. Mitigación: usar exactamente esa
-  ruta tanto en la invocación `python -m` como en los imports de los tests
-  unitarios, y ejecutar el subproceso de integración desde la raíz del repo
-  (donde `pythonpath = ["."]` aplica).
-- **Contaminación de `stdout`:** escribir trazas adicionales en `stdout` rompería
-  el parseo JSON (AC-002). Mitigación: emitir únicamente el documento JSON en
-  `stdout`; cualquier diagnóstico va a `stderr`.
-- **Desalineación de `version`:** la versión expuesta podría divergir de
-  `project.version`. Mitigación: documentar y mantener `VERSION` alineada con
-  `pyproject.toml`; en cualquier caso debe ser una cadena no vacía.
-- **Sobrealcance:** añadir empaquetado o lógica de diagnóstico avanzada excedería
-  el alcance. Mitigación: mantener la solución mínima; el script con nombre es
-  estrictamente opcional.
+- **Package import path:** without `[build-system]`, the module is imported as
+  `src.desktop_overlay_assistant.health_check`. Mitigation: use exactly that
+  path both in the `python -m` invocation and in the unit test imports, and run
+  the integration subprocess from the repo root (where `pythonpath = ["."]`
+  applies).
+- **`stdout` contamination:** writing additional traces to `stdout` would break
+  JSON parsing (AC-002). Mitigation: emit only the JSON document on `stdout`;
+  any diagnostic goes to `stderr`.
+- **`version` misalignment:** the exposed version could diverge from
+  `project.version`. Mitigation: document and keep `VERSION` aligned with
+  `pyproject.toml`; in any case it must be a non-empty string.
+- **Overscope:** adding packaging or advanced diagnostic logic would exceed the
+  scope. Mitigation: keep the solution minimal; the named script is strictly
+  optional.
 
 ## Rollback
 
-Los cambios son puramente aditivos y aislados en archivos nuevos. Para revertir
-basta con eliminar los archivos creados
+The changes are purely additive and isolated in new files. To revert it is
+enough to delete the created files
 (`src/desktop_overlay_assistant/health_check.py`,
 `src/desktop_overlay_assistant/__init__.py`, `tests/unit/test_health_check.py`,
-`tests/integration/test_health_check_cli.py`) y, si se hubiera añadido, deshacer
-la edición opcional de `pyproject.toml`. No hay migraciones de datos, estado
-persistente ni efectos secundarios externos que limpiar; revertir el commit
-correspondiente deja el repositorio en su estado anterior.
+`tests/integration/test_health_check_cli.py`) and, if it had been added, undo
+the optional edit of `pyproject.toml`. There are no data migrations, persistent
+state or external side effects to clean up; reverting the corresponding commit
+leaves the repository in its previous state.

@@ -1,128 +1,127 @@
-# Role Guard de Claude Code
+# Claude Code Role Guard
 
-## Objetivo
+## Objective
 
-El Role Guard aplica materialmente las restricciones de cada agente mediante
-hooks deterministas de Claude Code.
+The Role Guard materially enforces each agent's restrictions through
+deterministic Claude Code hooks.
 
-Las instrucciones de los agentes orientan el comportamiento; el Role Guard
-impide operaciones no autorizadas antes de que se ejecuten.
+Agent instructions guide behavior; the Role Guard prevents unauthorized
+operations before they run.
 
-## Hooks instalados
+## Installed hooks
 
 ### SessionStart
 
-Registra el rol de la sesión principal. Claude Code reporta la sesión principal
-como `agent_type: "claude"` (no transmite `--agent leader` al hook), por lo que el
-rol se toma de la variable de entorno `CLAUDE_HARNESS_ROLE`, fijada por el operador
-al lanzar:
+Records the role of the main session. Claude Code reports the main session
+as `agent_type: "claude"` (it does not pass `--agent leader` to the hook), so the
+role is taken from the `CLAUDE_HARNESS_ROLE` environment variable, set by the operator
+when launching:
 
 ```bash
 CLAUDE_HARNESS_ROLE=leader claude --agent leader
 ```
 
-Las sesiones sin esa variable quedan clasificadas como `unscoped` y no pueden
-utilizar herramientas mutantes. Los subagentes se identifican por su `agent_type`
-y no dependen de esta variable.
+Sessions without that variable are classified as `unscoped` and cannot
+use mutating tools. Subagents are identified by their `agent_type`
+and do not depend on this variable.
 
 ### PreToolUse
 
-Intercepta las herramientas mutantes antes de su ejecución:
+Intercepts mutating tools before they run:
 
 - `Write`
 - `Edit`
 - `Bash`
 - `Agent`
-- herramientas de equipos, workflows y worktrees no controlados por el harness
+- team, workflow and worktree tools not controlled by the harness
 
-Un bloqueo devuelve exit code `2`; Claude Code cancela la llamada incluso en
+A block returns exit code `2`; Claude Code cancels the call even in
 `bypassPermissions`.
 
 ### ConfigChange
 
-Bloquea cambios de settings del proyecto o settings locales durante una sesión
-protegida.
+Blocks changes to project settings or local settings during a protected
+session.
 
-## Políticas por rol
+## Per-role policies
 
 ### Leader
 
-- Puede consultar estado y ejecutar scripts deterministas de orquestación.
-- Puede lanzar únicamente `specifier`, `architect`, `implementer` y
+- May query state and run deterministic orchestration scripts.
+- May launch only `specifier`, `architect`, `implementer` and
   `qa-reviewer`.
-- No puede escribir directamente mediante `Write` o `Edit`.
-- Solo puede añadir a Git documentos bajo `specs/features/`.
+- May not write directly through `Write` or `Edit`.
+- May only add to Git documents under `specs/features/`.
 
 ### Specifier
 
-Solo puede escribir:
+May only write:
 
 - `specification.md`
 - `acceptance.yaml`
 
-de features que estén en estado `DRAFT`.
+of features that are in `DRAFT` state.
 
 ### Architect
 
-Solo puede escribir:
+May only write:
 
 - `architecture.md`
 - `implementation-plan.md`
 - `test-plan.md`
 
-de features que estén en estado `SPEC_READY` o `DESIGN_READY`.
+of features that are in `SPEC_READY` or `DESIGN_READY` state.
 
 ### Implementer
 
-- Debe tener exactamente un lease activo.
-- Solo puede escribir dentro del worktree asignado.
-- En `change_domain=product`, sus escrituras base son `src/`, `tests/`,
-  `runtime/external/`, `pyproject.toml` y `uv.lock`, más los subtrees de
-  documentación de feature `docs/10-architecture/adr/`, `docs/20-runtime/`,
-  `docs/30-quality/` y `docs/40-operations/` (los que exige
-  `documentation_validation` cuando la feature declara `requires_*`). El resto de
-  `docs/` queda fuera del alcance de producto.
-- La política es **profile-aware** (lee `profile` de `state/project.json`): el
-  perfil `android` añade el módulo `app/`, el wrapper `gradle/` y los ficheros
-  Gradle de raíz (`settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`).
-- En `change_domain=harness` puede escribir los subtrees del harness
-  (`.claude/`, `docs/`, `scripts/`, `specs/`, `state/`, `tests/`) y
+- Must have exactly one active lease.
+- May only write within the assigned worktree.
+- In `change_domain=product`, its base writes are `src/`, `tests/`,
+  `runtime/external/`, `pyproject.toml` and `uv.lock`, plus the feature
+  documentation subtrees `docs/10-architecture/adr/`, `docs/20-runtime/`,
+  `docs/30-quality/` and `docs/40-operations/` (those required by
+  `documentation_validation` when the feature declares `requires_*`). The rest of
+  `docs/` is outside the product scope.
+- The policy is **profile-aware** (it reads `profile` from `state/project.json`): the
+  `android` profile adds the `app/` module, the `gradle/` wrapper and the root
+  Gradle files (`settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`).
+- In `change_domain=harness` it may write the harness subtrees
+  (`.claude/`, `docs/`, `scripts/`, `specs/`, `state/`, `tests/`) and
   `AGENTS.md`/`CLAUDE.md`/`pyproject.toml`/`uv.lock`.
-- Bash se limita al worktree y a una allowlist de comandos de desarrollo.
-- Solo puede ejecutar `heartbeat_lease.py` y `complete_implementation.py` del
-  harness.
+- Bash is limited to the worktree and to an allowlist of development commands.
+- May only run the harness's `heartbeat_lease.py` and `complete_implementation.py`.
 
 ### QA Reviewer
 
-- No puede escribir directamente.
-- Debe tener exactamente un lease QA activo.
-- Bash se limita a lecturas, verificaciones, `heartbeat_lease.py` y
+- May not write directly.
+- Must have exactly one active QA lease.
+- Bash is limited to reads, verifications, `heartbeat_lease.py` and
   `complete_review.py`.
 
-## Auditoría
+## Auditing
 
-Las decisiones se registran en:
+Decisions are recorded in:
 
 `<control_root>/role-guard/audit.jsonl`
 
-Las asociaciones entre sesión y rol se guardan en:
+Session-to-role associations are stored in:
 
 `<control_root>/role-sessions/`
 
-## Validación manual
+## Manual validation
 
-Después de instalar:
+After installing:
 
 ```bash
 uv run pytest -q tests/unit/test_role_guard.py
 ./scripts/verify_full.sh
 ```
 
-Al iniciar Claude Code:
+When starting Claude Code:
 
 ```bash
 CLAUDE_HARNESS_ROLE=leader claude --agent leader
 ```
 
-Dentro de la sesión, utiliza `/hooks` para confirmar que aparecen los hooks de
-proyecto `SessionStart`, `PreToolUse` y `ConfigChange`.
+Inside the session, use `/hooks` to confirm that the project
+`SessionStart`, `PreToolUse` and `ConfigChange` hooks appear.

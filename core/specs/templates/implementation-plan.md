@@ -2,24 +2,24 @@
 
 ## Strategy
 
-<!-- REQUIRED: Resume la estrategia de implementación. -->
+<!-- REQUIRED: Summarize the implementation strategy. -->
 
 ## Work Breakdown
 
-<!-- REQUIRED: Descompón el trabajo en unidades ejecutables. -->
+<!-- REQUIRED: Break the work down into executable units. -->
 
 ## Files Expected to Change
 
-<!-- REQUIRED: Enumera las rutas previstas. -->
+<!-- REQUIRED: List the expected paths. -->
 
 ## Dependencies
 
-<!-- REQUIRED: Describe dependencias o escribe "None". -->
+<!-- REQUIRED: Describe dependencies or write "None". -->
 
 ## Risks
 
-<!-- REQUIRED: Describe riesgos técnicos. -->
+<!-- REQUIRED: Describe technical risks. -->
 
 ## Rollback
 
-<!-- REQUIRED: Explica cómo revertir el cambio. -->
+<!-- REQUIRED: Explain how to revert the change. -->

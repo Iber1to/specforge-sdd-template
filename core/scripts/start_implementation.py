@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inicia una ejecución de implementación y crea su worktree aislado."""
+"""Start an implementation run and create its isolated worktree."""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument("--feature", required=True)
     parser.add_argument("--agent-id", required=True)
-    parser.add_argument("--reason", default="Implementación iniciada")
+    parser.add_argument("--reason", default="Implementation started")
 
     return parser.parse_args()
 
@@ -59,15 +59,15 @@ def find_conflicting_implementer_lease(
     leases_root: Path,
     feature_id: str,
 ) -> tuple[Path, dict[str, Any]] | None:
-    """Devuelve el primer lease de implementer ajeno presente en ``leases_root``.
+    """Return the first foreign implementer lease present in ``leases_root``.
 
-    Replica la semántica de enumeración de ``role_guard.active_lease()``: itera
-    ``sorted(leases_root.glob("F-*.json"))`` (orden determinista), ignora los
-    archivos ilegibles o corruptos (ASM-001) y no consulta ``expires_at`` ni el
-    estado de la feature propietaria (DEC-001). Un lease cuenta como conflicto
-    cuando ``role == "implementer"`` y su ``feature_id`` es distinto del
-    solicitado, incluyendo el caso en que ``feature_id`` está ausente
-    (conservador). Devuelve ``(ruta, lease)`` del primer conflicto o ``None``.
+    Replicates the enumeration semantics of ``role_guard.active_lease()``: it
+    iterates ``sorted(leases_root.glob("F-*.json"))`` (deterministic order),
+    ignores unreadable or corrupt files (ASM-001) and does not consult
+    ``expires_at`` nor the state of the owning feature (DEC-001). A lease counts
+    as a conflict when ``role == "implementer"`` and its ``feature_id`` differs
+    from the requested one, including the case where ``feature_id`` is absent
+    (conservative). Returns ``(path, lease)`` of the first conflict or ``None``.
     """
 
     for path in sorted(leases_root.glob("F-*.json")):
@@ -103,7 +103,7 @@ def main() -> int:
                 "CHANGES_REQUESTED",
             }:
                 raise ControlPlaneError(
-                    f"{feature['id']} no puede iniciarse desde el estado {feature['state']}"
+                    f"{feature['id']} cannot be started from state {feature['state']}"
                 )
 
             max_qa_attempts = int(config.get("maximum_qa_attempts", 3))
@@ -111,28 +111,28 @@ def main() -> int:
 
             if qa_attempts >= max_qa_attempts:
                 raise ControlPlaneError(
-                    f"{feature['id']} agoto los {max_qa_attempts} intentos de QA "
-                    f"(qa_attempts={qa_attempts}). Escala a decision humana en lugar "
-                    "de reintentar: revisa alcance, especificacion o arquitectura."
+                    f"{feature['id']} exhausted the {max_qa_attempts} QA attempts "
+                    f"(qa_attempts={qa_attempts}). Escalate to a human decision instead "
+                    "of retrying: review scope, specification or architecture."
                 )
 
             lease_path = paths["leases"] / f"{feature['id']}.json"
 
             if lease_path.exists():
                 raise ControlPlaneError(
-                    f"Ya existe un lease activo para {feature['id']}: {lease_path}"
+                    f"An active lease already exists for {feature['id']}: {lease_path}"
                 )
 
             conflict = find_conflicting_implementer_lease(paths["leases"], feature["id"])
 
             if conflict is not None:
                 conflict_path, conflict_lease = conflict
-                conflict_feature = conflict_lease.get("feature_id", "desconocida")
+                conflict_feature = conflict_lease.get("feature_id", "unknown")
                 raise ControlPlaneError(
-                    f"No se puede iniciar {feature['id']}: existe un lease de "
-                    f"implementer activo de {conflict_feature} en {conflict_path}. "
-                    "Libera el lease por la vía operativa "
-                    "(scripts/recover_stale_leases.py) antes de reintentar."
+                    f"Cannot start {feature['id']}: an active implementer lease "
+                    f"from {conflict_feature} exists at {conflict_path}. "
+                    "Release the lease through the operational path "
+                    "(scripts/recover_stale_leases.py) before retrying."
                 )
 
             validate_transition(feature, "IN_PROGRESS", "implementer")
@@ -196,12 +196,12 @@ def main() -> int:
 
         print(f"[OK] Feature:  {feature['id']}")
         print(f"[OK] Run:      {run_id}")
-        print(f"[OK] Rama:     {branch}")
+        print(f"[OK] Branch:   {branch}")
         print(f"[OK] Worktree: {worktree}")
         print(f"[OK] Lease:    {lease_path}")
 
         if resynced:
-            print(f"[INFO] Resync:  merge de '{canonical_branch}' en '{branch}' aplicado")
+            print(f"[INFO] Resync:  merge of '{canonical_branch}' into '{branch}' applied")
 
         return 0
 

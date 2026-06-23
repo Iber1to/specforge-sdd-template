@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Preflight: verifica que el entorno local cumple los requisitos del harness.
+"""Preflight: verify that the local environment meets the harness requirements.
 
-Exit code 0 si todo esta correcto; 2 si falta algun requisito obligatorio.
+Exit code 0 if everything is correct; 2 if a mandatory requirement is missing.
 """
 
 from __future__ import annotations
@@ -21,26 +21,26 @@ class CheckResult:
         self.lines: list[str] = []
 
     def record(self, ok: bool, label: str, detail: str = "") -> None:
-        mark = "OK   " if ok else "FALTA"
+        mark = "OK   " if ok else "MISS "
         suffix = f" - {detail}" if detail else ""
         self.lines.append(f"[{mark}] {label}{suffix}")
         if not ok:
             self.failures.append(label)
 
     def note(self, label: str, present: bool) -> None:
-        mark = "OK  " if present else "n/d "
-        self.lines.append(f"[{mark}] {label} (opcional)")
+        mark = "OK  " if present else "n/a "
+        self.lines.append(f"[{mark}] {label} (optional)")
 
 
 def check_python(result: CheckResult) -> None:
     actual = sys.version_info[:2]
     detected = f"{actual[0]}.{actual[1]}"
-    result.record(actual >= REQUIRED_PYTHON, "Python >= 3.12", f"detectado {detected}")
+    result.record(actual >= REQUIRED_PYTHON, "Python >= 3.12", f"detected {detected}")
 
 
 def check_required_tool(result: CheckResult, tool: str) -> None:
     path = shutil.which(tool)
-    result.record(path is not None, tool, path or "no encontrado en PATH")
+    result.record(path is not None, tool, path or "not found in PATH")
 
 
 def check_optional_tool(result: CheckResult, tool: str) -> None:
@@ -62,19 +62,19 @@ def check_project_paths(result: CheckResult, root: Path) -> None:
     config_path = root / "state" / "project.json"
 
     if not config_path.is_file():
-        result.lines.append("[n/d ] state/project.json no presente; se omiten rutas operativas")
+        result.lines.append("[n/a ] state/project.json not present; operational paths skipped")
         return
 
     try:
         config = json.loads(config_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        result.record(False, "state/project.json legible", str(exc))
+        result.record(False, "state/project.json readable", str(exc))
         return
 
     for key in ("data_root", "control_root", "artifact_root", "worktree_root"):
         value = config.get(key)
         if value:
-            check_writable(result, f"escritura en {key}", Path(str(value)).expanduser())
+            check_writable(result, f"write access to {key}", Path(str(value)).expanduser())
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -110,10 +110,10 @@ def main() -> int:
         print(line)
 
     if result.failures:
-        print(f"\n[ERROR] Faltan requisitos: {', '.join(result.failures)}", file=sys.stderr)
+        print(f"\n[ERROR] Missing requirements: {', '.join(result.failures)}", file=sys.stderr)
         return 2
 
-    print("\n[OK] Entorno preparado.")
+    print("\n[OK] Environment ready.")
     return 0
 
 

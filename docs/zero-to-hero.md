@@ -1,52 +1,53 @@
-# De Cero a Hero — Manual de Operacion del Agentic SDD Template
+# Zero to Hero — Operation Manual for the Agentic SDD Template
 
-Tutorial completo: desde clonar el template en GitHub hasta dejar un proyecto
-corriendo en modo semiautomatico con el leader procesando features.
+Complete tutorial: from cloning the template on GitHub to leaving a project
+running in semi-automatic mode with the leader processing features.
 
-> Tiempo estimado: 20-30 min. Plataforma: host Linux (el harness de orquestacion
-> usa bloqueo de archivos POSIX). Windows solo interviene como runner opcional de
-> la capability `windows-validation`.
+> Estimated time: 20-30 min. Platform: Linux host (the orchestration harness
+> uses POSIX file locking). Windows participates only as the optional runner of
+> the `windows-validation` capability.
 
 ---
 
-## 0. Que vas a conseguir
+## 0. What you will get
 
 ```text
-git clone           ->  tienes el template
-check_environment   ->  tu entorno cumple requisitos
-project.yaml        ->  describes tu proyecto
-create_project.py   ->  generas un proyecto con el harness completo
-verify_full.sh      ->  confirmas que el harness esta sano
-run_leader.sh       ->  lanzas el leader en una sesion persistente
-prompt autonomo     ->  el leader procesa la cola de features solo (semiautomatico)
+git clone           ->  you have the template
+check_environment   ->  your environment meets the requirements
+project.yaml        ->  you describe your project
+create_project.py   ->  you generate a project with the full harness
+verify_full.sh      ->  you confirm the harness is healthy
+run_leader.sh       ->  you launch the leader in a persistent session
+autonomous prompt   ->  the leader processes the feature queue on its own (semi-automatic)
 ```
 
-El **template** genera **proyectos**. Cada proyecto incluye un *harness* agentico
-de Spec-Driven Development: roles (leader, specifier, architect, implementer,
-qa-reviewer, ...), un plano de control durable fuera de Git, quality gates,
-capabilities opcionales y un Role Guard que aplica los permisos por rol.
+The **template** generates **projects**. Each project includes an agentic
+Spec-Driven Development *harness*: roles (leader, specifier, architect,
+implementer, qa-reviewer, ...), a durable control plane outside Git, quality
+gates, optional capabilities and a Role Guard that enforces per-role permissions.
 
 ---
 
-## 1. Requisitos
+## 1. Requirements
 
-| Herramienta | Para que | Comprobacion |
+| Tool | For what | Check |
 |---|---|---|
-| Linux | Host del harness | `uname -s` |
-| Python 3.12 | Scripts deterministas del harness | `python3 --version` |
-| `uv` | Entorno y tests del proyecto | `uv --version` |
-| `git` | Versionado y publicacion | `git --version` |
-| `bash` | Gates y wrappers | `bash --version` |
-| `tmux` | Sesiones persistentes del leader | `tmux -V` |
-| Claude Code | Ejecutar los agentes | `claude --version` |
-| Node.js | Solo perfil `node` | `node --version` |
+| Linux | Harness host | `uname -s` |
+| Python 3.12 | Deterministic harness scripts | `python3 --version` |
+| `uv` | Project environment and tests | `uv --version` |
+| `git` | Versioning and publishing | `git --version` |
+| `bash` | Gates and wrappers | `bash --version` |
+| `tmux` | Persistent leader sessions | `tmux -V` |
+| Claude Code | Run the agents | `claude --version` |
+| Node.js | `node` profile only | `node --version` |
 
-En entornos sin acceso a descargar Python, exporta `UV_PYTHON_DOWNLOADS=never`
-para que `uv` falle de forma explicita en vez de intentar bajar el runtime.
+In environments without access to download Python, export
+`UV_PYTHON_DOWNLOADS=never` so that `uv` fails explicitly instead of trying to
+download the runtime.
 
 ---
 
-## 2. Paso 1 — Clonar el template
+## 2. Step 1 — Clone the template
 
 ```bash
 cd /srv/agentic/workspace
@@ -54,41 +55,42 @@ git clone https://github.com/<org>/agentic-sdd-template.git
 cd agentic-sdd-template
 ```
 
-> Sustituye `<org>` por tu organizacion/usuario de GitHub.
+> Replace `<org>` with your GitHub organization/user.
 
-Comprueba el entorno **antes** de generar nada:
+Check the environment **before** generating anything:
 
 ```bash
 python3 core/scripts/check_environment.py
 ```
 
-Debe terminar en `[OK] Entorno preparado.` (exit 0). Si falta algo, lo lista con
-`[FALTA]` y sale con codigo 2.
+It must finish with `[OK] Entorno preparado.` (exit 0). If something is missing,
+it lists it with `[FALTA]` and exits with code 2.
 
 ---
 
-## 3. Paso 2 — El modelo en dos minutos
+## 3. Step 2 — The model in two minutes
 
-- **Features**: unidades de cambio trazables que avanzan por estados
+- **Features**: traceable units of change that advance through the states
   `DRAFT -> SPEC_READY -> DESIGN_READY -> READY_FOR_DEVELOPMENT -> IN_PROGRESS ->
-  READY_FOR_QA -> APPROVED -> DONE` (con `BLOCKED` y `CHANGES_REQUESTED`).
-- **Roles**: el `leader` orquesta y delega; `specifier`/`architect` escriben
-  spec/arquitectura; `implementer` codifica en un worktree aislado; `qa-reviewer`
-  revisa. Cada rol solo puede escribir lo suyo (lo aplica el Role Guard).
-- **Plano de control** (fuera de Git, en `control_root`): `queue.json`,
-  `leases/`, `runs/`. Es **durable**: si una sesion muere, el estado sobrevive.
-- **Quality gates** y **capabilities** opcionales (security, performance,
+  READY_FOR_QA -> APPROVED -> DONE` (with `BLOCKED` and `CHANGES_REQUESTED`).
+- **Roles**: the `leader` orchestrates and delegates; `specifier`/`architect`
+  write the spec/architecture; `implementer` codes in an isolated worktree;
+  `qa-reviewer` reviews. Each role can only write what is its own (enforced by
+  the Role Guard).
+- **Control plane** (outside Git, in `control_root`): `queue.json`,
+  `leases/`, `runs/`. It is **durable**: if a session dies, the state survives.
+- **Quality gates** and optional **capabilities** (security, performance,
   mutation, windows-validation, external-runtime, git-publish,
   remote-notifications).
 
-Solo `scripts/finalize_feature.py` puede pasar una feature a `DONE`, y solo tras
-gates verdes y evidencia valida.
+Only `scripts/finalize_feature.py` can move a feature to `DONE`, and only after
+green gates and valid evidence.
 
 ---
 
-## 4. Paso 3 — Configurar tu proyecto (`project.yaml`)
+## 4. Step 3 — Configure your project (`project.yaml`)
 
-Crea un archivo de configuracion. Ejemplo:
+Create a configuration file. Example:
 
 ```yaml
 project_id: mi-proyecto
@@ -98,50 +100,50 @@ profile: python
 capabilities: [security-scanning, performance-testing]
 ```
 
-Claves:
+Keys:
 
-| Clave | Obligatoria | Por defecto | Notas |
+| Key | Required | Default | Notes |
 |---|---|---|---|
-| `project_id` | si | — | `^[a-z0-9]+(-[a-z0-9]+)*$` |
-| `name` | si | — | Nombre legible |
-| `output_path` | si | — | Donde se genera el proyecto |
-| `profile` | si | — | `generic` \| `python` \| `node` |
-| `capabilities` | no | `[]` | Lista inline; `documentation-pack` se incluye siempre |
-| `data_root` | no | `<output_parent>/data/<id>` | Raiz de estado operativo |
-| `control_root` | no | `<data_root>/control` | Cola, leases, runs, metricas |
-| `artifact_root` | no | `<data_root>/artifacts` | Logs pesados y evidencias |
-| `worktree_root` | no | `<output_parent>/worktrees/<id>` | Worktrees de features |
+| `project_id` | yes | — | `^[a-z0-9]+(-[a-z0-9]+)*$` |
+| `name` | yes | — | Human-readable name |
+| `output_path` | yes | — | Where the project is generated |
+| `profile` | yes | — | `generic` \| `python` \| `node` |
+| `capabilities` | no | `[]` | Inline list; `documentation-pack` is always included |
+| `data_root` | no | `<output_parent>/data/<id>` | Operational state root |
+| `control_root` | no | `<data_root>/control` | Queue, leases, runs, metrics |
+| `artifact_root` | no | `<data_root>/artifacts` | Heavy logs and evidence |
+| `worktree_root` | no | `<output_parent>/worktrees/<id>` | Feature worktrees |
 | `git_publish_mode` | no | `local` | `disabled`/`local`/`dry_run`/`push` |
 
-Combinaciones perfil x capability soportadas: `docs/profile-capability-matrix.md`
-(p. ej. `mutation-testing` solo con perfil `python`).
+Supported profile x capability combinations: `docs/profile-capability-matrix.md`
+(e.g. `mutation-testing` only with the `python` profile).
 
 ---
 
-## 5. Paso 4 — Generar el proyecto
+## 5. Step 4 — Generate the project
 
 ```bash
 python3 create_project.py --config project.yaml
 ```
 
-Esto crea en `output_path`:
+This creates, under `output_path`:
 
 ```text
-scripts/            scripts deterministas del harness (+ capabilities elegidas)
+scripts/            deterministic harness scripts (+ chosen capabilities)
 state/              project.json, workflow.json, quality-gates.json, capabilities/
 specs/  docs/  evidence/  tests/   (incl. tests/harness)
-.claude/            agentes, settings.json (hooks del Role Guard)
+.claude/            agents, settings.json (Role Guard hooks)
 CLAUDE.md  AGENTS.md  pyproject.toml
 ```
 
-Y, fuera de Git, el plano de control en `control_root`
-(`queue.json`, `runtime.json`, `leases/`, `runs/`, `role-sessions/`, ...) y el
-`artifact_root`. El proyecto queda inicializado como repositorio Git con un
-primer commit.
+And, outside Git, the control plane in `control_root`
+(`queue.json`, `runtime.json`, `leases/`, `runs/`, `role-sessions/`, ...) and the
+`artifact_root`. The project is initialized as a Git repository with a first
+commit.
 
 ---
 
-## 6. Paso 5 — Verificar la instalacion
+## 6. Step 5 — Verify the installation
 
 ```bash
 cd /srv/agentic/workspace/mi-proyecto
@@ -150,48 +152,48 @@ bash scripts/verify_full.sh
 uv run pytest -q tests/harness
 ```
 
-- `verify_full.sh`: ruff (lint + format), `compileall`, pytest y `git diff --check`.
-- `tests/harness`: suite del harness (transiciones de rol, Role Guard,
-  invariante de leases del implementer, resync de worktrees reutilizados),
-  hermetica y sin red.
+- `verify_full.sh`: ruff (lint + format), `compileall`, pytest and `git diff --check`.
+- `tests/harness`: harness suite (role transitions, Role Guard, implementer
+  lease invariant, resync of reused worktrees), hermetic and without network.
 
-Si todo sale verde, el proyecto esta sano.
+If everything comes out green, the project is healthy.
 
 ---
 
-## 7. Paso 6 — Lanzar el leader (persistente)
+## 7. Step 6 — Launch the leader (persistent)
 
-El leader es la sesion principal de Claude Code. **Importante**: Claude Code
-reporta la sesion principal al hook como `agent_type: "claude"`, asi que el rol
-se toma de la variable `CLAUDE_HARNESS_ROLE`. El launcher la fija por ti y arranca
-todo dentro de `tmux` para que sobreviva a desconexiones:
+The leader is the main Claude Code session. **Important**: Claude Code reports
+the main session to the hook as `agent_type: "claude"`, so the role is taken
+from the `CLAUDE_HARNESS_ROLE` variable. The launcher sets it for you and starts
+everything inside `tmux` so it survives disconnections:
 
 ```bash
 bash scripts/run_leader.sh
 ```
 
-- Detach (dejarlo corriendo): `Ctrl-b` y luego `d`.
-- Reconectar desde cualquier maquina: `bash scripts/run_leader.sh` o
+- Detach (leave it running): `Ctrl-b` and then `d`.
+- Reconnect from any machine: `bash scripts/run_leader.sh` or
   `tmux attach -t leader`.
 
-Equivalente manual (sin el launcher):
+Manual equivalent (without the launcher):
 
 ```bash
 CLAUDE_HARNESS_ROLE=leader claude --agent leader --permission-mode bypassPermissions
 ```
 
-> Sin `CLAUDE_HARNESS_ROLE` la sesion queda `unscoped` (solo lectura) y el leader
-> no puede usar Bash. Es el comportamiento de diseno.
+> Without `CLAUDE_HARNESS_ROLE` the session stays `unscoped` (read-only) and the
+> leader cannot use Bash. This is by design.
 
-Comprobacion: en `<control_root>/role-sessions/<session_id>.json` debe verse
+Check: in `<control_root>/role-sessions/<session_id>.json` you should see
 `"role": "leader"`.
 
 ---
 
-## 8. Paso 7 — Tu primera feature
+## 8. Step 7 — Your first feature
 
-Con el leader lanzado, dale un objetivo concreto. El leader registrara la feature
-y la llevara por su ciclo delegando en los subagentes. Ejemplo de mensaje:
+With the leader launched, give it a concrete goal. The leader will register the
+feature and take it through its cycle by delegating to the subagents. Example
+message:
 
 ```text
 Registra y completa una feature: una funcion de healthcheck en src/ que devuelva
@@ -199,20 +201,20 @@ Registra y completa una feature: una funcion de healthcheck en src/ que devuelva
 implementacion, QA y finalizacion.
 ```
 
-El leader usara los scripts deterministas (`register_feature.py`,
+The leader will use the deterministic scripts (`register_feature.py`,
 `transition_feature.py`, `start_implementation.py`, `complete_implementation.py`,
-`start_review.py`, `complete_review.py`, `finalize_feature.py`). Tu no tocas
-estados a mano: el harness los gobierna.
+`start_review.py`, `complete_review.py`, `finalize_feature.py`). You do not touch
+states by hand: the harness governs them.
 
-> Referencia rapida del registro manual (si quieres intervenir tu):
+> Quick reference for manual registration (if you want to intervene yourself):
 > `python3 scripts/register_feature.py --title "Healthcheck" --slug "healthcheck" --description "..."`
 
 ---
 
-## 9. Paso 8 — Modo semiautomatico
+## 9. Step 8 — Semi-automatic mode
 
-Para que el leader procese la cola de forma autonoma, pega esta instruccion
-permanente como primer mensaje:
+To have the leader process the queue autonomously, paste this standing
+instruction as the first message:
 
 ```text
 Opera de forma autonoma como leader:
@@ -227,51 +229,52 @@ Opera de forma autonoma como leader:
 6. Al terminar, resume que completaste y que quedo pendiente de decision humana.
 ```
 
-Haz detach (`Ctrl-b d`) y el leader sigue trabajando en el servidor. Usa **mosh**
-en vez de `ssh` para que tu conexion resista cortes. Detalle completo en
+Detach (`Ctrl-b d`) and the leader keeps working on the server. Use **mosh**
+instead of `ssh` so your connection survives drops. Full detail in
 `docs/leader-operation.md`.
 
 ---
 
-## 10. Paso 9 — Observar y operar
+## 10. Step 9 — Observe and operate
 
 ```bash
-python3 scripts/project_status.py                  # estado de la cola
-python3 scripts/metrics_status.py                  # metricas y presupuestos
-tail -f <control_root>/role-guard/audit.jsonl       # decisiones del Role Guard
+python3 scripts/project_status.py                  # queue state
+python3 scripts/metrics_status.py                  # metrics and budgets
+tail -f <control_root>/role-guard/audit.jsonl       # Role Guard decisions
 ```
 
-Operaciones habituales:
+Common operations:
 
-- **Recuperar leases caducados** (si una sesion murio):
+- **Recover expired leases** (if a session died):
   `python3 scripts/recover_stale_leases.py --all`
-- **Publicar una feature DONE** (si activaste `git-publish`):
+- **Publish a DONE feature** (if you enabled `git-publish`):
   `python3 scripts/publish_feature.py --feature F-001 --mode push --remote origin --branch main`
-- **Refrescar documentacion generada**:
+- **Refresh generated documentation**:
   `python3 scripts/refresh_project_docs.py`
 
 ---
 
 ## 11. Troubleshooting
 
-| Sintoma | Causa probable | Solucion |
+| Symptom | Probable cause | Solution |
 |---|---|---|
-| `El rol unscoped no tiene autorizacion para Bash` | Falta `CLAUDE_HARNESS_ROLE` | Lanza con `bash scripts/run_leader.sh` (o exporta la variable) |
-| `ModuleNotFoundError` / falla un gate Python | Python no es 3.12 o falta `uv`/`ruff`/`pytest` | `python3 scripts/check_environment.py`; instala lo que falte |
-| `uv` intenta descargar Python | Sin 3.12 local | Instala Python 3.12 o usa `UV_PYTHON_DOWNLOADS=never` y documenta |
-| El leader muere al cerrar SSH | Sesion no persistente | Usala dentro de `tmux` (`run_leader.sh`) + `mosh` |
-| `tmux no esta instalado` | Falta tmux | Instala `tmux` en el host |
-| Una feature queda atascada | Lease caducado o gate fallido | `project_status.py`; `recover_stale_leases.py`; revisa `artifact_root/quality-gates/` |
+| `El rol unscoped no tiene autorizacion para Bash` | Missing `CLAUDE_HARNESS_ROLE` | Launch with `bash scripts/run_leader.sh` (or export the variable) |
+| `ModuleNotFoundError` / a Python gate fails | Python is not 3.12 or `uv`/`ruff`/`pytest` is missing | `python3 scripts/check_environment.py`; install what is missing |
+| `uv` tries to download Python | No local 3.12 | Install Python 3.12 or use `UV_PYTHON_DOWNLOADS=never` and document it |
+| The leader dies when closing SSH | Non-persistent session | Use it inside `tmux` (`run_leader.sh`) + `mosh` |
+| `tmux no esta instalado` | tmux missing | Install `tmux` on the host |
+| A feature gets stuck | Expired lease or failed gate | `project_status.py`; `recover_stale_leases.py`; check `artifact_root/quality-gates/` |
 
 ---
 
-## 12. Siguientes pasos
+## 12. Next steps
 
-- **Nivel 3 (24/7 desatendido)**: driver headless con el **Claude Agent SDK** (o
-  un bucle de `claude -p`) como servicio `systemd`. Ver nota en
+- **Level 3 (24/7 unattended)**: headless driver with the **Claude Agent SDK**
+  (or a `claude -p` loop) as a `systemd` service. See note in
   `docs/leader-operation.md`.
-- **Validaciones reales** (Windows / SSH): `docs/real-validation-runbook.md`.
-- **Contratos y convenciones**: `docs/architecture/harness-contract.md`,
+- **Real validations** (Windows / SSH): `docs/real-validation-runbook.md`.
+- **Contracts and conventions**: `docs/architecture/harness-contract.md`,
   `docs/naming-and-contracts.md`, `docs/language-and-style.md`.
 
-Con esto pasaste de cero a operar el harness en semiautomatico. Hero unlocked.
+With this you went from zero to operating the harness semi-automatically. Hero
+unlocked.

@@ -1,20 +1,19 @@
-"""Tests herméticos del invariante de leases en start_implementation (F-009).
+"""Hermetic tests for the lease invariant in start_implementation (F-009).
 
-Cubre AC-001..AC-005 / SCN-001..SCN-005 en dos niveles:
+Covers AC-001..AC-005 / SCN-001..SCN-005 at two levels:
 
-- Tests unitarios de ``find_conflicting_implementer_lease`` sobre directorios
-  de leases temporales (``tmp_path``), importando el módulo
-  ``start_implementation`` vía el ``sys.path`` que configura
-  ``tests/harness/conftest.py``.
-- Tests E2E que ejecutan ``scripts/start_implementation.py`` por subproceso con
-  ``DOA_REPO_ROOT`` apuntando a un repositorio canónico temporal y un plano de
-  control temporal con dos features en cola (``F-100`` propietaria del lease
-  ajeno, ``F-101`` solicitada).
+- Unit tests of ``find_conflicting_implementer_lease`` over temporary lease
+  directories (``tmp_path``), importing the ``start_implementation`` module
+  via the ``sys.path`` configured by ``tests/harness/conftest.py``.
+- E2E tests that run ``scripts/start_implementation.py`` as a subprocess with
+  ``DOA_REPO_ROOT`` pointing at a temporary canonical repository and a
+  temporary control plane with two queued features (``F-100`` owning the
+  foreign lease, ``F-101`` requested).
 
-Hermeticidad (NFR-1): repositorios Git y plano de control en ``tmp_path``, sin
-red, sin tmux, sin tocar el repositorio canónico real ni el plano de control
-real. La identidad Git se fija por repositorio y se aísla la configuración
-global/sistema (``GIT_CONFIG_GLOBAL`` vacío, ``GIT_CONFIG_NOSYSTEM=1``).
+Hermeticity (NFR-1): Git repositories and control plane in ``tmp_path``, with
+no network, no tmux, and without touching the real canonical repository or the
+real control plane. Git identity is pinned per repository and the global/system
+configuration is isolated (empty ``GIT_CONFIG_GLOBAL``, ``GIT_CONFIG_NOSYSTEM=1``).
 """
 
 from __future__ import annotations
@@ -42,12 +41,12 @@ REQUEST_BRANCH = "feature/F-101-request"
 
 
 # ---------------------------------------------------------------------------
-# Infraestructura de sandbox hermético
+# Hermetic sandbox infrastructure
 # ---------------------------------------------------------------------------
 
 
 def _git_env(home: Path) -> dict[str, str]:
-    """Entorno con identidad/configuración Git aislada del host."""
+    """Environment with Git identity/configuration isolated from the host."""
 
     global_config = home / ".gitconfig-empty"
     global_config.touch()
@@ -79,7 +78,7 @@ def _git(repo: Path, *args: str, env: dict[str, str]) -> subprocess.CompletedPro
     )
     if result.returncode != 0:
         raise AssertionError(
-            f"git {' '.join(args)} falló en {repo}:\n{result.stderr}\n{result.stdout}"
+            f"git {' '.join(args)} failed in {repo}:\n{result.stderr}\n{result.stdout}"
         )
     return result
 
@@ -90,7 +89,7 @@ def _write(path: Path, content: str) -> None:
 
 
 def _init_canonical_repo(tmp_path: Path, env: dict[str, str]) -> Path:
-    """Crea un repositorio canónico de prueba con base commit en main."""
+    """Create a test canonical repository with a base commit on main."""
 
     canonical = tmp_path / "canonical"
     canonical.mkdir()
@@ -111,10 +110,10 @@ def _build_control_plane(
     owner_state: str = "BLOCKED",
     request_state: str = "READY_FOR_DEVELOPMENT",
 ) -> tuple[Path, Path]:
-    """Crea project.json/workflow.json en el repo canónico y el plano de control.
+    """Create project.json/workflow.json in the canonical repo and the control plane.
 
-    La cola contiene dos features: ``F-100`` (propietaria del lease ajeno) y
-    ``F-101`` (solicitada). Devuelve ``(control_root, worktree_root)``.
+    The queue contains two features: ``F-100`` (owner of the foreign lease) and
+    ``F-101`` (requested). Returns ``(control_root, worktree_root)``.
     """
 
     control_root = tmp_path / "control"
@@ -176,7 +175,7 @@ def _build_control_plane(
 
 
 def _commit_canonical_state(canonical: Path, env: dict[str, str]) -> None:
-    """Commitea state/ en el repo canónico para que esté limpio."""
+    """Commit state/ in the canonical repo so it is clean."""
 
     _git(canonical, "add", "state", env=env)
     _git(canonical, "commit", "-m", "add harness state", env=env)
@@ -190,7 +189,7 @@ def _write_lease(
     expires_at: str = "2099-01-01T00:00:00+00:00",
     branch: str | None = None,
 ) -> Path:
-    """Escribe un lease ``schema_version: 1`` con los campos del esquema real."""
+    """Write a ``schema_version: 1`` lease with the real schema's fields."""
 
     lease = {
         "schema_version": 1,
@@ -238,7 +237,7 @@ def _list_dir(path: Path) -> set[str]:
 
 
 def _control_snapshot(control_root: Path) -> dict[str, object]:
-    """Captura bytes de queue/runtime y nombres de leases/runs."""
+    """Capture queue/runtime bytes and lease/run names."""
 
     return {
         "queue": (control_root / "queue.json").read_bytes(),
@@ -260,13 +259,13 @@ OK_PREFIXES = [
 def _assert_ok_contract(stdout: str) -> None:
     lines = stdout.splitlines()
     ok_lines = [line for line in lines if line.startswith("[OK]")]
-    assert len(ok_lines) == 5, f"se esperaban 5 líneas [OK], stdout:\n{stdout}"
+    assert len(ok_lines) == 5, f"expected 5 [OK] lines, stdout:\n{stdout}"
     for line, prefix in zip(ok_lines, OK_PREFIXES):
-        assert line.startswith(prefix), f"línea '{line}' no usa el prefijo '{prefix}'"
+        assert line.startswith(prefix), f"line '{line}' does not use the prefix '{prefix}'"
 
 
 # ===========================================================================
-# Tests unitarios de find_conflicting_implementer_lease
+# Unit tests of find_conflicting_implementer_lease
 # ===========================================================================
 
 
@@ -280,7 +279,7 @@ def _bare_lease(leases_root: Path, feature_id: str, role: str, **extra) -> Path:
 
 
 def test_detects_foreign_implementer_lease(tmp_path: Path) -> None:
-    """U1: lease implementer ajeno → devuelve (path, lease) correctos."""
+    """U1: foreign implementer lease -> returns the correct (path, lease)."""
 
     leases = tmp_path / "leases"
     leases.mkdir()
@@ -295,7 +294,7 @@ def test_detects_foreign_implementer_lease(tmp_path: Path) -> None:
 
 
 def test_expired_foreign_lease_still_conflicts(tmp_path: Path) -> None:
-    """U2: lease implementer ajeno con expires_at pasado → conflicto igual."""
+    """U2: foreign implementer lease with a past expires_at -> still conflicts."""
 
     leases = tmp_path / "leases"
     leases.mkdir()
@@ -313,7 +312,7 @@ def test_expired_foreign_lease_still_conflicts(tmp_path: Path) -> None:
 
 
 def test_qa_lease_does_not_conflict(tmp_path: Path) -> None:
-    """U3: único lease qa-reviewer ajeno → None."""
+    """U3: sole foreign qa-reviewer lease -> None."""
 
     leases = tmp_path / "leases"
     leases.mkdir()
@@ -323,7 +322,7 @@ def test_qa_lease_does_not_conflict(tmp_path: Path) -> None:
 
 
 def test_own_lease_is_not_a_conflict(tmp_path: Path) -> None:
-    """U4: lease implementer propio (mismo feature_id) → None."""
+    """U4: own implementer lease (same feature_id) -> None."""
 
     leases = tmp_path / "leases"
     leases.mkdir()
@@ -333,18 +332,18 @@ def test_own_lease_is_not_a_conflict(tmp_path: Path) -> None:
 
 
 def test_corrupt_lease_file_is_ignored(tmp_path: Path) -> None:
-    """U5: archivo corrupto junto a un lease válido no conflictivo → None."""
+    """U5: corrupt file next to a valid non-conflicting lease -> None."""
 
     leases = tmp_path / "leases"
     leases.mkdir()
     _write(leases / "F-050.json", "{ not valid json")
-    _bare_lease(leases, REQUEST_ID, "implementer")  # propio, no conflicto
+    _bare_lease(leases, REQUEST_ID, "implementer")  # own, no conflict
 
     assert find_conflicting_implementer_lease(leases, REQUEST_ID) is None
 
 
 def test_empty_or_missing_leases_dir_returns_none(tmp_path: Path) -> None:
-    """U6: directorio vacío e inexistente → None en ambos casos."""
+    """U6: empty and nonexistent directory -> None in both cases."""
 
     empty = tmp_path / "empty"
     empty.mkdir()
@@ -355,7 +354,7 @@ def test_empty_or_missing_leases_dir_returns_none(tmp_path: Path) -> None:
 
 
 def test_implementer_lease_without_feature_id_conflicts(tmp_path: Path) -> None:
-    """U7: lease implementer sin campo feature_id → conflicto (conservador)."""
+    """U7: implementer lease without a feature_id field -> conflict (conservative)."""
 
     leases = tmp_path / "leases"
     leases.mkdir()
@@ -369,14 +368,14 @@ def test_implementer_lease_without_feature_id_conflicts(tmp_path: Path) -> None:
 
 
 # ===========================================================================
-# Tests E2E del script start_implementation.py
+# E2E tests of the start_implementation.py script
 # ===========================================================================
 
 
 def test_foreign_lease_blocked_owner_rejects_with_descriptive_error(
     tmp_path: Path,
 ) -> None:
-    """E1 (SCN-001/AC-001): owner BLOCKED con lease → exit 2 y [ERROR] descriptivo."""
+    """E1 (SCN-001/AC-001): BLOCKED owner with a lease -> exit 2 and descriptive [ERROR]."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -395,7 +394,7 @@ def test_foreign_lease_blocked_owner_rejects_with_descriptive_error(
 
 
 def test_rejection_leaves_no_effects_fresh_feature(tmp_path: Path) -> None:
-    """E2 (SCN-002/AC-002): rechazo sin worktree previo → cero efectos."""
+    """E2 (SCN-002/AC-002): rejection with no prior worktree -> zero effects."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -414,7 +413,7 @@ def test_rejection_leaves_no_effects_fresh_feature(tmp_path: Path) -> None:
     assert _control_snapshot(control_root) == before
     assert not worktree.exists()
 
-    # La rama de la feature solicitada no se ha creado.
+    # The requested feature's branch has not been created.
     branch_check = subprocess.run(
         ["git", "rev-parse", "--verify", REQUEST_BRANCH],
         cwd=canonical,
@@ -427,14 +426,14 @@ def test_rejection_leaves_no_effects_fresh_feature(tmp_path: Path) -> None:
 
 
 def test_rejection_leaves_reused_worktree_untouched(tmp_path: Path) -> None:
-    """E3 (SCN-002/AC-002): worktree reutilizable divergente → head intacto."""
+    """E3 (SCN-002/AC-002): divergent reusable worktree -> head untouched."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
     control_root, worktree_root = _build_control_plane(tmp_path, canonical)
     _commit_canonical_state(canonical, env)
 
-    # Rama de F-101 con commit propio, mediante un worktree semilla temporal.
+    # F-101 branch with its own commit, via a temporary seed worktree.
     seed = tmp_path / "_seed_request_wt"
     _git(canonical, "worktree", "add", "-b", REQUEST_BRANCH, str(seed), "main", env=env)
     _write(seed / "request.txt", "request work\n")
@@ -442,12 +441,12 @@ def test_rejection_leaves_reused_worktree_untouched(tmp_path: Path) -> None:
     _git(seed, "commit", "-m", "request commit", env=env)
     _git(canonical, "worktree", "remove", "--force", str(seed), env=env)
 
-    # main avanza para forzar divergencia (resync requeriría merge).
+    # main advances to force divergence (resync would require a merge).
     _write(canonical / "tool.txt", "advanced\n")
     _git(canonical, "add", "tool.txt", env=env)
     _git(canonical, "commit", "-m", "advance main", env=env)
 
-    # Worktree existente de la feature.
+    # Existing worktree for the feature.
     worktree = worktree_root / f"{REQUEST_ID}-{REQUEST_SLUG}"
     _git(canonical, "worktree", "add", str(worktree), REQUEST_BRANCH, env=env)
     head_before = _git(worktree, "rev-parse", "HEAD", env=env).stdout.strip()
@@ -465,7 +464,7 @@ def test_rejection_leaves_reused_worktree_untouched(tmp_path: Path) -> None:
 
 
 def test_expired_foreign_lease_rejects_identically(tmp_path: Path) -> None:
-    """E4 (SCN-003/AC-003): lease ajeno caducado → exit 2, cero efectos."""
+    """E4 (SCN-003/AC-003): expired foreign lease -> exit 2, zero effects."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -491,7 +490,7 @@ def test_expired_foreign_lease_rejects_identically(tmp_path: Path) -> None:
 
 
 def test_qa_lease_does_not_block_start(tmp_path: Path) -> None:
-    """E5 (SCN-004/AC-004): único lease qa-reviewer ajeno → inicio con éxito."""
+    """E5 (SCN-004/AC-004): sole foreign qa-reviewer lease -> successful start."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -513,7 +512,7 @@ def test_qa_lease_does_not_block_start(tmp_path: Path) -> None:
 
 
 def test_success_path_and_own_lease_rejection_preserved(tmp_path: Path) -> None:
-    """E6 (SCN-005/AC-005): sin leases → éxito; reejecución con lease propio → exit 2."""
+    """E6 (SCN-005/AC-005): no leases -> success; rerun with own lease -> exit 2."""
 
     env = _git_env(tmp_path)
     canonical = _init_canonical_repo(tmp_path, env)
@@ -533,12 +532,12 @@ def test_success_path_and_own_lease_rejection_preserved(tmp_path: Path) -> None:
 
 
 def test_own_lease_rejection_preserved(tmp_path: Path) -> None:
-    """E6 (SCN-005/AC-005): lease propio ya presente en estado elegible → exit 2.
+    """E6 (SCN-005/AC-005): own lease already present in an eligible state -> exit 2.
 
-    El rechazo por lease propio se evalúa antes que el guard de lease ajeno y
-    debe conservar el mensaje actual ("Ya existe un lease activo"). Para
-    ejercitar esa rama el lease propio se crea manualmente mientras la feature
-    permanece en un estado elegible (no IN_PROGRESS).
+    Rejection due to an own lease is evaluated before the foreign-lease guard and
+    must preserve the current message ("Ya existe un lease activo"). To exercise
+    that branch the own lease is created manually while the feature remains in an
+    eligible state (not IN_PROGRESS).
     """
 
     env = _git_env(tmp_path)
@@ -551,4 +550,4 @@ def test_own_lease_rejection_preserved(tmp_path: Path) -> None:
     result = _run_start(canonical, env, REQUEST_ID)
 
     assert result.returncode == 2
-    assert "Ya existe un lease activo" in result.stderr
+    assert "An active lease already exists" in result.stderr

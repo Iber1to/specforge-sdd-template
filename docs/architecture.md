@@ -1,64 +1,72 @@
-# Arquitectura Del Template Agentic SDD
+# Architecture Of The Agentic SDD Template
 
-Este documento describe la arquitectura tecnica del template y del proyecto generado. El objetivo del template es crear repos que puedan operar features con un ciclo Spec Driven Development reproducible, auditado y gobernado por scripts deterministas.
+This document describes the technical architecture of the template and of the
+generated project. The goal of the template is to create repos that can operate
+features with a reproducible, audited Spec Driven Development cycle governed by
+deterministic scripts.
 
-## Vista General
+## Overview
 
 ```text
 agentic-sdd-template
   create_project.py
-  core/              harness comun
-  profiles/          adaptadores por stack
-  capabilities/      capacidades opcionales
-  tests/             pruebas del generador
+  core/              common harness
+  profiles/          per-stack adapters
+  capabilities/      optional capabilities
+  tests/             generator tests
 
 generated-project
-  .claude/           agentes y configuracion
-  scripts/           plano de control determinista
-  specs/             contratos de spec, arquitectura y test plan
-  state/             configuracion versionada
-  docs/              documentacion tecnica del harness
-  evidence/          evidencias pequenas versionadas
-  src/, tests/       codigo del producto segun perfil
+  .claude/           agents and configuration
+  scripts/           deterministic control plane
+  specs/             spec, architecture and test plan contracts
+  state/             versioned configuration
+  docs/              harness technical documentation
+  evidence/          small versioned evidence
+  src/, tests/       product code per profile
 ```
 
-## Capas
+## Layers
 
-### Generador
+### Generator
 
-`create_project.py` lee un YAML simple, valida `project_id`, `name`, `output_path`, `profile` y `capabilities`, copia `core/`, aplica el perfil seleccionado y crea un commit inicial en Git.
+`create_project.py` reads a simple YAML, validates `project_id`, `name`,
+`output_path`, `profile` and `capabilities`, copies `core/`, applies the selected
+profile and creates an initial commit in Git.
 
-El parser YAML es intencionadamente minimo. Soporta lineas `key: value`, booleanos simples y listas inline como `[mutation-testing]`.
+The YAML parser is intentionally minimal. It supports `key: value` lines, simple
+booleans and inline lists such as `[mutation-testing]`.
 
 ### Core
 
-`core/` contiene el harness que todos los proyectos reciben:
+`core/` contains the harness that all projects receive:
 
-- agentes en `.claude/agents`
-- scripts de lifecycle y control
-- schemas de especificacion y evidencias
-- templates de specs
-- quality gates por defecto
-- documentacion de arquitectura y convenciones
-- `pyproject.toml` y `uv.lock` del toolchain Python del harness
+- agents in `.claude/agents`
+- lifecycle and control scripts
+- specification and evidence schemas
+- spec templates
+- default quality gates
+- architecture and conventions documentation
+- `pyproject.toml` and `uv.lock` of the harness Python toolchain
 
-El core debe tratarse como una unidad sincronizable desde el harness fuente.
+The core should be treated as a syncable unit from the source harness.
 
 ### Profiles
 
-Los perfiles agregan lo minimo necesario para que un proyecto generado pueda validarse desde el primer commit.
+The profiles add the minimum necessary for a generated project to be validated
+from the first commit.
 
-- `generic`: solo harness y smoke test.
-- `python`: paquete Python bajo `src/` y pruebas unitarias.
-- `node`: `package.json`, ESM, `node:test` y gates Node.
+- `generic`: harness and smoke test only.
+- `python`: Python package under `src/` and unit tests.
+- `node`: `package.json`, ESM, `node:test` and Node gates.
 
 ### Capabilities
 
-Las capacidades son opt-in. El template las documenta y el proyecto generado puede activarlas por configuracion o por feature.
+The capabilities are opt-in. The template documents them and the generated
+project can activate them by configuration or per feature.
 
-Capacidades actuales:
+Current capabilities:
 
-- `documentation-pack` (incluida por defecto)
+- `documentation-pack` (included by default)
 - `eval-harness`
 - `external-runtime`
 - `git-publish`
@@ -69,11 +77,11 @@ Capacidades actuales:
 - `tool-telemetry`
 - `windows-validation`
 
-## Plano De Control
+## Control Plane
 
-El proyecto generado separa el repo Git del estado operativo.
+The generated project separates the Git repo from the operational state.
 
-Estado versionado:
+Versioned state:
 
 - `state/project.json`
 - `state/workflow.json`
@@ -81,7 +89,7 @@ Estado versionado:
 - `state/specification-policy.json`
 - `state/agent-budgets.json`
 
-Estado operativo fuera de Git:
+Operational state outside Git:
 
 - `data/<project_id>/control/queue.json`
 - `data/<project_id>/control/runtime.json`
@@ -91,11 +99,12 @@ Estado operativo fuera de Git:
 - `data/<project_id>/control/agent-metrics/`
 - `data/<project_id>/artifacts/`
 
-Esta separacion evita que logs, locks y runtime contaminen el historial Git.
+This separation prevents logs, locks and runtime from contaminating the Git
+history.
 
-## Lifecycle De Features
+## Feature Lifecycle
 
-Estados principales:
+Main states:
 
 ```text
 DRAFT -> SPEC_READY -> DESIGN_READY -> READY_FOR_DEVELOPMENT
@@ -104,13 +113,14 @@ READY_FOR_QA -> APPROVED -> DONE
 READY_FOR_QA -> CHANGES_REQUESTED -> IN_PROGRESS
 ```
 
-Los roles autorizados por transicion estan definidos en `state/workflow.json` y aplicados por `scripts/control_common.py`.
+The roles authorized per transition are defined in `state/workflow.json` and
+enforced by `scripts/control_common.py`.
 
 ## Spec Partner v2
 
-Spec Partner v2 endurece la entrada a desarrollo.
+Spec Partner v2 hardens the entry into development.
 
-Componentes:
+Components:
 
 - `state/specification-policy.json`
 - `specs/schemas/acceptance-v2.schema.json`
@@ -118,30 +128,35 @@ Componentes:
 - `scripts/validate_spec.py`
 - `scripts/feature_validation.py`
 
-La arquitectura debe incluir `Specification Review` para specs v2. Esa seccion documenta si el Architect encontro contradicciones, criterios no verificables, dependencias faltantes, alcance ambiguo o preguntas criticas.
+The architecture must include a `Specification Review` for v2 specs. That section
+documents whether the Architect found contradictions, non-verifiable criteria,
+missing dependencies, ambiguous scope or critical questions.
 
-## Role Guard Y Dominios De Cambio
+## Role Guard And Change Domains
 
-`change_domain` clasifica la intencion de una feature:
+`change_domain` classifies the intent of a feature:
 
-- `product`: cambios normales del producto. Es el default.
-- `harness`: mantenimiento controlado del harness.
-- `template`: cambios sobre el template o su empaquetado.
+- `product`: normal product changes. It is the default.
+- `harness`: controlled harness maintenance.
+- `template`: changes to the template or its packaging.
 
-Role Guard usa ese dominio para permitir o bloquear rutas. En dominio `harness` se permiten cambios controlados en scripts, agentes, schemas, templates, docs, state y tests. El plano de control externo sigue fuera de alcance.
+Role Guard uses that domain to allow or block paths. In the `harness` domain,
+controlled changes are allowed in scripts, agents, schemas, templates, docs,
+state and tests. The external control plane remains out of scope.
 
 ## Quality Gates
 
-`scripts/quality_gates.py` ejecuta gates configurados en `state/quality-gates.json`.
+`scripts/quality_gates.py` runs the gates configured in
+`state/quality-gates.json`.
 
-Fases:
+Phases:
 
 - `implementation_fast`
 - `qa_full`
 - `finalization`
 - `optional_capability`
 
-Cada gate define:
+Each gate defines:
 
 - `id`
 - `phase`
@@ -149,62 +164,72 @@ Cada gate define:
 - `blocking`
 - `timeout_seconds`
 
-Los resultados se escriben como JSON estructurado en `artifact_root/quality-gates/<feature>/`. Los logs completos se guardan al lado de la evidencia.
+The results are written as structured JSON in
+`artifact_root/quality-gates/<feature>/`. The full logs are stored next to the
+evidence.
 
 ## Mutation Testing
 
-La capability `mutation-testing` usa `scripts/mutation_runner.py`.
+The `mutation-testing` capability uses `scripts/mutation_runner.py`.
 
-El runner:
+The runner:
 
-- detecta codigo Python cambiado
-- genera mutantes deterministas
-- aplica cada mutante temporalmente
-- ejecuta el comando de test
-- restaura archivos
-- clasifica mutantes como `killed`, `survived` o `invalid`
-- escribe evidencia JSON
+- detects changed Python code
+- generates deterministic mutants
+- applies each mutant temporarily
+- runs the test command
+- restores files
+- classifies mutants as `killed`, `survived` or `invalid`
+- writes JSON evidence
 
-La revision final la realiza `mutation-reviewer` y se valida con `scripts/mutation_review_validation.py`.
+The final review is performed by `mutation-reviewer` and validated with
+`scripts/mutation_review_validation.py`.
 
-## Evidencias
+## Evidence
 
-Evidencias versionadas:
+Versioned evidence:
 
 - `evidence/implementations/<feature>.json`
 - `evidence/reviews/<feature>.json`
 - `evidence/mutation-reviews/<feature>.json`
 
-Artefactos pesados:
+Heavy artifacts:
 
 - `artifact_root/quality-gates/<feature>/`
 - `artifact_root/mutation-tests/<feature>/`
 - `artifact_root/git-publish/<feature>/`
 
-## Publicacion Git
+## Git Publication
 
-La publicacion Git es una capability opcional (`git-publish`) que opera despues de `DONE`.
+Git publication is an optional capability (`git-publish`) that operates after
+`DONE`.
 
-Componentes:
+Components:
 
 - `scripts/publish_feature.py`
-- agente `repository-publisher`
-- configuracion `state/project.json::git_publication`
-- evidencia en `artifact_root/git-publish/<feature>/`
+- `repository-publisher` agent
+- `state/project.json::git_publication` configuration
+- evidence in `artifact_root/git-publish/<feature>/`
 
-El diseño separa integracion local de publicacion remota:
+The design separates local integration from remote publication:
 
-- `finalize_feature.py` integra la feature aprobada en la rama canonica local.
-- `publish_feature.py` valida que la feature esta en `DONE` y registra o sube el commit.
+- `finalize_feature.py` integrates the approved feature into the local canonical
+  branch.
+- `publish_feature.py` validates that the feature is in `DONE` and records or
+  pushes the commit.
 
-Role Guard bloquea `git push` directo. Un push real solo puede ocurrir dentro del script determinista, con repo limpio, feature finalizada y remote configurado.
+Role Guard blocks a direct `git push`. A real push can only happen inside the
+deterministic script, with a clean repo, a finalized feature and a configured
+remote.
 
-## Modelo De Sincronizacion
+## Synchronization Model
 
-El template no es el harness fuente; es una distribucion. Cuando el harness fuente evoluciona:
+The template is not the source harness; it is a distribution. When the source
+harness evolves:
 
-1. Sincronizar `core/`.
-2. Ajustar perfiles/capacidades si el contrato cambio.
-3. Regenerar proyectos de prueba.
-4. Ejecutar la suite del template.
-5. Completar al menos una feature real si el cambio toca lifecycle, gates o control.
+1. Synchronize `core/`.
+2. Adjust profiles/capabilities if the contract changed.
+3. Regenerate test projects.
+4. Run the template suite.
+5. Complete at least one real feature if the change touches the lifecycle, gates
+   or control.

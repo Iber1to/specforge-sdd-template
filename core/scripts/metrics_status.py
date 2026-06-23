@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Consulta métricas agregadas del proyecto, rol o feature."""
+"""Query aggregated metrics for the project, role, or feature."""
 
 from __future__ import annotations
 
@@ -31,41 +31,41 @@ def print_scope(label: str, scope: dict[str, Any]) -> None:
 
     print(f"=== {label} ===")
     print(
-        "Agentes: "
-        f"{agents['invocations']} invocaciones; "
-        f"{agents['completed']} completadas; "
-        f"{agents['active']} activas; "
-        f"{agents['blocked_results']} bloqueadas"
+        "Agents: "
+        f"{agents['invocations']} invocations; "
+        f"{agents['completed']} completed; "
+        f"{agents['active']} active; "
+        f"{agents['blocked_results']} blocked"
     )
     print(
-        "Consumo observado: "
-        f"{agents['total_tokens_observed']} tokens brutos; "
-        f"{agents['assistant_turns_observed']} turnos; "
-        f"{agents['duration_seconds']} segundos"
+        "Observed usage: "
+        f"{agents['total_tokens_observed']} raw tokens; "
+        f"{agents['assistant_turns_observed']} turns; "
+        f"{agents['duration_seconds']} seconds"
     )
     print(
-        "Caché: "
-        f"{agents['cache_creation_input_tokens']} creación; "
-        f"{agents['cache_read_input_tokens']} lectura"
+        "Cache: "
+        f"{agents['cache_creation_input_tokens']} creation; "
+        f"{agents['cache_read_input_tokens']} read"
     )
-    print(f"Presupuestos excedidos: {agents['budget_violations']}")
+    print(f"Budget overruns: {agents['budget_violations']}")
     print(
         "Runs: "
-        f"{runs['runs']} totales; "
-        f"{runs['completed']} completados; "
-        f"{runs['active']} activos; "
-        f"{runs['expired']} caducados; "
-        f"{runs['retries']} reintentos"
+        f"{runs['runs']} total; "
+        f"{runs['completed']} completed; "
+        f"{runs['active']} active; "
+        f"{runs['expired']} expired; "
+        f"{runs['retries']} retries"
     )
     print(
-        "Runs observados: "
-        f"{runs['duration_seconds']} segundos; "
+        "Observed runs: "
+        f"{runs['duration_seconds']} seconds; "
         f"{runs['heartbeat_count']} heartbeats"
     )
 
     if runs["results"]:
         print(
-            "Resultados: "
+            "Results: "
             + ", ".join(f"{name}={amount}" for name, amount in sorted(runs["results"].items()))
         )
 
@@ -85,7 +85,7 @@ def main() -> int:
             selected = summary["features"].get(arguments.feature)
 
             if selected is None:
-                raise ControlPlaneError(f"No existen métricas para {arguments.feature}")
+                raise ControlPlaneError(f"No metrics exist for {arguments.feature}")
 
             label = f"FEATURE {arguments.feature}"
 
@@ -93,13 +93,13 @@ def main() -> int:
             selected = summary["roles"].get(arguments.role)
 
             if selected is None:
-                raise ControlPlaneError(f"No existen métricas para el rol {arguments.role}")
+                raise ControlPlaneError(f"No metrics exist for role {arguments.role}")
 
-            label = f"ROL {arguments.role}"
+            label = f"ROLE {arguments.role}"
 
         else:
             selected = summary["project"]
-            label = "PROYECTO"
+            label = "PROJECT"
 
         if arguments.json:
             print(

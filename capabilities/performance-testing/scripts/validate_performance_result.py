@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida evidencia de performance-testing."""
+"""Validate performance-testing evidence."""
 
 from __future__ import annotations
 
@@ -29,10 +29,10 @@ def main() -> int:
 
         statistics = evidence.get("statistics")
         if not isinstance(statistics, dict) or "p95_ms" not in statistics:
-            raise CapabilityError("La evidencia performance no contiene statistics.p95_ms")
+            raise CapabilityError("Performance evidence does not contain statistics.p95_ms")
 
         if args.require_pass and evidence["status"] != "PASSED":
-            raise CapabilityError("La evidencia performance no esta en PASSED")
+            raise CapabilityError("Performance evidence is not in PASSED state")
 
         print(f"[OK] Performance evidence valid: {args.evidence}")
         return 0

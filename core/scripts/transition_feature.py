@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Realiza una transición validada de una feature."""
+"""Perform a validated transition of a feature."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def main() -> int:
             save_queue(queue)
             save_runtime(runtime)
 
-        print(f"[OK] {feature['id']}: {current_state} -> {arguments.to} por {arguments.role}")
+        print(f"[OK] {feature['id']}: {current_state} -> {arguments.to} by {arguments.role}")
 
         return 0
 

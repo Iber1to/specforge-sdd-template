@@ -1,59 +1,59 @@
-# Contrato de finalización de features
+# Feature finalization contract
 
-## Autoridad exclusiva
+## Exclusive authority
 
-Solo `scripts/finalize_feature.py` puede realizar la transición:
+Only `scripts/finalize_feature.py` may perform the transition:
 
 `APPROVED -> DONE`
 
-Ningún agente ni script genérico puede marcar directamente una feature como
-finalizada.
+No agent or generic script may directly mark a feature as
+finalized.
 
-## Commit validado
+## Validated commit
 
-El commit funcional validado es `reviewed_commit`, incluido en el informe QA.
+The validated functional commit is `reviewed_commit`, included in the QA report.
 
-Después de `reviewed_commit`, la rama de la feature solo puede contener un
-commit adicional (el commit de evidencia de QA); dicho commit solo puede
-modificar:
+After `reviewed_commit`, the feature branch may only contain one
+additional commit (the QA evidence commit); that commit may only
+modify:
 
-- `evidence/reviews/<FEATURE>.json` (obligatorio)
+- `evidence/reviews/<FEATURE>.json` (mandatory)
 - `evidence/reviews/<FEATURE>.md`
-- `evidence/mutation-reviews/<FEATURE>.json` (solo si la feature declara la
-  capability `mutation-testing`; el informe de mutación se pliega en este mismo
-  commit, no en uno adicional)
+- `evidence/mutation-reviews/<FEATURE>.json` (only if the feature declares the
+  `mutation-testing` capability; the mutation report is folded into this same
+  commit, not into an additional one)
 
-La evidencia Windows, cuando sea obligatoria, debe corresponder exactamente a
+Windows evidence, when mandatory, must correspond exactly to
 `reviewed_commit`.
 
-## Condiciones previas
+## Preconditions
 
-- La feature está en estado `APPROVED`.
-- No existe ningún lease activo para la feature.
-- El repositorio canónico está limpio y sobre la rama `main`.
-- El worktree de implementación está limpio.
-- El informe QA es válido y tiene veredicto `APPROVED`.
-- El run QA está cerrado correctamente.
-- No existen commits o archivos posteriores no revisados.
-- La suite Linux completa pasa en la rama.
-- La evidencia Windows es válida cuando sea requerida.
+- The feature is in `APPROVED` state.
+- No active lease exists for the feature.
+- The canonical repository is clean and on the `main` branch.
+- The implementation worktree is clean.
+- The QA report is valid and has verdict `APPROVED`.
+- The QA run is closed correctly.
+- No subsequent unreviewed commits or files exist.
+- The full Linux suite passes on the branch.
+- Windows evidence is valid when required.
 
-## Integración
+## Integration
 
-La rama se integra mediante un merge commit.
+The branch is integrated through a merge commit.
 
-Antes de crear el merge commit:
+Before creating the merge commit:
 
-1. Se prepara el merge mediante `--no-ff --no-commit`.
-2. Se valida el contenido preparado.
-3. Se ejecuta la suite Linux completa sobre el resultado integrado.
-4. Si cualquier validación falla, se aborta el merge.
+1. The merge is prepared with `--no-ff --no-commit`.
+2. The prepared content is validated.
+3. The full Linux suite runs over the integrated result.
+4. If any validation fails, the merge is aborted.
 
-## Resultado
+## Result
 
-Después de integrar correctamente:
+After integrating successfully:
 
-- Se registra el commit de integración.
-- La feature pasa a `DONE`.
-- Se elimina el worktree.
-- Se elimina la rama de feature.
+- The integration commit is recorded.
+- The feature moves to `DONE`.
+- The worktree is removed.
+- The feature branch is removed.

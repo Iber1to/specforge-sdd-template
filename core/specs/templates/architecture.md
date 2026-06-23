@@ -2,44 +2,44 @@
 
 ## Specification Review
 
-<!-- REQUIRED: Revisa contradicciones, ambigüedades, verificabilidad, casos límite, dependencias y alcance. -->
+<!-- REQUIRED: Review contradictions, ambiguities, verifiability, edge cases, dependencies and scope. -->
 
 ## Context
 
-<!-- REQUIRED: Resume el contexto técnico relevante. -->
+<!-- REQUIRED: Summarize the relevant technical context. -->
 
 ## Decision
 
-<!-- REQUIRED: Explica la solución elegida y por qué. -->
+<!-- REQUIRED: Explain the chosen solution and why. -->
 
 ## Components
 
-<!-- REQUIRED: Describe los componentes implicados. -->
+<!-- REQUIRED: Describe the components involved. -->
 
 ## Interfaces
 
-<!-- REQUIRED: Define contratos, entradas, salidas y límites. -->
+<!-- REQUIRED: Define contracts, inputs, outputs and boundaries. -->
 
 ## Data Flow
 
-<!-- REQUIRED: Describe el flujo de datos de extremo a extremo. -->
+<!-- REQUIRED: Describe the end-to-end data flow. -->
 
 ## Data Model
 
-<!-- REQUIRED: Describe las estructuras de datos afectadas. -->
+<!-- REQUIRED: Describe the affected data structures. -->
 
 ## Performance Considerations
 
-<!-- REQUIRED: Describe latencia, memoria, concurrencia y posibles cuellos de botella. -->
+<!-- REQUIRED: Describe latency, memory, concurrency and possible bottlenecks. -->
 
 ## Failure Modes
 
-<!-- REQUIRED: Describe fallos esperables y comportamiento de recuperación. -->
+<!-- REQUIRED: Describe expected failures and recovery behavior. -->
 
 ## Windows Runtime Impact
 
-<!-- REQUIRED: Describe el impacto sobre la ejecución Windows o escribe "None". -->
+<!-- REQUIRED: Describe the impact on the Windows runtime or write "None". -->
 
 ## Open Questions
 
-<!-- REQUIRED: Escribe "None" cuando no existan preguntas abiertas. -->
+<!-- REQUIRED: Write "None" when there are no open questions. -->

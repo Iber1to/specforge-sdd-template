@@ -1,8 +1,8 @@
-"""Tests hermeticos de la capability remote-notifications.
+"""Hermetic tests for the remote-notifications capability.
 
-No tocan la red ni las credenciales reales: cada caso construye un proyecto
-minimo en tmp_path con una politica que apunta a credenciales inexistentes y
-sin debounce, y limpia las variables TELEGRAM_* del entorno.
+They touch neither the network nor real credentials: each case builds a minimal
+project in tmp_path with a policy that points at nonexistent credentials and has
+no debounce, and clears the TELEGRAM_* variables from the environment.
 """
 
 from __future__ import annotations
@@ -159,7 +159,7 @@ def test_notify_cli_disabled_policy_sends_nothing(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0
-    assert "deshabilitadas" in result.stdout
+    assert "disabled" in result.stdout
 
 
 def test_notify_hook_is_silent_without_role(tmp_path: Path) -> None:

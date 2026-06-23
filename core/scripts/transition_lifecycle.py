@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Realiza una transición determinista del ciclo de vida del proyecto."""
+"""Performs a deterministic project lifecycle transition."""
 
 from __future__ import annotations
 
@@ -58,9 +58,9 @@ def main() -> int:
                 save_runtime(runtime)
 
         if changed:
-            print(f"[OK] Ciclo de vida: {previous} -> {arguments.to}")
+            print(f"[OK] Lifecycle: {previous} -> {arguments.to}")
         else:
-            print(f"[OK] El ciclo de vida ya está en {arguments.to}")
+            print(f"[OK] Lifecycle is already at {arguments.to}")
 
         return 0
 

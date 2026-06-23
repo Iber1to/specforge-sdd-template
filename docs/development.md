@@ -1,39 +1,42 @@
-# Guia De Desarrollo Del Template
+# Template Development Guide
 
-Esta guia cubre como modificar el template, validar que genera proyectos funcionales y publicar cambios de forma segura.
+This guide covers how to modify the template, validate that it generates
+functional projects and publish changes safely.
 
-## Requisitos
+## Requirements
 
 - Git
-- Python 3.11 o superior
+- Python 3.11 or higher
 - Bash
-- `uv` recomendado para el harness Python
-- Node.js y npm para validar el perfil `node`
+- `uv` recommended for the Python harness
+- Node.js and npm to validate the `node` profile
 
-El template se valida principalmente con `unittest`; los proyectos generados usan los scripts del harness.
+The template is validated mainly with `unittest`; the generated projects use the
+harness scripts.
 
-## Estructura De Trabajo
+## Work Structure
 
-Ruta principal en `jarvis`:
+Main path on `jarvis`:
 
 ```text
 /srv/agentic/workspace/agentic-sdd-template        template
 ```
 
-Los proyectos de prueba deben generarse en directorios temporales o sandboxes
-locales. No se conservan como parte estable del workspace.
+Test projects must be generated in temporary directories or local sandboxes.
+They are not kept as a stable part of the workspace.
 
-## Ejecutar Tests Del Template
+## Run Template Tests
 
-Desde el repo del template:
+From the template repo:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-La suite actual genera proyectos temporales para los tres perfiles y valida que el perfil Node pueda ejecutar `npm test`.
+The current suite generates temporary projects for the three profiles and
+validates that the Node profile can run `npm test`.
 
-## Crear Un Proyecto Manual
+## Create A Manual Project
 
 ```bash
 cat > project.yaml <<'YAML'
@@ -47,7 +50,7 @@ YAML
 python3 create_project.py --config project.yaml
 ```
 
-Despues:
+Afterwards:
 
 ```bash
 cd /srv/agentic/workspace/example-project
@@ -55,43 +58,47 @@ bash scripts/verify_full.sh
 python3 scripts/project_status.py
 ```
 
-## Modificar `core/`
+## Modify `core/`
 
-`core/` es ahora la fuente estable del harness dentro del template. Para cambios
-de comportamiento:
+`core/` is now the stable source of the harness within the template. For
+behavior changes:
 
-1. Implementar el cambio en `agentic-sdd-template/core`.
-2. Ejecutar tests del template.
-3. Generar proyectos temporales si el cambio afecta lifecycle, scripts, specs,
-   gates, agentes o state.
-4. Completar una feature real en al menos un proyecto generado si el cambio toca
-   flujo operativo.
+1. Implement the change in `agentic-sdd-template/core`.
+2. Run the template tests.
+3. Generate temporary projects if the change affects the lifecycle, scripts,
+   specs, gates, agents or state.
+4. Complete a real feature in at least one generated project if the change
+   touches the operational flow.
 
-No edites manualmente `data/<project_id>/control` salvo para inspeccion. El estado operativo debe cambiar mediante scripts deterministas.
+Do not manually edit `data/<project_id>/control` except for inspection. The
+operational state must change through deterministic scripts.
 
-## Modificar Perfiles
+## Modify Profiles
 
-Cada perfil debe cumplir tres reglas:
+Each profile must meet three rules:
 
-- El proyecto generado debe tener un primer commit limpio.
-- `bash scripts/verify_full.sh` debe poder ejecutarse sin preparacion manual especial.
-- Debe existir al menos un smoke test para que los gates tengan una senal real.
+- The generated project must have a clean first commit.
+- `bash scripts/verify_full.sh` must be able to run without special manual
+  preparation.
+- There must be at least one smoke test so the gates have a real signal.
 
-Para `node`, si agregas comandos nuevos, actualiza tambien los gates agregados a `state/quality-gates.json`.
+For `node`, if you add new commands, also update the gates added to
+`state/quality-gates.json`.
 
-## Modificar Capacidades
+## Modify Capabilities
 
-Una capability debe documentar:
+A capability must document:
 
-- como se activa
-- que archivos o agentes agrega
-- que evidencias produce
-- si bloquea el lifecycle
-- como se valida
+- how it is activated
+- which files or agents it adds
+- which evidence it produces
+- whether it blocks the lifecycle
+- how it is validated
 
-Si una capability se activa por feature, verifica que `register_feature.py` acepte el valor y que el control plane lo tenga en cuenta.
+If a capability is activated per feature, verify that `register_feature.py`
+accepts the value and that the control plane takes it into account.
 
-## Checklist Antes De Commit
+## Pre-Commit Checklist
 
 ```bash
 python3 core/scripts/check_environment.py --profile node
@@ -100,41 +107,42 @@ git status --short
 git diff --check
 ```
 
-Si se sincronizo `core/`, valida tambien un proyecto generado:
+If `core/` was synchronized, also validate a generated project:
 
 ```bash
 cd /srv/agentic/workspace/<generated-project>
 bash scripts/verify_full.sh
 ```
 
-## Criterios De Aceptacion Para Cambios Grandes
+## Acceptance Criteria For Large Changes
 
-Un cambio grande del template esta listo cuando:
+A large template change is ready when:
 
-- La suite del template pasa.
-- Al menos un proyecto generado nuevo pasa `verify_full.sh`.
-- Los perfiles afectados tienen README actualizado.
-- Las capacidades afectadas tienen README actualizado.
-- `docs/estado-y-roadmap-harness-agentico.md` o el documento de decision correspondiente refleja el cambio si altera el roadmap o contratos.
-- El repo queda limpio antes del commit.
+- The template suite passes.
+- At least one new generated project passes `verify_full.sh`.
+- The affected profiles have an updated README.
+- The affected capabilities have an updated README.
+- `docs/estado-y-roadmap-harness-agentico.md` or the corresponding decision
+  document reflects the change if it alters the roadmap or contracts.
+- The repo is clean before the commit.
 
 ## CI/CD
 
-El ciclo automatizado vive en `.github/workflows/ci-cd.yml` y esta documentado
-en `docs/ci-cd.md`.
+The automated cycle lives in `.github/workflows/ci-cd.yml` and is documented in
+`docs/ci-cd.md`.
 
-Resumen:
+Summary:
 
-- PR y push a `main`: preflight, integridad estatica, suite del template y smoke
-  de proyectos generados.
-- Tags `v*`: los mismos checks y, si pasan, publicacion/actualizacion de GitHub
-  Release usando `CHANGELOG.md`.
-- No ejecuta Claude Code ni runners Windows reales.
+- PR and push to `main`: preflight, static integrity, template suite and smoke
+  of generated projects.
+- `v*` tags: the same checks and, if they pass, publication/update of the GitHub
+  Release using `CHANGELOG.md`.
+- It does not run Claude Code or real Windows runners.
 
-## Convenciones De Documentacion
+## Documentation Conventions
 
-- Mantener comandos copiables.
-- Documentar rutas reales cuando sirven como evidencia.
-- Separar estado versionado de estado operativo.
-- No esconder limitaciones: si una capability es opcional o parcial, decirlo.
-- Preferir ejemplos pequenos que puedan ejecutarse desde un proyecto generado.
+- Keep commands copy-pasteable.
+- Document real paths when they serve as evidence.
+- Separate versioned state from operational state.
+- Do not hide limitations: if a capability is optional or partial, say so.
+- Prefer small examples that can be run from a generated project.

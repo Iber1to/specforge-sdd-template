@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ejecución determinista de Quality Gates configurables."""
+"""Deterministic execution of configurable Quality Gates."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ DEFAULT_PHASE_COMMANDS = {
 
 
 class QualityGateError(RuntimeError):
-    """Un quality gate bloqueante falló."""
+    """A blocking quality gate failed."""
 
 
 def utc_now() -> str:
@@ -49,11 +49,11 @@ def load_quality_gate_config(repo_root: Path) -> dict[str, Any]:
         }
 
     if not isinstance(config, dict):
-        raise QualityGateError("quality-gates.json debe contener un objeto JSON")
+        raise QualityGateError("quality-gates.json must contain a JSON object")
 
     gates = config.get("gates", [])
     if not isinstance(gates, list):
-        raise QualityGateError("quality-gates.json debe contener una lista gates")
+        raise QualityGateError("quality-gates.json must contain a gates list")
 
     return config
 
@@ -83,25 +83,25 @@ def _validate_gate(gate: dict[str, Any]) -> None:
     command = gate.get("command")
 
     if not isinstance(gate.get("id"), str) or not gate["id"]:
-        raise QualityGateError("Cada gate requiere id")
+        raise QualityGateError("Each gate requires an id")
 
     if (
         not isinstance(command, list)
         or not command
         or not all(isinstance(part, str) and part for part in command)
     ):
-        raise QualityGateError(f"{gate['id']} requiere command como lista de strings")
+        raise QualityGateError(f"{gate['id']} requires command as a list of strings")
 
     if not isinstance(gate.get("blocking", True), bool):
-        raise QualityGateError(f"{gate['id']} requiere blocking booleano")
+        raise QualityGateError(f"{gate['id']} requires a boolean blocking value")
 
     mode = gate.get("mode", "enforce" if gate.get("blocking", True) else "observe")
     if mode not in {"observe", "enforce"}:
-        raise QualityGateError(f"{gate['id']} requiere mode observe o enforce")
+        raise QualityGateError(f"{gate['id']} requires mode observe or enforce")
 
     timeout = gate.get("timeout_seconds", 900)
     if not isinstance(timeout, int) or timeout < 1:
-        raise QualityGateError(f"{gate['id']} requiere timeout_seconds positivo")
+        raise QualityGateError(f"{gate['id']} requires a positive timeout_seconds")
 
 
 def _expand_command(
@@ -128,7 +128,7 @@ def run_quality_gates(
     phase: str,
     raise_on_blocking: bool = True,
 ) -> dict[str, Any]:
-    """Ejecuta los gates de una fase y escribe evidencia estructurada."""
+    """Runs the gates of a phase and writes structured evidence."""
 
     root = repo_root.resolve()
     output_root = artifact_root.resolve() / "quality-gates" / feature_id
@@ -216,6 +216,6 @@ def run_quality_gates(
 
     if blocking_failures and raise_on_blocking:
         failed_ids = ", ".join(result["id"] for result in blocking_failures)
-        raise QualityGateError(f"Quality gates bloqueantes fallidos: {failed_ids}")
+        raise QualityGateError(f"Blocking quality gates failed: {failed_ids}")
 
     return evidence

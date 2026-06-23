@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Role Guard determinista para Claude Code.
+"""Deterministic Role Guard for Claude Code.
 
-Lee eventos JSON desde stdin y bloquea llamadas de herramientas que no respetan
-el rol activo, la propiedad de archivos o el worktree asignado.
+Reads JSON events from stdin and blocks tool calls that do not respect
+the active role, file ownership or the assigned worktree.
 
-Los bloqueos se realizan mediante exit code 2, que Claude Code interpreta como
-denegación de PreToolUse incluso en bypassPermissions.
+Blocks are enforced via exit code 2, which Claude Code interprets as a
+PreToolUse denial even under bypassPermissions.
 """
 
 from __future__ import annotations
@@ -101,8 +101,8 @@ IMPLEMENTER_HARNESS_SCRIPTS = {
 QA_HARNESS_SCRIPTS = {
     "heartbeat_lease.py",
     "complete_review.py",
-    # mutation-testing: QA ejecuta el runner en el worktree; la mutation-reviewer
-    # clasifica los supervivientes y QA pliega el informe en complete_review.py.
+    # mutation-testing: QA runs the runner in the worktree; the mutation-reviewer
+    # classifies the survivors and QA folds the report into complete_review.py.
     "mutation_runner.py",
 }
 
@@ -186,16 +186,16 @@ HARNESS_IMPLEMENTER_FILES = {
     Path("uv.lock"),
 }
 
-# Layout de escritura del implementer para change_domain=product. El layout base
-# es Python (src/, tests/, runtime/external/, pyproject.toml, uv.lock). Los profiles
-# no-Python que emite el generador amplian las rutas permitidas segun
-# state/project.json -> "profile".
+# Implementer write layout for change_domain=product. The base layout
+# is Python (src/, tests/, runtime/external/, pyproject.toml, uv.lock). The
+# non-Python profiles emitted by the generator widen the allowed paths according
+# to state/project.json -> "profile".
 PRODUCT_IMPLEMENTER_ROOTS = {"src", "tests", "runtime", "docs"}
 PRODUCT_IMPLEMENTER_FILES = {Path("pyproject.toml"), Path("uv.lock")}
-# Subtrees de docs que un implementer de producto puede escribir cuando la feature
-# declara requires_* (ADR, runtime, quality, operations) y documentation_validation
-# exige esa documentacion en el commit revisado. El resto de docs/ queda fuera del
-# alcance de producto (lo gestiona change_domain=harness).
+# docs subtrees that a product implementer may write when the feature
+# declares requires_* (ADR, runtime, quality, operations) and documentation_validation
+# requires that documentation in the reviewed commit. The rest of docs/ is outside the
+# product scope (handled by change_domain=harness).
 PRODUCT_IMPLEMENTER_DOC_PREFIXES = (
     Path("docs/10-architecture/adr"),
     Path("docs/20-runtime"),
@@ -203,11 +203,11 @@ PRODUCT_IMPLEMENTER_DOC_PREFIXES = (
     Path("docs/40-operations"),
 )
 PROFILE_IMPLEMENTER_ROOTS = {
-    # android: modulo app/ y wrapper gradle/.
+    # android: app/ module and gradle/ wrapper.
     "android": {"app", "gradle"},
 }
 PROFILE_IMPLEMENTER_FILES = {
-    # android: ficheros Gradle de raiz.
+    # android: root-level Gradle files.
     "android": {
         Path("settings.gradle.kts"),
         Path("build.gradle.kts"),
@@ -220,7 +220,7 @@ CONTROL_ROOT_DEFAULT = Path(".agentic/control")
 
 
 class GuardError(RuntimeError):
-    """Error controlado del Role Guard."""
+    """Controlled error from the Role Guard."""
 
 
 def now_utc() -> str:
@@ -231,10 +231,10 @@ def read_event() -> dict[str, Any]:
     try:
         data = json.load(sys.stdin)
     except json.JSONDecodeError as exc:
-        raise GuardError(f"Entrada JSON inválida: {exc}") from exc
+        raise GuardError(f"Invalid JSON input: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise GuardError("La entrada del hook debe ser un objeto JSON")
+        raise GuardError("The hook input must be a JSON object")
 
     return data
 
@@ -252,12 +252,12 @@ def load_json(path: Path) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise GuardError(f"No existe el archivo requerido: {path}") from exc
+        raise GuardError(f"Required file does not exist: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise GuardError(f"JSON inválido en {path}: {exc}") from exc
+        raise GuardError(f"Invalid JSON in {path}: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise GuardError(f"{path} debe contener un objeto JSON")
+        raise GuardError(f"{path} must contain a JSON object")
 
     return data
 
@@ -275,8 +275,8 @@ def control_root(root: Path) -> Path:
     if configured:
         return Path(str(configured)).expanduser().resolve()
 
-    # Fallback solo usado si falta control_root en project.json. Se mantiene
-    # dentro del repositorio (no en /tmp, world-writable y predecible).
+    # Fallback only used if control_root is missing in project.json. It stays
+    # inside the repository (not in /tmp, which is world-writable and predictable).
     return (root / CONTROL_ROOT_DEFAULT).resolve()
 
 
@@ -328,8 +328,8 @@ def register_session(root: Path, event: dict[str, Any]) -> int:
     if supplied_role in KNOWN_ROLES:
         role = supplied_role
     elif supplied_role in (None, "claude") and env_role in KNOWN_ROLES:
-        # La sesion principal (claude --agent leader) llega como agent_type "claude";
-        # el rol se toma de CLAUDE_HARNESS_ROLE, fijado por el operador al lanzar.
+        # The main session (claude --agent leader) arrives as agent_type "claude";
+        # the role is taken from CLAUDE_HARNESS_ROLE, set by the operator at launch.
         role = env_role
     else:
         role = existing.get("role", "unscoped")
@@ -387,7 +387,7 @@ def deny(root: Path, event: dict[str, Any], role: str, reason: str) -> int:
             "tool_input": event.get("tool_input"),
         },
     )
-    print(f"Role Guard bloqueó la operación: {reason}", file=sys.stderr)
+    print(f"Role Guard blocked the operation: {reason}", file=sys.stderr)
     return 2
 
 
@@ -411,7 +411,7 @@ def resolve_input_path(event: dict[str, Any], key: str) -> Path:
     raw = event.get("tool_input", {}).get(key)
 
     if not isinstance(raw, str) or not raw.strip():
-        raise GuardError(f"Falta tool_input.{key}")
+        raise GuardError(f"Missing tool_input.{key}")
 
     path = Path(raw).expanduser()
 
@@ -434,7 +434,7 @@ def queue_features(root: Path) -> list[dict[str, Any]]:
     features = queue.get("features", [])
 
     if not isinstance(features, list):
-        raise GuardError("queue.json debe contener una lista features")
+        raise GuardError("queue.json must contain a features list")
 
     return [item for item in features if isinstance(item, dict)]
 
@@ -462,7 +462,7 @@ def change_domain_for_lease(root: Path, lease: dict[str, Any]) -> str:
 
 
 def project_profile(root: Path) -> str:
-    """Profile declarado en state/project.json (generic/python/node/android)."""
+    """Profile declared in state/project.json (generic/python/node/android)."""
 
     try:
         data = load_json(root / "state" / "project.json")
@@ -520,7 +520,7 @@ def active_lease(root: Path, role: str) -> dict[str, Any]:
 
     if len(matches) != 1:
         raise GuardError(
-            f"Se esperaba exactamente un lease activo para {role}; encontrados: {len(matches)}"
+            f"Expected exactly one active lease for {role}; found: {len(matches)}"
         )
 
     return matches[0]
@@ -530,10 +530,10 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
     path = resolve_input_path(event, "file_path")
 
     if ".git" in path.parts:
-        return False, "No se permite modificar contenido interno de .git"
+        return False, "Modifying internal .git content is not allowed"
 
     if role in {"leader", "qa-reviewer", "unscoped"}:
-        return False, f"El rol {role} no tiene autorización de escritura directa"
+        return False, f"Role {role} is not authorized for direct writes"
 
     if role in {"specifier", "architect"}:
         allowed = eligible_spec_paths(root, role)
@@ -541,7 +541,7 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
         if path in allowed:
             return True, ""
 
-        return False, f"{role} solo puede escribir sus documentos de la feature elegible"
+        return False, f"{role} can only write its documents for the eligible feature"
 
     if role == "implementer":
         lease = active_lease(root, "implementer")
@@ -549,7 +549,7 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
         relative = relative_to_or_none(path, worktree)
 
         if relative is None:
-            return False, "El implementador solo puede escribir dentro del worktree asignado"
+            return False, "The implementer can only write inside the assigned worktree"
 
         change_domain = change_domain_for_lease(root, lease)
 
@@ -560,7 +560,7 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
             if relative.parts and relative.parts[0] in HARNESS_IMPLEMENTER_ROOTS:
                 return True, ""
 
-            return False, f"Ruta no autorizada para implementer harness: {relative}"
+            return False, f"Unauthorized path for harness implementer: {relative}"
 
         profile = project_profile(root)
         allowed_roots = PRODUCT_IMPLEMENTER_ROOTS | PROFILE_IMPLEMENTER_ROOTS.get(profile, set())
@@ -574,22 +574,22 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
                 required_prefix = Path("runtime/external")
                 if relative == required_prefix or required_prefix in relative.parents:
                     return True, ""
-                return False, "Solo runtime/external esta autorizado"
+                return False, "Only runtime/external is authorized"
 
             if relative.parts[0] == "docs":
                 for prefix in PRODUCT_IMPLEMENTER_DOC_PREFIXES:
                     if relative == prefix or prefix in relative.parents:
                         return True, ""
                 return False, (
-                    "Solo docs de feature autorizados para producto: "
+                    "Only feature docs authorized for product: "
                     "docs/10-architecture/adr, docs/20-runtime, docs/30-quality, docs/40-operations"
                 )
 
             return True, ""
 
-        return False, f"Ruta no autorizada para implementer: {relative}"
+        return False, f"Unauthorized path for implementer: {relative}"
 
-    return False, f"Rol no soportado para escritura: {role}"
+    return False, f"Unsupported role for writing: {role}"
 
 
 def requested_agent_type(event: dict[str, Any]) -> str | None:
@@ -605,15 +605,15 @@ def requested_agent_type(event: dict[str, Any]) -> str | None:
 
 def validate_agent_call(event: dict[str, Any], role: str) -> tuple[bool, str]:
     if role != "leader":
-        return False, "Solo el leader puede lanzar subagentes"
+        return False, "Only the leader can launch subagents"
 
     requested = requested_agent_type(event)
 
     if requested is None:
-        return False, "La llamada Agent no identifica el tipo de subagente"
+        return False, "The Agent call does not identify the subagent type"
 
     if requested not in SPECIALIZED_AGENTS:
-        return False, f"Subagente no autorizado: {requested}"
+        return False, f"Unauthorized subagent: {requested}"
 
     return True, ""
 
@@ -637,7 +637,7 @@ def strip_cd_prefix(command: str, worktree: Path) -> tuple[str, bool]:
 
 
 def shell_tokens(command: str) -> list[str]:
-    """Tokeniza Bash respetando correctamente textos entrecomillados."""
+    """Tokenize Bash, correctly respecting quoted text."""
 
     try:
         lexer = shlex.shlex(
@@ -651,11 +651,11 @@ def shell_tokens(command: str) -> list[str]:
         return list(lexer)
 
     except ValueError as exc:
-        raise GuardError(f"Comando Bash con sintaxis o comillas inválidas: {exc}") from exc
+        raise GuardError(f"Bash command with invalid syntax or quotes: {exc}") from exc
 
 
 def shell_redirection_operator(command: str) -> str | None:
-    """Detecta redirecciones reales, ignorando > y < dentro de comillas."""
+    """Detect real redirections, ignoring > and < inside quotes."""
 
     for token in shell_tokens(command):
         is_operator = token and all(character in ";&|<>" for character in token)
@@ -667,7 +667,7 @@ def shell_redirection_operator(command: str) -> str | None:
 
 
 def leader_combines_git_add_and_commit(command: str) -> bool:
-    """Detecta git add y git commit encadenados en una única llamada."""
+    """Detect git add and git commit chained in a single call."""
 
     tokens = shell_tokens(command)
 
@@ -702,11 +702,11 @@ def starts_read_only(command: str) -> bool:
 
 
 def split_command_segments(command: str) -> list[str]:
-    """Divide un comando en segmentos por operadores de shell (&&, ||, ;, |).
+    """Split a command into segments by shell operators (&&, ||, ;, |).
 
-    Permite validar cada subcomando de forma independiente y evita que un
-    prefijo de solo lectura o un script autorizado habiliten comandos
-    encadenados posteriores no autorizados.
+    Allows validating each subcommand independently and prevents a
+    read-only prefix or an authorized script from enabling subsequent
+    chained unauthorized commands.
     """
 
     segments: list[str] = []
@@ -730,24 +730,24 @@ def validate_leader_bash(root: Path, command: str) -> tuple[bool, str]:
     redirection = shell_redirection_operator(command)
 
     if redirection is not None:
-        return False, f"Redirección Bash prohibida para leader: {redirection}"
+        return False, f"Bash redirection forbidden for leader: {redirection}"
 
     if leader_combines_git_add_and_commit(command):
         return (
             False,
-            "El Leader debe ejecutar git add y git commit en llamadas separadas",
+            "The Leader must run git add and git commit in separate calls",
         )
 
     forbidden = contains_forbidden_command(command)
     if forbidden:
-        return False, f"Patrón Bash prohibido para leader: {forbidden}"
+        return False, f"Forbidden Bash pattern for leader: {forbidden}"
 
     if str(control_root(root)) in command:
-        return False, "El plano de control no puede modificarse directamente"
+        return False, "The control plane cannot be modified directly"
 
     segments = split_command_segments(command)
     if not segments:
-        return False, "La llamada Bash no contiene un comando válido"
+        return False, "The Bash call does not contain a valid command"
 
     for segment in segments:
         allowed, reason = _leader_segment_allowed(segment)
@@ -762,7 +762,7 @@ def _leader_segment_allowed(segment: str) -> tuple[bool, str]:
     if script_name is not None:
         if script_name in LEADER_HARNESS_SCRIPTS:
             return True, ""
-        return False, f"Script no autorizado para leader: {script_name}"
+        return False, f"Unauthorized script for leader: {script_name}"
 
     normalized = segment.strip()
 
@@ -776,30 +776,30 @@ def _leader_segment_allowed(segment: str) -> tuple[bool, str]:
         paths = normalized[len("git add ") :].strip().split()
         if paths and all(path.startswith("specs/features/") for path in paths):
             return True, ""
-        return False, "Leader solo puede añadir documentos bajo specs/features/"
+        return False, "Leader can only add documents under specs/features/"
 
     if normalized.startswith("git commit "):
         return True, ""
 
-    return False, "Comando Bash no incluido en la allowlist del leader"
+    return False, "Bash command not included in the leader allowlist"
 
 
 def validate_repository_publisher_bash(root: Path, command: str) -> tuple[bool, str]:
     redirection = shell_redirection_operator(command)
 
     if redirection is not None:
-        return False, f"Redirección Bash prohibida para repository-publisher: {redirection}"
+        return False, f"Bash redirection forbidden for repository-publisher: {redirection}"
 
     forbidden = contains_forbidden_command(command)
     if forbidden:
-        return False, f"Patrón Bash prohibido para repository-publisher: {forbidden}"
+        return False, f"Forbidden Bash pattern for repository-publisher: {forbidden}"
 
     if str(control_root(root)) in command:
-        return False, "El plano de control no puede modificarse directamente"
+        return False, "The control plane cannot be modified directly"
 
     segments = split_command_segments(command)
     if not segments:
-        return False, "La llamada Bash no contiene un comando válido"
+        return False, "The Bash call does not contain a valid command"
 
     for segment in segments:
         allowed, reason = _repository_publisher_segment_allowed(segment)
@@ -814,12 +814,12 @@ def _repository_publisher_segment_allowed(segment: str) -> tuple[bool, str]:
     if script_name is not None:
         if script_name in PUBLISHER_HARNESS_SCRIPTS:
             return True, ""
-        return False, f"Script no autorizado para repository-publisher: {script_name}"
+        return False, f"Unauthorized script for repository-publisher: {script_name}"
 
     if starts_read_only(segment.strip()):
         return True, ""
 
-    return False, "Repository publisher solo puede leer estado y ejecutar scripts de publicación"
+    return False, "Repository publisher can only read state and run publishing scripts"
 
 
 def validate_worktree_bash(
@@ -832,7 +832,7 @@ def validate_worktree_bash(
     body, has_cd = strip_cd_prefix(command, worktree)
 
     if cwd != worktree and not has_cd:
-        return False, f"El comando debe ejecutarse desde el worktree asignado: {worktree}"
+        return False, f"The command must run from the assigned worktree: {worktree}"
 
     canonical = Path(project_config(root).get("canonical_repository", root)).resolve()
     protected_values = {
@@ -845,20 +845,20 @@ def validate_worktree_bash(
 
     for protected in protected_values:
         if protected and protected in body:
-            return False, f"El comando referencia una ruta protegida: {protected}"
+            return False, f"The command references a protected path: {protected}"
 
     redirection = shell_redirection_operator(body)
 
     if redirection is not None:
-        return False, f"Redirección Bash prohibida: {redirection}"
+        return False, f"Forbidden Bash redirection: {redirection}"
 
     forbidden = contains_forbidden_command(body)
     if forbidden:
-        return False, f"Patrón Bash prohibido: {forbidden}"
+        return False, f"Forbidden Bash pattern: {forbidden}"
 
     segments = split_command_segments(body)
     if not segments:
-        return False, "La llamada Bash no contiene un comando válido"
+        return False, "The Bash call does not contain a valid command"
 
     if role == "implementer":
         for segment in segments:
@@ -874,7 +874,7 @@ def validate_worktree_bash(
                 return False, reason
         return True, ""
 
-    return False, f"Rol no soportado para Bash: {role}"
+    return False, f"Unsupported role for Bash: {role}"
 
 
 IMPLEMENTER_COMMAND_PREFIXES = (
@@ -900,7 +900,7 @@ def _implementer_segment_allowed(segment: str) -> tuple[bool, str]:
     if script_name is not None:
         if script_name in IMPLEMENTER_HARNESS_SCRIPTS:
             return True, ""
-        return False, f"Script no autorizado para implementer: {script_name}"
+        return False, f"Unauthorized script for implementer: {script_name}"
 
     normalized = segment.strip()
 
@@ -910,7 +910,7 @@ def _implementer_segment_allowed(segment: str) -> tuple[bool, str]:
     if normalized.startswith(IMPLEMENTER_COMMAND_PREFIXES):
         return True, ""
 
-    return False, "Comando Bash no incluido en la allowlist del implementer"
+    return False, "Bash command not included in the implementer allowlist"
 
 
 def _qa_reviewer_segment_allowed(segment: str) -> tuple[bool, str]:
@@ -918,19 +918,19 @@ def _qa_reviewer_segment_allowed(segment: str) -> tuple[bool, str]:
     if script_name is not None:
         if script_name in QA_HARNESS_SCRIPTS:
             return True, ""
-        return False, f"Script no autorizado para qa-reviewer: {script_name}"
+        return False, f"Unauthorized script for qa-reviewer: {script_name}"
 
     if starts_read_only(segment.strip()):
         return True, ""
 
-    return False, "QA solo puede ejecutar lecturas, verificaciones y scripts QA autorizados"
+    return False, "QA can only run reads, verifications and authorized QA scripts"
 
 
 def validate_bash(root: Path, event: dict[str, Any], role: str) -> tuple[bool, str]:
     command = event.get("tool_input", {}).get("command")
 
     if not isinstance(command, str) or not command.strip():
-        return False, "La llamada Bash no contiene un comando válido"
+        return False, "The Bash call does not contain a valid command"
 
     if role == "leader":
         return validate_leader_bash(root, command)
@@ -941,7 +941,7 @@ def validate_bash(root: Path, event: dict[str, Any], role: str) -> tuple[bool, s
     if role in {"implementer", "qa-reviewer"}:
         return validate_worktree_bash(root, event, role, command)
 
-    return False, f"El rol {role} no tiene autorización para Bash"
+    return False, f"Role {role} is not authorized for Bash"
 
 
 def handle_config_change(root: Path, event: dict[str, Any], role: str) -> int:
@@ -952,7 +952,7 @@ def handle_config_change(root: Path, event: dict[str, Any], role: str) -> int:
             root,
             event,
             role,
-            "Los settings de Claude Code no pueden cambiar durante una sesión protegida",
+            "Claude Code settings cannot change during a protected session",
         )
 
     return allow(root, event, role)
@@ -965,7 +965,7 @@ def handle_pre_tool_use(root: Path, event: dict[str, Any], role: str) -> int:
         return allow(root, event, role)
 
     if tool_name in ALWAYS_DENIED_TOOLS:
-        return deny(root, event, role, f"La herramienta {tool_name} está prohibida por el harness")
+        return deny(root, event, role, f"Tool {tool_name} is forbidden by the harness")
 
     try:
         if tool_name in {"Write", "Edit"}:
@@ -975,7 +975,7 @@ def handle_pre_tool_use(root: Path, event: dict[str, Any], role: str) -> int:
         elif tool_name == "Bash":
             permitted, reason = validate_bash(root, event, role)
         else:
-            permitted, reason = False, f"Herramienta mutante no soportada: {tool_name}"
+            permitted, reason = False, f"Unsupported mutating tool: {tool_name}"
     except GuardError as exc:
         permitted, reason = False, str(exc)
 
@@ -991,7 +991,7 @@ def main() -> int:
     try:
         event = read_event()
     except GuardError as exc:
-        print(f"Role Guard no pudo interpretar el evento: {exc}", file=sys.stderr)
+        print(f"Role Guard could not parse the event: {exc}", file=sys.stderr)
         return 2
 
     event_name = event.get("hook_event_name")

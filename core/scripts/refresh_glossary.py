@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenera docs/00-project/glossary.md desde glossary.yaml."""
+"""Regenerate docs/00-project/glossary.md from glossary.yaml."""
 
 from __future__ import annotations
 
@@ -18,12 +18,12 @@ def read_yaml(path: Path) -> dict[str, Any]:
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise ControlPlaneError(f"No existe el glosario YAML: {path}") from exc
+        raise ControlPlaneError(f"YAML glossary does not exist: {path}") from exc
     except yaml.YAMLError as exc:
-        raise ControlPlaneError(f"YAML invalido en {path}: {exc}") from exc
+        raise ControlPlaneError(f"Invalid YAML in {path}: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise ControlPlaneError("glossary.yaml debe contener un objeto YAML")
+        raise ControlPlaneError("glossary.yaml must contain a YAML object")
 
     return data
 
@@ -40,7 +40,7 @@ def validate_glossary(root: Path, glossary: dict[str, Any]) -> None:
     if errors:
         error = errors[0]
         location = ".".join(str(part) for part in error.absolute_path) or "<root>"
-        raise ControlPlaneError(f"glossary.yaml invalido en {location}: {error.message}")
+        raise ControlPlaneError(f"Invalid glossary.yaml at {location}: {error.message}")
 
 
 def join_values(values: list[str]) -> str:

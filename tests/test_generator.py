@@ -752,7 +752,7 @@ class GeneratorTests(unittest.TestCase):
         for path in output.rglob("*"):
             relative = path.relative_to(output)
             if relative.parts and relative.parts[0] == ".git":
-                continue  # el repositorio Git inicializado del proyecto es legitimo
+                continue  # the project's initialized Git repository is legitimate
             if path.name in forbidden or path.suffix == ".pyc":
                 offenders.append(str(relative))
 
@@ -926,7 +926,7 @@ class GeneratorTests(unittest.TestCase):
         self.assertFalse(by_slug["no-win"]["windows_validation_required"])
         self.assertTrue(by_slug["yes-win"]["windows_validation_required"])
 
-    # --- T-008 preparacion uso extendido ---
+    # --- T-008 extended-use preparation ---
 
     def test_environment_preflight_passes_with_required_tools(self) -> None:
         output = self.generate("generic")
@@ -953,7 +953,7 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue((harness / "test_lease_invariant.py").is_file())
         self.assertTrue((harness / "test_worktree_resync.py").is_file())
 
-    # --- T-008 validaciones reales (partes offline) ---
+    # --- T-008 real validations (offline parts) ---
 
     def test_git_publish_dry_run_records_enriched_evidence(self) -> None:
         output = self.run_generated_project_lifecycle("generic", "[git-publish]")
@@ -1089,7 +1089,7 @@ class GeneratorTests(unittest.TestCase):
         )
         self.assertEqual(2, result.returncode)
 
-    # --- T-009 madurez de quality gates ---
+    # --- T-009 quality-gate maturity ---
 
     def read_capability_evidence(self, state: dict, capability: str) -> dict:
         path = Path(state["artifact_root"]) / "capabilities" / capability / "F-001" / "latest.json"
@@ -1271,7 +1271,7 @@ class GeneratorTests(unittest.TestCase):
             output, "scripts/start_implementation.py --feature F-001 --agent-id impl-cap"
         )
         self.assertEqual(2, result.returncode)
-        self.assertIn("intentos de QA", result.stderr)
+        self.assertIn("QA attempts", result.stderr)
 
     def test_tool_telemetry_records_and_scrubs(self) -> None:
         output = self.generate("generic", "[tool-telemetry]")
@@ -1349,7 +1349,7 @@ class GeneratorTests(unittest.TestCase):
         evidence = self.read_capability_evidence(state, "performance-testing")
         self.assertIn("baseline_commit", evidence)
 
-    # --- T-012 resolucion de rol de la sesion principal ---
+    # --- T-012 main-session role resolution ---
 
     def run_session_start(self, output: Path, session_id: str, extra_env: dict) -> None:
         event = json.dumps(
@@ -1698,7 +1698,7 @@ terms:
             module_path.read_text(encoding="utf-8") + "FLAG = True\n",
             encoding="utf-8",
         )
-        # mutation testing requiere arbol limpio: commitea el cambio en una rama
+        # mutation testing requires a clean tree: commit the change on a branch
         self.assert_command(output, "git", "checkout", "-b", "feature/mutation")
         self.assert_command(output, "git", "add", "src/test_python_project/__init__.py")
         self.assert_command(output, "git", "commit", "-m", "feat: add flag")
@@ -1835,11 +1835,11 @@ terms:
         )
         self.assertEqual(0, syntax.returncode)
 
-        # El verificador observe debe poder omitirse con exito cuando el toolchain
-        # Android (Gradle) no esta disponible, sin bloquear el lifecycle Python.
-        # Comprobacion estatica: el runner de CI puede traer gradle preinstalado, asi
-        # que no se ejecuta el script (entraria por la rama gradle y fallaria sin SDK);
-        # se verifica que la rama de skip existe y termina con exit 0.
+        # The observe verifier must be able to skip successfully when the Android
+        # toolchain (Gradle) is unavailable, without blocking the Python lifecycle.
+        # Static check: the CI runner may ship gradle preinstalled, so the script is
+        # not executed (it would take the gradle branch and fail without an SDK);
+        # instead we verify that the skip branch exists and exits with code 0.
         verifier = (output / "scripts" / "verify_android.sh").read_text(encoding="utf-8")
         self.assertIn("command -v gradle", verifier)
         self.assertIn("[SKIP]", verifier)
@@ -1876,7 +1876,7 @@ terms:
             allowed, _reason = module.validate_write_edit(project, event, "implementer")
             return allowed
 
-        # Perfil android: layout product Python + app/ + gradle + docs de feature.
+        # android profile: Python product layout + app/ + gradle + feature docs.
         android = self.generate("android")
         implementer_lease(android)
         guard = load_role_guard(android)
@@ -1903,7 +1903,7 @@ terms:
             with self.subTest(profile="android", block=relative):
                 self.assertFalse(can_write(guard, android, relative))
 
-        # Perfil python: docs de feature permitidos (base); app/ y Gradle bloqueados.
+        # python profile: feature docs allowed (base); app/ and Gradle blocked.
         python = self.generate("python")
         implementer_lease(python)
         guard_python = load_role_guard(python)
@@ -1924,8 +1924,8 @@ terms:
                 self.assertFalse(can_write(guard_python, python, relative))
 
     def test_mutation_review_builder_and_validation(self) -> None:
-        # mutation_review_validation importa jsonschema, que vive en el venv del
-        # proyecto generado; se ejercita via `uv run python` dentro del proyecto.
+        # mutation_review_validation imports jsonschema, which lives in the
+        # generated project's venv; it is exercised via `uv run python` inside it.
         project = self.generate("python", "[mutation-testing]")
 
         snippet = textwrap.dedent(
@@ -1981,7 +1981,7 @@ terms:
                 capture_output=True,
             )
 
-        # Superviviente equivalente (sin test_gap) -> valido.
+        # Equivalent survivor (no test_gap) -> valid.
         ok = run_check(
             ["MUT-001=equivalent:mutante en rama imposible de alcanzar"],
             "Un superviviente equivalente, sin huecos de test.",
@@ -1989,11 +1989,11 @@ terms:
         self.assertEqual(0, ok.returncode, ok.stderr)
         self.assertIn("VALIDATION_OK", ok.stdout)
 
-        # Sin supervivientes -> valido.
+        # No survivors -> valid.
         empty = run_check([], "Sin supervivientes; nada que clasificar en esta feature.")
         self.assertEqual(0, empty.returncode, empty.stderr)
 
-        # test_gap -> la validacion debe fallar (el arreglo es anadir tests, no reclasificar).
+        # test_gap -> validation must fail (the fix is to add tests, not reclassify).
         gap = run_check(
             ["MUT-002=test_gap:falta cobertura real del branch afectado"],
             "Hay un hueco de cobertura detectado por el mutante superviviente.",
@@ -2015,7 +2015,7 @@ terms:
     ]
 
     def hermetic_notify_policy(self, output: Path) -> None:
-        """Politica hermetica: sin credenciales reales del runner y sin debounce."""
+        """Hermetic policy: no real runner credentials and no debounce."""
 
         policy_path = output / "state" / "capabilities" / "remote-notifications.json"
         policy = json.loads(policy_path.read_text(encoding="utf-8"))
@@ -2061,7 +2061,7 @@ terms:
             with self.subTest(relative_path=relative_path):
                 self.assertFalse((output / relative_path).exists())
 
-        # Sin la capability instalada, el hook notify es un no-op (exit 0).
+        # Without the capability installed, the notify hook is a no-op (exit 0).
         event = json.dumps({"hook_event_name": "Stop", "session_id": "s1"})
         result = subprocess.run(
             ["bash", "scripts/hook_entrypoint.sh", "notify"],
@@ -2123,12 +2123,12 @@ terms:
                 env=self.notify_environment(output, role=role),
             )
 
-        # Rol no autorizado: silencio total antes de tocar credenciales.
+        # Unauthorized role: complete silence before touching credentials.
         unscoped = run_hook(role=None)
         self.assertEqual(0, unscoped.returncode)
         self.assertNotIn("[ERROR]", unscoped.stderr)
 
-        # Rol leader sin credenciales: informa en stderr pero nunca bloquea.
+        # leader role without credentials: reports on stderr but never blocks.
         leader = run_hook(role="leader")
         self.assertEqual(0, leader.returncode)
         self.assertIn("[ERROR]", leader.stderr)

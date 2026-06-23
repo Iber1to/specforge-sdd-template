@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Lanza el leader del harness en una sesion tmux persistente.
+# Launches the harness leader in a persistent tmux session.
 #
-# La sesion sobrevive a desconexiones SSH y al apagado de la workstation
-# (sigue corriendo en el servidor). Reconecta volviendo a ejecutar este
-# script, o con:  tmux attach -t leader
+# The session survives SSH disconnects and workstation shutdown
+# (it keeps running on the server). Reconnect by running this script
+# again, or with:  tmux attach -t leader
 #
-# Variables opcionales:
-#   LEADER_TMUX_SESSION   nombre de la sesion tmux (por defecto: leader)
-#   CLAUDE_HARNESS_ROLE   rol de la sesion principal (por defecto: leader)
+# Optional variables:
+#   LEADER_TMUX_SESSION   tmux session name (default: leader)
+#   CLAUDE_HARNESS_ROLE   role of the main session (default: leader)
 set -euo pipefail
 
 SESSION="${LEADER_TMUX_SESSION:-leader}"
@@ -15,20 +15,20 @@ ROLE="${CLAUDE_HARNESS_ROLE:-leader}"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 if ! command -v tmux >/dev/null 2>&1; then
-    echo "[ERROR] tmux no esta instalado; instalalo para sesiones persistentes." >&2
+    echo "[ERROR] tmux is not installed; install it for persistent sessions." >&2
     exit 2
 fi
 
 if tmux has-session -t "$SESSION" 2>/dev/null; then
-    echo "[OK] Reconectando a la sesion existente: $SESSION"
+    echo "[OK] Reconnecting to existing session: $SESSION"
     exec tmux attach -t "$SESSION"
 fi
 
-echo "[OK] Creando sesion tmux '$SESSION' (rol: $ROLE) en $PROJECT_DIR"
+echo "[OK] Creating tmux session '$SESSION' (role: $ROLE) in $PROJECT_DIR"
 tmux new-session -d -s "$SESSION" -c "$PROJECT_DIR"
 tmux send-keys -t "$SESSION" 'export PATH="$HOME/.local/bin:$PATH"' C-m
 tmux send-keys -t "$SESSION" "export CLAUDE_HARNESS_ROLE=$ROLE" C-m
 tmux send-keys -t "$SESSION" "claude --agent leader --permission-mode bypassPermissions" C-m
 
-echo "[OK] Leader lanzado. Detach: Ctrl-b d. Reconectar: tmux attach -t $SESSION"
+echo "[OK] Leader launched. Detach: Ctrl-b d. Reconnect: tmux attach -t $SESSION"
 exec tmux attach -t "$SESSION"

@@ -2,40 +2,40 @@
 
 ## Problem
 
-<!-- REQUIRED: Describe el problema observable que debe resolverse. -->
+<!-- REQUIRED: Describe the observable problem that must be solved. -->
 
 ## Goal
 
-<!-- REQUIRED: Describe el resultado que debe conseguir la feature. -->
+<!-- REQUIRED: Describe the outcome the feature must achieve. -->
 
 ## Scope
 
-<!-- REQUIRED: Define claramente qué incluye esta feature. -->
+<!-- REQUIRED: Clearly define what this feature includes. -->
 
 ## Out of Scope
 
-<!-- REQUIRED: Define explícitamente qué queda fuera. -->
+<!-- REQUIRED: Explicitly define what is left out. -->
 
 ## User Scenarios
 
-<!-- REQUIRED: Describe los escenarios relevantes desde el punto de vista del usuario. -->
+<!-- REQUIRED: Describe the relevant scenarios from the user's point of view. -->
 
 ## Functional Requirements
 
-<!-- REQUIRED: Enumera los requisitos funcionales. -->
+<!-- REQUIRED: List the functional requirements. -->
 
 ## Non-Functional Requirements
 
-<!-- REQUIRED: Rendimiento, compatibilidad, fiabilidad u otras restricciones. -->
+<!-- REQUIRED: Performance, compatibility, reliability or other constraints. -->
 
 ## Assumptions
 
-<!-- REQUIRED: Declara las hipótesis utilizadas. -->
+<!-- REQUIRED: State the assumptions used. -->
 
 ## Acceptance Summary
 
-<!-- REQUIRED: Resume los criterios definidos en acceptance.yaml. -->
+<!-- REQUIRED: Summarize the criteria defined in acceptance.yaml. -->
 
 ## Open Questions
 
-<!-- REQUIRED: Escribe "None" cuando no existan preguntas abiertas. -->
+<!-- REQUIRED: Write "None" when there are no open questions. -->

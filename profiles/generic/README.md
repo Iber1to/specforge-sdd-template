@@ -1,29 +1,29 @@
-# Perfil Generic
+# Generic Profile
 
-Perfil stack-neutral para proyectos que necesitan el harness SDD sin asumir lenguaje o framework principal.
+Stack-neutral profile for projects that need the SDD harness without assuming a main language or framework.
 
-## Incluye
+## Includes
 
-- Core completo del harness.
-- `src/` vacio preparado para codigo futuro.
+- Complete harness core.
+- Empty `src/` prepared for future code.
 - `tests/unit/test_harness_smoke.py`.
-- README minimo del proyecto generado.
+- Minimal README for the generated project.
 
-## Uso Recomendado
+## Recommended Usage
 
-Usalo para:
+Use it for:
 
-- repos de documentacion tecnica
-- proyectos mixtos
-- prototipos donde el stack aun no esta decidido
-- productos que quieren adoptar el workflow antes de fijar toolchain
+- technical documentation repos
+- mixed projects
+- prototypes where the stack is not yet decided
+- products that want to adopt the workflow before locking in a toolchain
 
-## Validacion
+## Validation
 
-El proyecto generado debe pasar:
+The generated project must pass:
 
 ```bash
 bash scripts/verify_full.sh
 ```
 
-Como no hay stack propio, los gates validan el harness, schemas, formato Python, tests y estado versionado.
+Since there is no dedicated stack, the gates validate the harness, schemas, Python formatting, tests and versioned state.

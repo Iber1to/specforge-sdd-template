@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenera el indice de features en docs/90-generated."""
+"""Regenerate the feature index in docs/90-generated."""
 
 from __future__ import annotations
 

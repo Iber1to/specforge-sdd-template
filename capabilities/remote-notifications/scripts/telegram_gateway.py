@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Gateway Telegram bidireccional del harness (capability remote-notifications).
+"""Bidirectional Telegram gateway for the harness (remote-notifications capability).
 
-Daemon de long-polling contra la Bot API de Telegram. No necesita endpoint
-publico ni tunel: la maquina solo hace peticiones salientes.
+Long-polling daemon against the Telegram Bot API. It needs no public endpoint
+nor tunnel: the machine only makes outbound requests.
 
-Comandos soportados (solo desde el chat autorizado):
+Supported commands (only from the authorized chat):
 
-    /ping          comprueba que el gateway esta vivo
-    /status        ejecuta scripts/project_status.py y devuelve la salida
-    /tail [n]      devuelve las ultimas n lineas de la sesion tmux del leader
-    /help          lista los comandos
-    <texto libre>  se inyecta como prompt en la sesion tmux del leader
+    /ping          checks that the gateway is alive
+    /status        runs scripts/project_status.py and returns the output
+    /tail [n]      returns the last n lines of the leader's tmux session
+    /help          lists the commands
+    <free text>    is injected as a prompt into the leader's tmux session
 
-Lanzar con scripts/run_gateway.sh (sesion tmux persistente) o como servicio.
+Launch with scripts/run_gateway.sh (persistent tmux session) or as a service.
 """
 
 from __future__ import annotations
@@ -40,12 +40,12 @@ MAX_INJECTED_CHARS = 2000
 RETRY_DELAY_SECONDS = 5
 
 HELP_TEXT = (
-    "Comandos del gateway:\n"
-    "/ping - comprueba el gateway\n"
-    "/status - estado del proyecto (project_status.py)\n"
-    "/tail [n] - ultimas n lineas de la sesion del leader\n"
-    "/help - esta ayuda\n"
-    "Cualquier otro texto se envia como prompt al leader."
+    "Gateway commands:\n"
+    "/ping - checks the gateway\n"
+    "/status - project status (project_status.py)\n"
+    "/tail [n] - last n lines of the leader's session\n"
+    "/help - this help\n"
+    "Any other text is sent as a prompt to the leader."
 )
 
 
@@ -81,10 +81,10 @@ def tmux_tail(session: str, lines: int) -> str:
     )
 
     if result.returncode != 0:
-        return f"[ERROR] tmux capture-pane fallo: {result.stderr.strip()}"
+        return f"[ERROR] tmux capture-pane failed: {result.stderr.strip()}"
 
     captured = [line for line in result.stdout.splitlines() if line.strip()]
-    return "\n".join(captured[-lines:]) or "(pantalla vacia)"
+    return "\n".join(captured[-lines:]) or "(empty screen)"
 
 
 def tmux_inject(session: str, text: str) -> str:
@@ -93,10 +93,10 @@ def tmux_inject(session: str, text: str) -> str:
     ).strip()
 
     if not sanitized:
-        return "[ERROR] Texto vacio tras sanitizar; no se inyecta nada."
+        return "[ERROR] Empty text after sanitizing; nothing is injected."
 
     if len(sanitized) > MAX_INJECTED_CHARS:
-        return f"[ERROR] Texto demasiado largo (max {MAX_INJECTED_CHARS} caracteres)."
+        return f"[ERROR] Text too long (max {MAX_INJECTED_CHARS} characters)."
 
     literal = subprocess.run(
         ["tmux", "send-keys", "-t", session, "-l", sanitized],
@@ -106,7 +106,7 @@ def tmux_inject(session: str, text: str) -> str:
     )
 
     if literal.returncode != 0:
-        return f"[ERROR] tmux send-keys fallo: {literal.stderr.strip()}"
+        return f"[ERROR] tmux send-keys failed: {literal.stderr.strip()}"
 
     submit = subprocess.run(
         ["tmux", "send-keys", "-t", session, "Enter"],
@@ -116,9 +116,9 @@ def tmux_inject(session: str, text: str) -> str:
     )
 
     if submit.returncode != 0:
-        return f"[ERROR] tmux Enter fallo: {submit.stderr.strip()}"
+        return f"[ERROR] tmux Enter failed: {submit.stderr.strip()}"
 
-    return "[OK] Prompt enviado al leader."
+    return "[OK] Prompt sent to the leader."
 
 
 def run_status(root: Path) -> str:
@@ -145,7 +145,7 @@ def run_status(root: Path) -> str:
         if output:
             return output
 
-    return "[ERROR] No se pudo ejecutar project_status.py"
+    return "[ERROR] Could not run project_status.py"
 
 
 def truncate_reply(text: str) -> str:
@@ -161,7 +161,7 @@ def handle_text(text: str, policy: dict[str, Any], root: Path) -> str:
     stripped = text.strip()
 
     if stripped in {"/ping", "/start"}:
-        return f"pong - gateway de {project_label(root)} activo"
+        return f"pong - {project_label(root)} gateway active"
 
     if stripped == "/help":
         return HELP_TEXT
@@ -177,32 +177,32 @@ def handle_text(text: str, policy: dict[str, Any], root: Path) -> str:
             lines = max(1, min(int(parts[1]), 200))
 
         if not tmux_available():
-            return "[ERROR] tmux no esta disponible en el host."
+            return "[ERROR] tmux is not available on the host."
 
         if not tmux_session_exists(session):
-            return f"[ERROR] No existe la sesion tmux '{session}'."
+            return f"[ERROR] The tmux session '{session}' does not exist."
 
         return truncate_reply(tmux_tail(session, lines))
 
     if stripped.startswith("/"):
-        return f"Comando desconocido: {stripped.split()[0]}\n\n{HELP_TEXT}"
+        return f"Unknown command: {stripped.split()[0]}\n\n{HELP_TEXT}"
 
     if gateway.get("allow_text_injection", True) is not True:
         return (
-            "[ERROR] Inyeccion de texto deshabilitada por politica (gateway.allow_text_injection)."
+            "[ERROR] Text injection disabled by policy (gateway.allow_text_injection)."
         )
 
     if not tmux_available():
-        return "[ERROR] tmux no esta disponible en el host."
+        return "[ERROR] tmux is not available on the host."
 
     if not tmux_session_exists(session):
-        return f"[ERROR] No existe la sesion tmux '{session}'. Lanza el leader con scripts/run_leader.sh."
+        return f"[ERROR] The tmux session '{session}' does not exist. Launch the leader with scripts/run_leader.sh."
 
     return tmux_inject(session, stripped)
 
 
 def drain_backlog(token: str) -> int:
-    """Descarta updates pendientes para no reprocesar mensajes antiguos."""
+    """Discard pending updates to avoid reprocessing old messages."""
 
     offset = 0
 
@@ -230,7 +230,7 @@ def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> N
         else (DEFAULT_POLL_TIMEOUT_SECONDS)
     )
     offset = drain_backlog(token)
-    print(f"[OK] Gateway escuchando (chat autorizado: {chat_id})")
+    print(f"[OK] Gateway listening (authorized chat: {chat_id})")
 
     while True:
         try:
@@ -242,7 +242,7 @@ def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> N
             )
         except NotificationError as exc:
             print(
-                f"[ERROR] getUpdates fallo; reintento en {RETRY_DELAY_SECONDS}s: {exc}",
+                f"[ERROR] getUpdates failed; retrying in {RETRY_DELAY_SECONDS}s: {exc}",
                 file=sys.stderr,
             )
             time.sleep(RETRY_DELAY_SECONDS)
@@ -256,7 +256,7 @@ def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> N
 
             if str(chat.get("id", "")) != str(chat_id):
                 print(
-                    f"[ERROR] Mensaje ignorado de chat no autorizado: {chat.get('id')}",
+                    f"[ERROR] Message ignored from unauthorized chat: {chat.get('id')}",
                     file=sys.stderr,
                 )
                 continue
@@ -266,8 +266,8 @@ def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> N
 
             try:
                 reply = handle_text(text, policy, root)
-            except Exception as exc:  # noqa: BLE001 - el gateway debe seguir vivo
-                reply = f"[ERROR] Fallo procesando el mensaje: {exc}"
+            except Exception as exc:  # noqa: BLE001 - the gateway must stay alive
+                reply = f"[ERROR] Failed processing the message: {exc}"
 
             try:
                 telegram_api_call(
@@ -276,7 +276,7 @@ def poll_loop(policy: dict[str, Any], token: str, chat_id: str, root: Path) -> N
                     {"chat_id": chat_id, "text": reply, "disable_web_page_preview": True},
                 )
             except NotificationError as exc:
-                print(f"[ERROR] No se pudo responder: {exc}", file=sys.stderr)
+                print(f"[ERROR] Could not reply: {exc}", file=sys.stderr)
 
 
 def main() -> int:
@@ -289,11 +289,11 @@ def main() -> int:
         return 2
 
     if policy.get("enabled") is not True:
-        print("[ERROR] remote-notifications deshabilitada por politica", file=sys.stderr)
+        print("[ERROR] remote-notifications disabled by policy", file=sys.stderr)
         return 2
 
     if gateway_policy(policy).get("enabled", True) is not True:
-        print("[ERROR] gateway deshabilitado por politica (gateway.enabled)", file=sys.stderr)
+        print("[ERROR] gateway disabled by policy (gateway.enabled)", file=sys.stderr)
         return 2
 
     try:
@@ -303,13 +303,13 @@ def main() -> int:
         print(f"[ERROR] {exc}", file=sys.stderr)
         return 2
 
-    username = me.get("result", {}).get("username", "desconocido")
-    print(f"[OK] Conectado como @{username} para el proyecto {project_label(root)}")
+    username = me.get("result", {}).get("username", "unknown")
+    print(f"[OK] Connected as @{username} for project {project_label(root)}")
 
     try:
         poll_loop(policy, token, chat_id, root)
     except KeyboardInterrupt:
-        print("[OK] Gateway detenido por el operador")
+        print("[OK] Gateway stopped by the operator")
 
     return 0
 

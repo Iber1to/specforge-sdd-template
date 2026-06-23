@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Renueva un lease activo desde el worktree asignado."""
+"""Renews an active lease from the assigned worktree."""
 
 from __future__ import annotations
 
@@ -60,17 +60,17 @@ def main() -> int:
             expected_state = ROLE_STATES.get(role)
 
             if expected_state is None:
-                raise ControlPlaneError(f"Rol de lease no soportado: {role}")
+                raise ControlPlaneError(f"Unsupported lease role: {role}")
 
             if feature["state"] != expected_state:
                 raise ControlPlaneError(
-                    f"{feature['id']} debe estar en {expected_state} "
-                    f"para renovar un lease de {role}"
+                    f"{feature['id']} must be in {expected_state} "
+                    f"to renew a {role} lease"
                 )
 
             if lease.get("agent_id") != arguments.agent_id:
                 raise ControlPlaneError(
-                    f"El lease pertenece a {lease.get('agent_id')}, no a {arguments.agent_id}"
+                    f"The lease belongs to {lease.get('agent_id')}, not to {arguments.agent_id}"
                 )
 
             expected_worktree = Path(lease["worktree"]).resolve()
@@ -78,8 +78,8 @@ def main() -> int:
 
             if detected_worktree != expected_worktree:
                 raise ControlPlaneError(
-                    "El heartbeat debe ejecutarse desde el worktree asignado. "
-                    f"Esperado: {expected_worktree}; detectado: {detected_worktree}"
+                    "The heartbeat must be executed from the assigned worktree. "
+                    f"Expected: {expected_worktree}; detected: {detected_worktree}"
                 )
 
             ttl_minutes = (
@@ -89,7 +89,7 @@ def main() -> int:
             )
 
             if ttl_minutes <= 0:
-                raise ControlPlaneError("ttl-minutes debe ser superior a cero")
+                raise ControlPlaneError("ttl-minutes must be greater than zero")
 
             now = datetime.now(timezone.utc)
             expires_at = now + timedelta(minutes=ttl_minutes)
@@ -108,8 +108,8 @@ def main() -> int:
             atomic_write_json(lease_path, lease)
             atomic_write_json(run_path, run)
 
-        print(f"[OK] Lease renovado: {feature['id']} ({role})")
-        print(f"[OK] Expira: {lease['expires_at']}")
+        print(f"[OK] Lease renewed: {feature['id']} ({role})")
+        print(f"[OK] Expires: {lease['expires_at']}")
 
         return 0
 

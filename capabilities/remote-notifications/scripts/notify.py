@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Notificacion remota explicita del harness (capability remote-notifications).
+"""Explicit harness remote notification (remote-notifications capability).
 
-Pensado para que el leader (u otro operador) avise por Telegram cuando una
-feature queda BLOCKED, cuando el trabajo solicitado termina o cuando se
-necesita atencion humana.
+Intended for the leader (or another operator) to send a Telegram alert when a
+feature becomes BLOCKED, when the requested work finishes, or when human
+attention is needed.
 
-Uso:
+Usage:
 
     uv run python scripts/notify.py --event blocked --feature F-001 \
-        --message "Spec ambigua: falta criterio de aceptacion"
+        --message "Ambiguous spec: missing acceptance criterion"
 
-Por defecto es fail-soft (exit 0 aunque falle el envio) para no bloquear el
-workflow; con --strict devuelve exit 2 si el envio falla.
+By default it is fail-soft (exit 0 even if the send fails) so the workflow is
+not blocked; with --strict it returns exit 2 if the send fails.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Devuelve exit 2 si la notificacion no puede enviarse",
+        help="Returns exit 2 if the notification cannot be sent",
     )
     return parser.parse_args()
 
@@ -51,20 +51,20 @@ def main() -> int:
         policy = load_policy()
 
         if not policy_enabled(policy):
-            print("[OK] Notificaciones deshabilitadas por politica; no se envia nada")
+            print("[OK] Notifications disabled by policy; nothing is sent")
             return 0
 
         if not event_enabled(policy, args.event):
-            print(f"[OK] Evento {args.event} deshabilitado por politica; no se envia nada")
+            print(f"[OK] Event {args.event} disabled by policy; nothing is sent")
             return 0
 
         text = format_event_text(args.event, args.message, feature=args.feature)
         send_message(policy, text)
     except NotificationError as exc:
-        print(f"[ERROR] Notificacion no enviada: {exc}", file=sys.stderr)
+        print(f"[ERROR] Notification not sent: {exc}", file=sys.stderr)
         return 2 if args.strict else 0
 
-    print(f"[OK] Notificacion enviada ({args.event})")
+    print(f"[OK] Notification sent ({args.event})")
     return 0
 
 

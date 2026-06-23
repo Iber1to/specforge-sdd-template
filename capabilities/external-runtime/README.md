@@ -1,21 +1,21 @@
 # Capability: External Runtime
 
-Capacidad opcional para ejecutar o validar trabajos fuera del runtime principal del harness manteniendo evidencia centralizada.
+Optional capability to run or validate jobs outside the harness's main runtime while keeping evidence centralized.
 
-## Alcance MVP
+## MVP Scope
 
-- Politica versionada en `state/capabilities/external-runtime.json`.
-- Target `local` para comandos deterministas.
-- Target `manual-drop` para normalizar resultados externos.
+- Versioned policy in `state/capabilities/external-runtime.json`.
+- `local` target for deterministic commands.
+- `manual-drop` target to normalize external results.
 - Runner: `scripts/run_external_runtime.py`.
-- Validador: `scripts/validate_external_runtime_result.py`.
-- Evidencia en `artifact_root/capabilities/external-runtime/<feature>/`.
+- Validator: `scripts/validate_external_runtime_result.py`.
+- Evidence in `artifact_root/capabilities/external-runtime/<feature>/`.
 
-## Uso
+## Usage
 
-El unico modo de ejecucion es seleccionar un command template declarado en la
-policy del target (`allowed_command_templates`) mediante `--command-id`. No
-existe ejecucion de comandos libres.
+The only execution mode is to select a command template declared in the
+target's policy (`allowed_command_templates`) via `--command-id`. There is no
+free-form command execution.
 
 ```bash
 python3 scripts/run_external_runtime.py \
@@ -24,7 +24,7 @@ python3 scripts/run_external_runtime.py \
   --command-id python-version
 ```
 
-Validacion:
+Validation:
 
 ```bash
 python3 scripts/validate_external_runtime_result.py \
@@ -33,8 +33,8 @@ python3 scripts/validate_external_runtime_result.py \
   --require-pass
 ```
 
-## Estado
+## Status
 
-Modo inicial: `observe`.
+Initial mode: `observe`.
 
-El adapter SSH queda como extension futura. El MVP ya cubre el contrato `request -> execute/collect -> validate` con target local y manual-drop.
+The SSH adapter is left as a future extension. The MVP already covers the `request -> execute/collect -> validate` contract with the local and manual-drop targets.

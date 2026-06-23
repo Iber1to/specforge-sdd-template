@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Completa una revisión QA y aplica su veredicto."""
+"""Complete a QA review and apply its verdict."""
 
 from __future__ import annotations
 
@@ -46,20 +46,26 @@ def parse_arguments() -> argparse.Namespace:
         action="append",
         default=[],
     )
-    # Solo se usan cuando la feature declara la capability mutation-testing y el
-    # veredicto es APPROVED; el informe de mutacion se pliega en el unico commit de QA.
+    # Only used when the feature declares the mutation-testing capability and the
+    # verdict is APPROVED; the mutation report is folded into the single QA commit.
     parser.add_argument("--mutation-reviewer-id", default=None)
     parser.add_argument("--mutation-summary", default=None)
     parser.add_argument(
         "--mutation-evidence",
         default=None,
-        help="Ruta a la evidencia del mutation_runner (por defecto artifact_root/mutation-tests/<F>/latest.json).",
+        help=(
+            "Path to the mutation_runner evidence "
+            "(defaults to artifact_root/mutation-tests/<F>/latest.json)."
+        ),
     )
     parser.add_argument(
         "--mutation-classification",
         action="append",
         default=[],
-        help="Clasificacion de un superviviente: MUT-XXX=equivalent|out_of_scope|invalid|test_gap:motivo.",
+        help=(
+            "Classification of a survivor: "
+            "MUT-XXX=equivalent|out_of_scope|invalid|test_gap:reason."
+        ),
     )
 
     return parser.parse_args()
@@ -76,13 +82,13 @@ def git_head(worktree: Path) -> str:
 
 def validate_arguments(arguments: argparse.Namespace) -> None:
     if len(arguments.summary.strip()) < 10:
-        raise ControlPlaneError("El resumen QA debe contener al menos 10 caracteres")
+        raise ControlPlaneError("The QA summary must contain at least 10 characters")
 
     if arguments.verdict == "APPROVED" and arguments.required_change:
-        raise ControlPlaneError("Un informe APPROVED no puede contener cambios requeridos")
+        raise ControlPlaneError("An APPROVED report cannot contain required changes")
 
     if arguments.verdict == "CHANGES_REQUESTED" and not arguments.required_change:
-        raise ControlPlaneError("CHANGES_REQUESTED requiere al menos un --required-change")
+        raise ControlPlaneError("CHANGES_REQUESTED requires at least one --required-change")
 
 
 def run_full_verification(
@@ -115,33 +121,33 @@ def run_full_verification(
 
 
 def render_review_report(review: dict) -> str:
-    """Render legible y diffable del informe QA, de campos fijos, junto al JSON."""
+    """Readable, diffable render of the QA report, with fixed fields, alongside the JSON."""
 
     changes = review.get("required_changes") or []
     if changes:
         changes_block = "\n".join(f"- {item}" for item in changes)
     else:
-        changes_block = "Ninguno."
+        changes_block = "None."
 
     verification = review.get("verification", {})
 
     return (
         f"# QA Review Report - {review['feature_id']}\n\n"
-        "| Campo | Valor |\n"
+        "| Field | Value |\n"
         "| --- | --- |\n"
         f"| Feature | {review['feature_id']} |\n"
-        f"| Veredicto | {review['verdict']} |\n"
-        f"| Revisor | {review['reviewer_id']} |\n"
+        f"| Verdict | {review['verdict']} |\n"
+        f"| Reviewer | {review['reviewer_id']} |\n"
         f"| Run | {review['run_id']} |\n"
-        f"| Commit revisado | {review['reviewed_commit']} |\n"
-        f"| Verificacion | {verification.get('command', '')} "
+        f"| Reviewed commit | {review['reviewed_commit']} |\n"
+        f"| Verification | {verification.get('command', '')} "
         f"(exit {verification.get('exit_code', '')}) |\n"
-        f"| Fecha | {review['created_at']} |\n\n"
-        "## Resumen\n\n"
+        f"| Date | {review['created_at']} |\n\n"
+        "## Summary\n\n"
         f"{review['summary']}\n\n"
-        "## Cambios requeridos\n\n"
+        "## Required changes\n\n"
         f"{changes_block}\n\n"
-        "## Log de verificacion\n\n"
+        "## Verification log\n\n"
         f"`{verification.get('log', '')}`\n"
     )
 
@@ -152,10 +158,10 @@ def write_mutation_review_evidence(
     arguments: argparse.Namespace,
     artifact_root: Path,
 ) -> Path:
-    """Construye, escribe y valida el informe de Mutation Reviewer.
+    """Build, write, and validate the Mutation Reviewer report.
 
-    Solo se invoca cuando la feature declara mutation-testing y el veredicto es
-    APPROVED. El fichero se pliega en el unico commit de evidencia de QA.
+    Only invoked when the feature declares mutation-testing and the verdict is
+    APPROVED. The file is folded into the single QA evidence commit.
     """
 
     if __package__:
@@ -174,13 +180,13 @@ def write_mutation_review_evidence(
     reviewer_id = (arguments.mutation_reviewer_id or "").strip()
     if len(reviewer_id) < 3:
         raise ControlPlaneError(
-            "La feature requiere mutation-testing: indica --mutation-reviewer-id"
+            "The feature requires mutation-testing: provide --mutation-reviewer-id"
         )
 
     mutation_summary = (arguments.mutation_summary or "").strip()
     if len(mutation_summary) < 10:
         raise ControlPlaneError(
-            "La feature requiere mutation-testing: indica --mutation-summary (>=10 caracteres)"
+            "The feature requires mutation-testing: provide --mutation-summary (>=10 characters)"
         )
 
     evidence_ref = arguments.mutation_evidence or str(
@@ -248,8 +254,8 @@ def create_and_commit_review(
     report_path = worktree / "evidence" / "reviews" / f"{feature['id']}.md"
     report_path.write_text(render_review_report(review), encoding="utf-8")
 
-    # Solo features con mutation-testing y veredicto APPROVED: el informe de
-    # mutacion viaja en este mismo (unico) commit de evidencia de QA.
+    # Only features with mutation-testing and an APPROVED verdict: the mutation
+    # report travels in this same (single) QA evidence commit.
     mutation_review_path: Path | None = None
     if verdict == "APPROVED" and mutation_testing_required(feature):
         mutation_review_path = write_mutation_review_evidence(
@@ -294,25 +300,25 @@ def main() -> int:
             feature = find_feature(queue, arguments.feature)
 
             if feature["state"] != "READY_FOR_QA":
-                raise ControlPlaneError(f"{feature['id']} no está en READY_FOR_QA")
+                raise ControlPlaneError(f"{feature['id']} is not in READY_FOR_QA")
 
             lease = load_json(lease_path)
 
             if lease.get("role") != "qa-reviewer":
-                raise ControlPlaneError("El lease activo no pertenece a QA")
+                raise ControlPlaneError("The active lease does not belong to QA")
 
             if lease.get("agent_id") != arguments.agent_id:
                 raise ControlPlaneError(
-                    f"El lease pertenece a {lease.get('agent_id')}, no a {arguments.agent_id}"
+                    f"The lease belongs to {lease.get('agent_id')}, not to {arguments.agent_id}"
                 )
 
             if Path(lease["worktree"]).resolve() != worktree:
-                raise ControlPlaneError("La revisión debe completarse desde el worktree asignado")
+                raise ControlPlaneError("The review must be completed from the assigned worktree")
 
         ensure_clean_repository(worktree)
 
         if git_head(worktree) != lease["reviewed_commit"]:
-            raise ControlPlaneError("El commit del worktree cambió desde el inicio de la revisión")
+            raise ControlPlaneError("The worktree commit changed since the review started")
 
         result, log_path, command, quality_gates = run_full_verification(
             worktree=worktree,
@@ -324,11 +330,11 @@ def main() -> int:
         ensure_clean_repository(worktree)
 
         if git_head(worktree) != lease["reviewed_commit"]:
-            raise ControlPlaneError("La verificación modificó el commit revisado")
+            raise ControlPlaneError("Verification modified the reviewed commit")
 
         if arguments.verdict == "APPROVED" and result.returncode != 0:
             raise ControlPlaneError(
-                f"No puede emitirse APPROVED con la suite completa fallida. Revisa: {log_path}"
+                f"APPROVED cannot be issued with the full suite failing. Check: {log_path}"
             )
 
         review_path, evidence_commit = create_and_commit_review(
@@ -352,7 +358,7 @@ def main() -> int:
             current_lease = load_json(lease_path)
 
             if current_lease.get("run_id") != lease["run_id"]:
-                raise ControlPlaneError("El lease cambió durante la revisión")
+                raise ControlPlaneError("The lease changed during the review")
 
             apply_transition(
                 queue=queue,
@@ -403,10 +409,10 @@ def main() -> int:
             lease_path.unlink()
 
         print(f"[OK] Feature:          {feature['id']}")
-        print(f"[OK] Veredicto:        {arguments.verdict}")
-        print(f"[OK] Commit revisado:  {lease['reviewed_commit']}")
-        print(f"[OK] Commit evidencia: {evidence_commit}")
-        print(f"[OK] Evidencia:        {review_path}")
+        print(f"[OK] Verdict:          {arguments.verdict}")
+        print(f"[OK] Reviewed commit:  {lease['reviewed_commit']}")
+        print(f"[OK] Evidence commit:  {evidence_commit}")
+        print(f"[OK] Evidence:         {review_path}")
         print(f"[OK] Log:              {log_path}")
 
         return 0

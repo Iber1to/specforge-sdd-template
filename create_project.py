@@ -139,8 +139,8 @@ def copy_core(output: Path) -> None:
     core = ROOT / "core"
 
     for child in core.iterdir():
-        # Excluir entornos, repos y caches de nivel superior; el `ignore` de
-        # copytree solo filtra nombres anidados, no el directorio raíz copiado.
+        # Exclude top-level environments, repos and caches; copytree's `ignore`
+        # only filters nested names, not the copied root directory itself.
         if child.name in EXCLUDED_TREE_NAMES:
             continue
         destination = output / child.name
@@ -332,17 +332,17 @@ def write_python_smoke(output: Path) -> None:
 
 
 def write_harness_suite(output: Path) -> None:
-    """Suite minima del harness, ejecutable offline en el proyecto generado.
+    """Minimal harness suite, runnable offline in the generated project.
 
-    Cubre logica determinista (transiciones por rol, Role Guard) sin depender del
-    plano de control, Claude Code ni red. Se ejecuta con `uv run pytest tests/harness`.
+    Covers deterministic logic (per-role transitions, Role Guard) without depending
+    on the control plane, Claude Code or the network. Run with `uv run pytest tests/harness`.
     """
 
     harness = output / "tests" / "harness"
     harness.mkdir(parents=True, exist_ok=True)
 
     (harness / "conftest.py").write_text(
-        """# Importa los scripts deterministas del harness en la suite minima.
+        """# Import the harness's deterministic scripts into the minimal suite.
 import sys
 from pathlib import Path
 
@@ -1390,9 +1390,9 @@ def apply_profile(output: Path, profile: str) -> None:
 
 
 ANDROID_LOCALE_STRINGS = {
-    # `values/` es el recurso por defecto (inglés). Las variantes por idioma
-    # demuestran el soporte multi-idioma requerido por el producto: castellano,
-    # japonés y coreano, además del inglés por defecto.
+    # `values/` is the default resource (English). The per-language variants
+    # demonstrate the multi-language support required by the product: Spanish,
+    # Japanese and Korean, in addition to the default English.
     "values": ("en", "Card Collector", "Scan a card"),
     "values-es": ("es", "Coleccionista de Cartas", "Escanear una carta"),
     "values-ja": ("ja", "カードコレクター", "カードをスキャン"),
@@ -1401,14 +1401,14 @@ ANDROID_LOCALE_STRINGS = {
 
 
 def apply_android_profile(output: Path) -> None:
-    """Genera un skeleton Android (Kotlin + Gradle) con toolchain mínimo.
+    """Generate an Android skeleton (Kotlin + Gradle) with a minimal toolchain.
 
-    Igual que el perfil Node v1, el harness no instala dependencias externas: el
-    generador no descarga el Android SDK ni Gradle. Los gates Android se instalan
-    en modo `observe` (no bloqueante) y se ejecutan a través de
-    `scripts/verify_android.sh`, que detecta el toolchain y se omite con éxito
-    cuando no está disponible. Los gates bloqueantes del harness siguen siendo los
-    de Python (`verify_fast.sh` / `verify_full.sh`).
+    Like the Node v1 profile, the harness does not install external dependencies: the
+    generator does not download the Android SDK or Gradle. The Android gates are installed
+    in `observe` mode (non-blocking) and run through
+    `scripts/verify_android.sh`, which detects the toolchain and skips with success
+    when it is not available. The harness's blocking gates remain the
+    Python ones (`verify_fast.sh` / `verify_full.sh`).
     """
 
     package = "com.generated." + output.name.replace("-", "")
@@ -1440,7 +1440,7 @@ def apply_android_profile(output: Path) -> None:
     )
 
     (output / "build.gradle.kts").write_text(
-        "// Configuración raíz de Gradle. Los plugins se aplican por módulo.\n"
+        "// Root Gradle configuration. Plugins are applied per module.\n"
         "plugins {\n"
         '    id("com.android.application") version "8.5.0" apply false\n'
         '    id("org.jetbrains.kotlin.android") version "1.9.24" apply false\n'
@@ -1553,9 +1553,9 @@ def apply_android_profile(output: Path) -> None:
 
     (output / "scripts" / "verify_android.sh").write_text(
         "#!/usr/bin/env bash\n"
-        "# Verificación Android (observe). No bloquea el lifecycle del harness Python.\n"
-        "# Ejecuta los gates de Gradle si el toolchain Android está disponible; en su\n"
-        '# ausencia informa y termina con éxito (evidencia "skipped").\n'
+        "# Android verification (observe). Does not block the Python harness lifecycle.\n"
+        "# Runs the Gradle gates if the Android toolchain is available; if it is\n"
+        '# absent it reports and exits with success ("skipped" evidence).\n'
         "set -uo pipefail\n\n"
         'cd "$(git rev-parse --show-toplevel)"\n\n'
         "if [ -x ./gradlew ]; then\n"

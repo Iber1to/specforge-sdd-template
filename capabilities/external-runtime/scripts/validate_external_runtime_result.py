@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida evidencia de external-runtime."""
+"""Validate external-runtime evidence."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def main() -> int:
         validate_capability_evidence(evidence, CAPABILITY, args.feature)
 
         if args.require_pass and evidence["status"] != "PASSED":
-            raise CapabilityError("La evidencia external-runtime no esta en PASSED")
+            raise CapabilityError("The external-runtime evidence is not in PASSED")
 
         print(f"[OK] External runtime evidence valid: {args.evidence}")
         return 0

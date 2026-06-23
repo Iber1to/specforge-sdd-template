@@ -1,21 +1,21 @@
-# Perfil Node
+# Node Profile
 
-Perfil para proyectos Node.js ESM con `npm`, `node:test` y gates propios del stack.
-Para v1 usa un toolchain simple: no instala dependencias externas, no requiere
-lockfile y valida sintaxis con `node --check`.
+Profile for Node.js ESM projects with `npm`, `node:test` and stack-specific gates.
+For v1 it uses a simple toolchain: it does not install external dependencies, does not require
+a lockfile and validates syntax with `node --check`.
 
-## Incluye
+## Includes
 
-- Core completo del harness.
-- `package.json` con `type: module`.
+- Complete harness core.
+- `package.json` with `type: module`.
 - `src/index.js`.
 - `tests/index.test.js`.
-- Scripts npm:
+- npm scripts:
   - `npm test`
   - `npm run lint`
-- Gates Node agregados a `state/quality-gates.json`.
+- Node gates added to `state/quality-gates.json`.
 
-## Validacion
+## Validation
 
 ```bash
 npm test
@@ -23,15 +23,15 @@ npm run lint
 bash scripts/verify_full.sh
 ```
 
-`npm run lint` ejecuta `node --check src/index.js tests/index.test.js`.
+`npm run lint` runs `node --check src/index.js tests/index.test.js`.
 
-## Gates Agregados
+## Added Gates
 
-El perfil agrega gates bloqueantes:
+The profile adds blocking gates:
 
-- `npm test` en `implementation_fast`.
-- `npm test` en `qa_full`.
-- `npm run lint` en `qa_full`.
-- `npm test` en `finalization`.
+- `npm test` in `implementation_fast`.
+- `npm test` in `qa_full`.
+- `npm run lint` in `qa_full`.
+- `npm test` in `finalization`.
 
-Esto permite que una feature Node no avance solo porque el harness Python pasa; tambien debe pasar el stack del producto.
+This ensures a Node feature does not advance just because the Python harness passes; the product stack must pass too.

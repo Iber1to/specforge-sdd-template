@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshots regenerables de métricas agregadas por feature."""
+"""Regenerable snapshots of metrics aggregated per feature."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ SNAPSHOT_FILENAME = "feature-metrics.json"
 
 
 def snapshot_path(control_root: Path) -> Path:
-    """Devuelve la ruta canónica del snapshot derivado."""
+    """Return the canonical path of the derived snapshot."""
 
     return control_root.resolve() / SNAPSHOT_FILENAME
 
@@ -28,7 +28,7 @@ def build_feature_metrics_snapshot(
     queue: dict[str, Any],
     metrics_summary: dict[str, Any],
 ) -> dict[str, Any]:
-    """Construye un snapshot para todas las features registradas."""
+    """Build a snapshot for all registered features."""
 
     features: dict[str, Any] = {}
     aggregated_features = metrics_summary.get("features", {})
@@ -63,7 +63,7 @@ def build_feature_metrics_snapshot(
         "schema_version": 1,
         "authoritative": False,
         "description": (
-            "Snapshot derivado y regenerable. No debe utilizarse como fuente de verdad."
+            "Derived and regenerable snapshot. Must not be used as a source of truth."
         ),
         "generated_at": metrics_summary.get("generated_at"),
         "sources": {
@@ -91,7 +91,7 @@ def refresh_feature_metrics_snapshot(
     control_root: Path,
     queue: dict[str, Any],
 ) -> dict[str, Any]:
-    """Regenera y guarda atómicamente el snapshot del plano de control."""
+    """Regenerate and atomically save the control-plane snapshot."""
 
     root = control_root.resolve()
     metrics_summary = aggregate_metrics(root)

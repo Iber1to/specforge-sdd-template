@@ -1,33 +1,33 @@
-# AGENTS.md — Mapa de navegación
+# AGENTS.md — Navigation map
 
-## Lectura inicial obligatoria
+## Mandatory initial reading
 
 1. `docs/architecture/harness-contract.md`
 2. `state/project.json`
 3. `state/workflow.json`
-4. Los documentos específicos de la feature asignada.
+4. The documents specific to the assigned feature.
 
-## Reglas fundamentales
+## Fundamental rules
 
-- No edites directamente el `control_root` configurado.
-- No cambies manualmente estados de features.
-- No marques ninguna feature como `DONE`.
-- No trabajes fuera del worktree asignado.
-- No asumas permisos de escritura fuera de tu responsabilidad.
-- Ante contradicciones, aplica `docs/architecture/harness-contract.md`.
+- Do not edit the configured `control_root` directly.
+- Do not manually change feature states.
+- Do not mark any feature as `DONE`.
+- Do not work outside the assigned worktree.
+- Do not assume write permissions outside your responsibility.
+- In case of contradictions, apply `docs/architecture/harness-contract.md`.
 
-## Mapa del repositorio
+## Repository map
 
-| Ruta | Finalidad |
+| Path | Purpose |
 |---|---|
-| `.claude/agents/` | Definiciones de agentes |
-| `.claude/commands/` | Comandos operativos |
-| `specs/product/` | Visión y requisitos globales |
-| `specs/features/` | Especificaciones por feature |
-| `state/` | Configuración y definición del workflow |
-| `evidence/` | Informes ligeros versionados |
-| `docs/` | Arquitectura, convenciones y decisiones |
-| `scripts/` | Operaciones deterministas |
-| `src/` | Código de aplicación |
-| `tests/` | Pruebas automatizadas |
-| `runtime/` | Adaptadores y runtimes opcionales |
+| `.claude/agents/` | Agent definitions |
+| `.claude/commands/` | Operational commands |
+| `specs/product/` | Vision and global requirements |
+| `specs/features/` | Per-feature specifications |
+| `state/` | Workflow configuration and definition |
+| `evidence/` | Versioned lightweight reports |
+| `docs/` | Architecture, conventions and decisions |
+| `scripts/` | Deterministic operations |
+| `src/` | Application code |
+| `tests/` | Automated tests |
+| `runtime/` | Optional adapters and runtimes |

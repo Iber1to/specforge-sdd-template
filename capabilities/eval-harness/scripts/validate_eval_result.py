@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida evidencia de eval-harness."""
+"""Validate eval-harness evidence."""
 
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ def main() -> int:
         graders = evidence.get("graders")
 
         if not isinstance(summary, dict):
-            raise CapabilityError("La evidencia eval no contiene eval_summary")
+            raise CapabilityError("The eval evidence does not contain eval_summary")
         if not isinstance(graders, list):
-            raise CapabilityError("La evidencia eval no contiene graders")
+            raise CapabilityError("The eval evidence does not contain graders")
         if args.require_pass and evidence["status"] != "PASSED":
-            raise CapabilityError("La evidencia eval no esta en PASSED")
+            raise CapabilityError("The eval evidence is not in PASSED")
 
         print(f"[OK] Eval evidence valid: {args.evidence}")
         return 0

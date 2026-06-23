@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ejecuta security-scanning local determinista y produce evidencia normalizada."""
+"""Run a deterministic local security scan and produce normalized evidence."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ SENSITIVE_PATTERNS = (
     "id_rsa",
 )
 
-# Adapters por perfil (T-009D). Las reglas se aplican solo al perfil del proyecto.
+# Adapters per profile (T-009D). Rules apply only to the project profile.
 PROFILE_CODE_PATTERNS = {
     "python": (
         ("SEC-PY-EVAL", "high", "code-exec", re.compile(r"(?<![\w.])eval\s*\(")),
@@ -319,7 +319,7 @@ def main() -> int:
         scan_root = (root / args.path).resolve()
 
         if not scan_root.exists():
-            raise CapabilityError(f"No existe el scope de security scan: {scan_root}")
+            raise CapabilityError(f"Security scan scope does not exist: {scan_root}")
 
         profile = str(load_project_config().get("profile", "generic"))
         started_at = utc_now()
@@ -374,7 +374,7 @@ def main() -> int:
 
         print(f"[OK] Security scan: {evidence['status']}")
         print(f"[OK] Findings:      {len(findings)}")
-        print(f"[OK] Evidencia:     {evidence_path}")
+        print(f"[OK] Evidence:      {evidence_path}")
         return 0 if status == "PASSED" else 2
 
     except CapabilityError as exc:

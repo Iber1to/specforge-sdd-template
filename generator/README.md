@@ -1,14 +1,14 @@
 # Generator
 
-`create_project.py` es el entrypoint determinista del template.
+`create_project.py` is the deterministic entrypoint of the template.
 
-## Uso
+## Usage
 
 ```bash
 python3 create_project.py --config project.yaml
 ```
 
-Ejemplo de `project.yaml`:
+Example `project.yaml`:
 
 ```yaml
 project_id: example-project
@@ -18,40 +18,40 @@ profile: python
 capabilities: [mutation-testing]
 ```
 
-## Flujo Interno
+## Internal Flow
 
-1. Lee YAML simple.
-2. Valida campos obligatorios.
-3. Copia `core/` al `output_path`.
-4. Escribe `state/project.json`.
-5. Crea `data/<project_id>/control` y `data/<project_id>/artifacts`.
-6. Aplica el perfil seleccionado.
-7. Inicializa Git en `main`.
-8. Crea el commit inicial.
+1. Reads simple YAML.
+2. Validates mandatory fields.
+3. Copies `core/` to the `output_path`.
+4. Writes `state/project.json`.
+5. Creates `data/<project_id>/control` and `data/<project_id>/artifacts`.
+6. Applies the selected profile.
+7. Initializes Git on `main`.
+8. Creates the initial commit.
 
-## Limitaciones Del Parser YAML
+## YAML Parser Limitations
 
-El parser es intencionadamente pequeno. Soporta:
+The parser is intentionally small. It supports:
 
 - `key: value`
-- booleanos `true`/`false`
-- listas inline como `[mutation-testing]`
-- comentarios con `#`
+- booleans `true`/`false`
+- inline lists like `[mutation-testing]`
+- comments with `#`
 
-No soporta YAML anidado. Si el template necesita configuracion compleja, debe agregarse con tests antes de ampliar el contrato.
+It does not support nested YAML. If the template needs complex configuration, it must be added with tests before extending the contract.
 
-## Contratos
+## Contracts
 
-Perfiles soportados:
+Supported profiles:
 
 - `generic`
 - `python`
 - `node`
 - `android`
 
-Capacidades soportadas:
+Supported capabilities:
 
-- `documentation-pack` (incluida por defecto)
+- `documentation-pack` (included by default)
 - `eval-harness`
 - `external-runtime`
 - `git-publish`
@@ -62,4 +62,4 @@ Capacidades soportadas:
 - `tool-telemetry`
 - `windows-validation`
 
-El generador falla si recibe perfiles o capacidades desconocidos.
+The generator fails if it receives unknown profiles or capabilities.

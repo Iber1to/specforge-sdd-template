@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validación determinista del informe de Mutation Reviewer."""
+"""Deterministic validation of the Mutation Reviewer report."""
 
 from __future__ import annotations
 
@@ -11,19 +11,19 @@ from jsonschema import Draft202012Validator
 
 
 class MutationReviewValidationError(RuntimeError):
-    """Informe de Mutation Reviewer inválido."""
+    """Invalid Mutation Reviewer report."""
 
 
 def _load_json(path: Path, label: str) -> dict[str, Any]:
     try:
         content = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise MutationReviewValidationError(f"Falta {label}: {path}") from exc
+        raise MutationReviewValidationError(f"Missing {label}: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise MutationReviewValidationError(f"JSON inválido en {path}: {exc}") from exc
+        raise MutationReviewValidationError(f"Invalid JSON in {path}: {exc}") from exc
 
     if not isinstance(content, dict):
-        raise MutationReviewValidationError(f"{label} debe ser un objeto JSON: {path}")
+        raise MutationReviewValidationError(f"{label} must be a JSON object: {path}")
 
     return content
 
@@ -41,8 +41,8 @@ def validate_mutation_review_evidence(
     review_path = root / "evidence" / "mutation-reviews" / f"{feature['id']}.json"
     schema_path = root / "specs" / "schemas" / "mutation-review.schema.json"
 
-    review = _load_json(review_path, "informe de Mutation Reviewer")
-    schema = _load_json(schema_path, "esquema de Mutation Reviewer")
+    review = _load_json(review_path, "Mutation Reviewer report")
+    schema = _load_json(schema_path, "Mutation Reviewer schema")
 
     validator = Draft202012Validator(schema)
     errors = sorted(
@@ -54,12 +54,12 @@ def validate_mutation_review_evidence(
         error = errors[0]
         location = ".".join(str(part) for part in error.absolute_path) or "<root>"
         raise MutationReviewValidationError(
-            f"El informe de Mutation Reviewer incumple el esquema en {location}: {error.message}"
+            f"The Mutation Reviewer report violates the schema at {location}: {error.message}"
         )
 
     if review["feature_id"] != feature["id"]:
         raise MutationReviewValidationError(
-            "El informe de Mutation Reviewer no corresponde a la feature asignada"
+            "The Mutation Reviewer report does not match the assigned feature"
         )
 
     gaps = [
@@ -70,29 +70,29 @@ def validate_mutation_review_evidence(
 
     if gaps:
         raise MutationReviewValidationError(
-            "Mutation Reviewer detectó test gaps: " + ", ".join(gaps)
+            "Mutation Reviewer detected test gaps: " + ", ".join(gaps)
         )
 
     return review
 
 
 def parse_classification_arg(raw: str) -> dict[str, str]:
-    """Convierte 'MUT-001=clasificacion:motivo' en una clasificacion del informe.
+    """Convert 'MUT-001=classification:rationale' into a report classification.
 
-    El motivo puede contener ':' adicionales (solo se separa en el primero).
+    The rationale may contain additional ':' (only the first one is split on).
     """
 
     text = raw.strip()
 
     if "=" not in text:
         raise MutationReviewValidationError(
-            f"Clasificacion invalida (formato esperado MUT-XXX=clase:motivo): {raw}"
+            f"Invalid classification (expected format MUT-XXX=class:rationale): {raw}"
         )
 
     mutant_id, rest = text.split("=", 1)
 
     if ":" not in rest:
-        raise MutationReviewValidationError(f"Clasificacion invalida (falta ':motivo'): {raw}")
+        raise MutationReviewValidationError(f"Invalid classification (missing ':rationale'): {raw}")
 
     classification, rationale = rest.split(":", 1)
 
@@ -112,10 +112,10 @@ def build_mutation_review(
     summary: str,
     created_at: str,
 ) -> dict[str, Any]:
-    """Construye el informe de Mutation Reviewer desde las clasificaciones del revisor.
+    """Build the Mutation Reviewer report from the reviewer's classifications.
 
-    No valida contra el esquema; el llamante escribe el informe y luego usa
-    validate_mutation_review_evidence para validarlo de forma determinista.
+    Does not validate against the schema; the caller writes the report and then uses
+    validate_mutation_review_evidence to validate it deterministically.
     """
 
     return {

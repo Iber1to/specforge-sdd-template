@@ -1,87 +1,87 @@
-# Ciclo CI/CD
+# CI/CD Cycle
 
-Este documento define el ciclo de integracion y entrega del template
+This document defines the integration and delivery cycle of the
 `SpecForge SDD Template`.
 
-El objetivo no es desplegar una aplicacion en servidores. Este repositorio es
-un template: la entrega consiste en mantener `main` validado, generar proyectos
-reales de prueba y publicar releases versionadas cuando se etiqueta un commit.
+The goal is not to deploy an application to servers. This repository is a
+template: delivery consists of keeping `main` validated, generating real test
+projects and publishing versioned releases when a commit is tagged.
 
-## Principios
+## Principles
 
-- `main` debe estar siempre verde.
-- Toda PR debe ejecutar la misma validacion determinista que un push a `main`.
-- Los tests no dependen de Claude Code, red externa de producto ni runners
-  Windows.
-- Las capabilities experimentales pueden estar cubiertas offline; la validacion
-  real externa vive en runbooks separados.
-- La publicacion se hace por tag Git. Para versiones internas, el tag se marca
-  como prerelease en GitHub.
+- `main` must always be green.
+- Every PR must run the same deterministic validation as a push to `main`.
+- The tests do not depend on Claude Code, external product networks or Windows
+  runners.
+- Experimental capabilities may be covered offline; the real external
+  validation lives in separate runbooks.
+- Publishing is done by Git tag. For internal versions, the tag is marked as a
+  prerelease on GitHub.
 
-## Workflow Automatizado
+## Automated Workflow
 
-El workflow vive en:
+The workflow lives in:
 
 ```text
 .github/workflows/ci-cd.yml
 ```
 
-Se ejecuta en:
+It runs on:
 
 - `pull_request`
-- `push` a `main`
-- `push` de tags `v*`
+- `push` to `main`
+- `push` of `v*` tags
 - `workflow_dispatch`
 
 ## Jobs
 
 ### Template suite
 
-Valida el propio template.
+Validates the template itself.
 
-Pasos:
+Steps:
 
-1. Checkout del repo.
+1. Checkout of the repo.
 2. Python 3.12.
-3. Node 22, necesario para validar el perfil `node`.
-4. `uv` fijado a la version usada para validar el template localmente.
-5. Identidad Git local para tests que crean commits temporales.
+3. Node 22, needed to validate the `node` profile.
+4. `uv` pinned to the version used to validate the template locally.
+5. Local Git identity for tests that create temporary commits.
 6. Preflight:
 
 ```bash
 python3 core/scripts/check_environment.py --profile node
 ```
 
-7. Integridad estatica:
+7. Static integrity:
 
 ```bash
 git diff --check
 python3 -m compileall -q create_project.py tests core/scripts capabilities
 ```
 
-8. Suite determinista:
+8. Deterministic suite:
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-En GitHub Actions se ejecuta mediante un runner `unittest` embebido que conserva
-la misma semantica y, si hay fallo, escribe el test y traceback resumido en el
-job summary y emite anotaciones `::error`.
+On GitHub Actions it runs via an embedded `unittest` runner that preserves the
+same semantics and, on failure, writes the test and a summarized traceback to
+the job summary and emits `::error` annotations.
 
 ### Generated project smoke
 
-Genera proyectos temporales y ejecuta su verificacion completa.
+Generates temporary projects and runs their full verification.
 
-Matriz:
+Matrix:
 
-| Perfil | Capabilities |
+| Profile | Capabilities |
 |---|---|
 | `generic` | `[]` |
 | `python` | `[mutation-testing]` |
 | `node` | `[]` |
 
-Para cada perfil:
+For each profile:
 
 ```bash
 python3 create_project.py --config "$tmpdir/project.yaml"
@@ -90,46 +90,46 @@ python3 scripts/check_environment.py --profile "$profile"
 bash scripts/verify_full.sh
 ```
 
-Esto comprueba que el template no solo pasa sus tests, sino que genera proyectos
-operables.
+This checks that the template not only passes its tests but also generates
+operable projects.
 
 ### Publish GitHub release
 
-Solo corre en tags `v*`, y solo despues de que pasen los jobs anteriores.
+Runs only on `v*` tags, and only after the previous jobs pass.
 
-Acciones:
+Actions:
 
-- crea una GitHub Release si no existe;
-- actualiza la Release si ya existe;
-- usa `CHANGELOG.md` como notas;
-- marca como prerelease si el tag contiene `internal`, `alpha`, `beta` o `rc`.
+- creates a GitHub Release if it does not exist;
+- updates the Release if it already exists;
+- uses `CHANGELOG.md` as notes;
+- marks as prerelease if the tag contains `internal`, `alpha`, `beta` or `rc`.
 
-No necesita secretos propios: usa `GITHUB_TOKEN`.
+It needs no secrets of its own: it uses `GITHUB_TOKEN`.
 
-## Versiones Fijadas
+## Pinned Versions
 
-El workflow fija:
+The workflow pins:
 
-| Herramienta | Version |
+| Tool | Version |
 |---|---|
 | Python | `3.12` |
 | Node | `22` |
 | uv | `0.11.19` |
 
-Tambien define `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` para anticipar la
-migracion de GitHub Actions desde Node 20 a Node 24.
+It also defines `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` to anticipate the
+migration of GitHub Actions from Node 20 to Node 24.
 
-## Politica De Ramas
+## Branch Policy
 
-Flujo recomendado:
+Recommended flow:
 
-1. Trabajar en una rama corta.
-2. Abrir PR contra `main`.
-3. Esperar CI verde.
-4. Merge con squash o merge commit, segun politica del repo.
-5. Para release, crear tag anotado desde `main`.
+1. Work on a short-lived branch.
+2. Open a PR against `main`.
+3. Wait for green CI.
+4. Merge with squash or merge commit, depending on repo policy.
+5. For a release, create an annotated tag from `main`.
 
-Ejemplo:
+Example:
 
 ```bash
 git checkout main
@@ -138,25 +138,25 @@ git tag -a v1.0.1-internal -m "SpecForge SDD Template v1.0.1-internal"
 git push origin main --tags
 ```
 
-## Protecciones Recomendadas En GitHub
+## Recommended Protections On GitHub
 
-Configura esto manualmente en GitHub si aun no esta activo:
+Configure this manually on GitHub if it is not active yet:
 
 1. `Settings -> Actions -> General`
-   - Permitir GitHub Actions.
-   - Permitir las acciones usadas por el workflow:
+   - Allow GitHub Actions.
+   - Allow the actions used by the workflow:
      - `actions/checkout@v4`
      - `actions/setup-python@v5`
      - `actions/setup-node@v4`
      - `astral-sh/setup-uv@v5`
-   - Workflow permissions: permitir `Read and write permissions` si quieres que
-     el job de release cree/edite GitHub Releases.
+   - Workflow permissions: allow `Read and write permissions` if you want the
+     release job to create/edit GitHub Releases.
 
 2. `Settings -> Branches -> Branch protection rules`
-   - Proteger `main`.
+   - Protect `main`.
    - Require a pull request before merging.
    - Require status checks to pass before merging.
-   - Requerir estos checks:
+   - Require these checks:
      - `Template suite`
      - `Generated project smoke (generic)`
      - `Generated project smoke (python)`
@@ -164,15 +164,15 @@ Configura esto manualmente en GitHub si aun no esta activo:
    - Require branches to be up to date before merging.
 
 3. `Settings -> General`
-   - Si el repo debe usarse como plantilla, activar `Template repository`.
+   - If the repo is to be used as a template, enable `Template repository`.
 
-4. `Settings -> Tags` o reglas de Rulesets, si estan disponibles en tu plan.
-   - Proteger `v*`.
-   - Permitir tags de release solo a mantenedores.
+4. `Settings -> Tags` or Rulesets rules, if available in your plan.
+   - Protect `v*`.
+   - Allow release tags only to maintainers.
 
-## Comandos Locales Equivalentes
+## Equivalent Local Commands
 
-Antes de abrir PR:
+Before opening a PR:
 
 ```bash
 python3 core/scripts/check_environment.py --profile node
@@ -181,7 +181,7 @@ python3 -m compileall -q create_project.py tests core/scripts capabilities
 python3 -m unittest discover -s tests -v
 ```
 
-Smoke manual de proyecto generado:
+Manual smoke of a generated project:
 
 ```bash
 tmpdir="$(mktemp -d)"
@@ -198,36 +198,36 @@ cd "$tmpdir/ci-python-project"
 bash scripts/verify_full.sh
 ```
 
-## Que No Hace El CI
+## What The CI Does Not Do
 
-- No ejecuta Claude Code.
-- No abre sesiones `tmux`.
-- No ejecuta `windows-validation` contra una workstation Windows real.
-- No hace push automatico de cambios generados.
-- No publica en npm, PyPI ni contenedores.
+- It does not run Claude Code.
+- It does not open `tmux` sessions.
+- It does not run `windows-validation` against a real Windows workstation.
+- It does not auto-push generated changes.
+- It does not publish to npm, PyPI or containers.
 
-Estas tareas son deliberadamente manuales o runbook-driven hasta que exista una
-necesidad real de entrega externa.
+These tasks are deliberately manual or runbook-driven until there is a real need
+for external delivery.
 
-## Diagnostico
+## Diagnostics
 
-Si falla `Template suite`, mira primero:
+If `Template suite` fails, look first at:
 
-- version de Python;
-- instalacion de `uv`;
-- salida de `check_environment.py`;
-- errores de `unittest`.
+- the Python version;
+- the `uv` installation;
+- the output of `check_environment.py`;
+- `unittest` errors.
 
-Si falla `Generated project smoke`, el problema suele estar en:
+If `Generated project smoke` fails, the problem is usually in:
 
-- generador;
-- manifest de capability;
-- scripts `verify_full.sh`;
-- dependencias de perfil, especialmente Node.
+- the generator;
+- a capability manifest;
+- the `verify_full.sh` scripts;
+- profile dependencies, especially Node.
 
-Si falla `Publish GitHub release`:
+If `Publish GitHub release` fails:
 
-- revisa permisos de `GITHUB_TOKEN`;
-- revisa `Settings -> Actions -> Workflow permissions`;
-- confirma que el tag empieza por `v`;
-- confirma que `CHANGELOG.md` existe en el commit etiquetado.
+- check `GITHUB_TOKEN` permissions;
+- check `Settings -> Actions -> Workflow permissions`;
+- confirm the tag starts with `v`;
+- confirm `CHANGELOG.md` exists in the tagged commit.

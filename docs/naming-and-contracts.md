@@ -1,53 +1,53 @@
-# Naming y Contratos JSON
+# Naming and JSON Contracts
 
-Vocabulario canonico de los contratos del harness. Su objetivo es que campos
-parecidos no se confundan y que el naming sea predecible entre capabilities.
+Canonical vocabulary of the harness contracts. Its goal is that similar fields
+are not confused and that naming is predictable across capabilities.
 
-## Vocabulario canonico
+## Canonical vocabulary
 
-| Concepto | Campo | Significado |
+| Concept | Field | Meaning |
 |---|---|---|
-| Capacidad instalada | `enabled` (policy) / `*_available` (project) | La capability esta instalada y disponible. No implica obligatoriedad. |
-| Obligatoriedad | `*_required` (feature) | Una feature concreta exige esa evidencia para avanzar. Se declara por feature. |
-| Politica de bloqueo | `mode`: `observe` \| `enforce` | `observe` registra evidencia sin bloquear; `enforce` puede bloquear la fase. |
-| Resultado de gate/runner | `status` | Resultado de una ejecucion determinista (ver valores abajo). |
-| Veredicto humano/agente | `verdict` | Decision de QA: `APPROVED` \| `CHANGES_REQUESTED`. Distinto de `status`. |
+| Installed capability | `enabled` (policy) / `*_available` (project) | The capability is installed and available. Does not imply it is required. |
+| Requirement | `*_required` (feature) | A concrete feature requires that evidence to advance. Declared per feature. |
+| Blocking policy | `mode`: `observe` \| `enforce` | `observe` records evidence without blocking; `enforce` can block the phase. |
+| Gate/runner result | `status` | Result of a deterministic run (see values below). |
+| Human/agent verdict | `verdict` | QA decision: `APPROVED` \| `CHANGES_REQUESTED`. Different from `status`. |
 
-Reglas:
+Rules:
 
-- **`available` vs `required`**: instalar una capability la deja *available*
-  (proyecto); que una feature la exija es *required* (feature). Separados desde
+- **`available` vs `required`**: installing a capability leaves it *available*
+  (project); a feature requiring it is *required* (feature). Separated since
   `windows_validation_available` / `windows_validation_required`.
-- **`enabled` vs `required`**: `enabled` es de la policy de la capability;
-  `required_for_done` / `required_for_qa_approval` son banderas de obligatoriedad
-  independientes.
-- **`observe` vs `enforce`**: unico eje de bloqueo. Toda capability arranca en
-  `observe` salvo decision explicita.
-- **`status` vs `verdict`**: `status` es maquina (gates/runners); `verdict` es la
-  decision de QA. No se intercambian.
+- **`enabled` vs `required`**: `enabled` belongs to the capability's policy;
+  `required_for_done` / `required_for_qa_approval` are independent requirement
+  flags.
+- **`observe` vs `enforce`**: the single blocking axis. Every capability starts in
+  `observe` unless an explicit decision is made.
+- **`status` vs `verdict`**: `status` is machine (gates/runners); `verdict` is the
+  QA decision. They are not interchanged.
 
-## Convencion de campos de evidencia
+## Evidence field convention
 
-Toda evidencia incluye: `schema_version`, `feature_id`, `status`, `started_at`,
-`completed_at`. Las rutas y comandos van como listas/strings explicitos; los
-secretos se redactan o se publican como hash (`remote_url_hash`).
+All evidence includes: `schema_version`, `feature_id`, `status`, `started_at`,
+`completed_at`. Paths and commands go as explicit lists/strings; secrets are
+redacted or published as a hash (`remote_url_hash`).
 
-## Inconsistencia conocida: `PASS`/`PASSED`
+## Known inconsistency: `PASS`/`PASSED`
 
-Hoy conviven dos vocabularios para `status`:
+Today two vocabularies coexist for `status`:
 
-- Evidencia de capabilities (`external-runtime`, `performance-testing`,
-  `security-scanning`): `PASSED` / `FAILED` (ver `capability_common.CAPABILITY_STATUSES`).
-- Evidencia Windows y `git-publish`: `PASS` / `FAIL`.
+- Capability evidence (`external-runtime`, `performance-testing`,
+  `security-scanning`): `PASSED` / `FAILED` (see `capability_common.CAPABILITY_STATUSES`).
+- Windows evidence and `git-publish`: `PASS` / `FAIL`.
 
-Ambos valores son claros, pero no estan unificados. La unificacion (p. ej. todo a
-`PASSED`/`FAILED`) toca esquemas, validadores y tests, por lo que se deja como
-**follow-up con su propio cambio testeado**, no como parte del pulido v1.
+Both values are clear, but they are not unified. The unification (e.g. everything
+to `PASSED`/`FAILED`) touches schemas, validators and tests, so it is left as a
+**follow-up with its own tested change**, not as part of the v1 polish.
 
-Migracion recomendada cuando se aborde:
+Recommended migration when addressed:
 
-1. Elegir el vocabulario canonico (`PASSED`/`FAILED`).
-2. Actualizar `windows-evidence.schema.json`, `windows_validation.py`,
-   `collect_windows_evidence.py` y `publish_feature.py`.
-3. Actualizar los tests que afirman `PASS`/`FAIL`.
-4. Documentar el cambio de contrato en el changelog.
+1. Choose the canonical vocabulary (`PASSED`/`FAILED`).
+2. Update `windows-evidence.schema.json`, `windows_validation.py`,
+   `collect_windows_evidence.py` and `publish_feature.py`.
+3. Update the tests that assert `PASS`/`FAIL`.
+4. Document the contract change in the changelog.

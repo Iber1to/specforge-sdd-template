@@ -1,53 +1,53 @@
-# Contrato de evidencias del Windows Test Runner
+# Windows Test Runner evidence contract
 
-## Ubicación
+## Location
 
-El Windows Test Runner debe publicar atómicamente el resultado final en:
+The Windows Test Runner must atomically publish the final result to:
 
 `<artifact_root>/windows-tests/<FEATURE>/latest.json`
 
-Los logs, capturas y otros artefactos también deben almacenarse fuera del
-repositorio Git.
+Logs, screenshots and other artifacts must also be stored outside the
+Git repository.
 
-## Requisitos obligatorios
+## Mandatory requirements
 
-- La evidencia debe cumplir `specs/schemas/windows-evidence.schema.json`.
-- `feature_id` debe coincidir con la feature probada.
-- `tested_commit` debe coincidir exactamente con el commit solicitado.
-- El estado global debe ser `PASS`.
-- Todos los checks deben estar en `PASS`.
-- Los checks deben estar numerados secuencialmente desde `WIN-001`.
-- El log debe existir.
-- Todos los artefactos declarados deben existir.
-- Los timestamps deben incluir zona horaria.
+- The evidence must comply with `specs/schemas/windows-evidence.schema.json`.
+- `feature_id` must match the tested feature.
+- `tested_commit` must match exactly the requested commit.
+- The global status must be `PASS`.
+- All checks must be `PASS`.
+- Checks must be numbered sequentially starting from `WIN-001`.
+- The log must exist.
+- All declared artifacts must exist.
+- Timestamps must include a time zone.
 
-### Rutas de `log` y `artifacts` (portabilidad Windows/POSIX)
+### `log` and `artifacts` paths (Windows/POSIX portability)
 
-El runner se ejecuta en Windows y emite inevitablemente rutas nativas
-(`J:\...`, UNC `\\host\share\...`), mientras que la validación corre en Linux.
-Por eso el esquema **no** impone formato POSIX en `log` ni en `artifacts`
-(solo `minLength: 1`), y la validación re-enraíza cada ruta por su *basename*
-bajo el directorio canónico `<artifact_root>/windows-tests/<FEATURE>/`. La
-confianza se ancla en el directorio canónico, no en la cadena emitida por el
+The runner runs on Windows and inevitably emits native paths
+(`J:\...`, UNC `\\host\share\...`), while validation runs on Linux.
+For this reason the schema does **not** impose a POSIX format on `log` or `artifacts`
+(only `minLength: 1`), and validation re-roots each path by its *basename*
+under the canonical directory `<artifact_root>/windows-tests/<FEATURE>/`. Trust
+is anchored in the canonical directory, not in the string emitted by the
 runner:
 
-- Se acepta cualquier ruta cuyo último componente (basename) exista como
-  fichero real dentro del directorio canónico.
-- Se rechazan basenames inseguros o ambiguos (`.`, `..`, vacío, o con
-  separadores residuales), de modo que ninguna ruta declarada pueda escapar
-  del canónico.
-- La existencia real se sigue comprobando contra el canónico: una ruta nativa
-  no resuelve nunca contra el sistema de ficheros local arbitrario.
-- El archivo `latest.json` solo debe reemplazarse cuando la ejecución haya
-  concluido completamente.
+- Any path whose last component (basename) exists as a real
+  file inside the canonical directory is accepted.
+- Unsafe or ambiguous basenames are rejected (`.`, `..`, empty, or with
+  residual separators), so that no declared path can escape
+  the canonical one.
+- Real existence is still checked against the canonical directory: a native path
+  never resolves against the arbitrary local file system.
+- The `latest.json` file should only be replaced when the run has
+  completed fully.
 
-## Publicación atómica recomendada
+## Recommended atomic publication
 
-1. Crear el resultado en `latest.json.tmp`.
-2. Escribir y cerrar completamente el archivo.
-3. Renombrar `latest.json.tmp` a `latest.json`.
+1. Create the result in `latest.json.tmp`.
+2. Write and fully close the file.
+3. Rename `latest.json.tmp` to `latest.json`.
 
-## Validación desde Ubuntu
+## Validation from Ubuntu
 
 ```bash
 uv run python scripts/validate_windows_evidence.py \
@@ -55,10 +55,10 @@ uv run python scripts/validate_windows_evidence.py \
   --commit <commit>
 ```
 
-## Commit solicitado por el finalizador
+## Commit requested by the finalizer
 
-La evidencia requerida para finalizar una feature debe utilizar como
-`tested_commit` el campo `reviewed_commit` del informe QA aprobado.
+The evidence required to finalize a feature must use as
+`tested_commit` the `reviewed_commit` field of the approved QA report.
 
-El commit posterior que almacena el propio informe QA no modifica el código
-funcional y no necesita una nueva ejecución Windows.
+The subsequent commit that stores the QA report itself does not modify the
+functional code and does not need a new Windows run.

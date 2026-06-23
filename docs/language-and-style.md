@@ -1,50 +1,51 @@
-# Convencion de Idioma y Estilo
+# Language and Style Convention
 
-Convencion aplicable al template y a los proyectos generados. Su objetivo es
-evitar mezcla de idiomas y mantener un estilo consistente que tanto humanos como
-agentes puedan seguir.
+Convention applicable to the template and the generated projects. Its goal is to
+avoid mixing languages and to keep a consistent style that both humans and agents
+can follow.
 
-## Idioma
+## Language
 
-- **Documentacion operativa y de agentes**: espanol. Incluye `CLAUDE.md`,
-  `AGENTS.md`, contratos en `docs/architecture/`, convenciones y runbooks.
-- **Identificadores y contratos de maquina**: ingles. Incluye claves de esquema
-  JSON, nombres de estado (`DRAFT`, `READY_FOR_QA`, ...), ids de capability y de
-  gate, y nombres de archivos/scripts.
-- **Plantillas de specs** (`specs/templates/`): ingles, por compatibilidad con los
-  validadores y con el contenido que producen los agentes.
-- No se mezclan idiomas dentro de una misma frase salvo terminos tecnicos
+- **Template documentation**: English. Includes the README, the docs under
+  `docs/`, the contracts under `docs/architecture/`, conventions and runbooks.
+- **Identifiers and machine contracts**: English. Includes JSON schema keys,
+  state names (`DRAFT`, `READY_FOR_QA`, ...), capability and gate ids, and
+  file/script names.
+- **Spec templates** (`specs/templates/`): English, for compatibility with the
+  validators and with the content the agents produce.
+- Languages are not mixed within a single sentence except for technical terms
   (`worktree`, `lease`, `merge`, `commit`).
 
-## Acentos
+## Accents
 
-- Los documentos bajo `core/docs/` usan acentuacion correcta en espanol.
-- Los documentos raiz del template, los mensajes de scripts (`print`) y los
-  archivos `.sh` usan ASCII para evitar problemas de codificacion en entornos
-  heterogeneos. No se mezcla: un archivo es consistente consigo mismo.
+- Documents under `core/docs/` written in Spanish use correct Spanish accentuation.
+- The template root documents, the script messages (`print`) and the `.sh` files
+  use ASCII to avoid encoding problems in heterogeneous environments. They are
+  not mixed: a file is consistent with itself.
 
-## Nombres tecnicos
+## Technical names
 
-- Claves JSON y campos de evidencia: `snake_case` (`feature_id`, `baseline_p95_ms`).
-- Ids de capability, gate y target: `kebab-case` (`external-runtime`, `python-smoke`).
-- Estados del workflow: `SCREAMING_SNAKE_CASE` (`READY_FOR_DEVELOPMENT`).
-- Funciones y modulos Python: `snake_case`; clases: `PascalCase`.
+- JSON keys and evidence fields: `snake_case` (`feature_id`, `baseline_p95_ms`).
+- Capability, gate and target ids: `kebab-case` (`external-runtime`, `python-smoke`).
+- Workflow states: `SCREAMING_SNAKE_CASE` (`READY_FOR_DEVELOPMENT`).
+- Python functions and modules: `snake_case`; classes: `PascalCase`.
 
-## Mensajes de error y salida
+## Error and output messages
 
-- Mensajes de scripts en espanol, con prefijo `[OK]`, `[ERROR]` o `[HOOK_FATAL]`.
-- Los errores controlados terminan con exit code `2`; el exito con `0`.
-- Nunca se imprimen secretos: las muestras se redactan (`redacted`, `redact_sensitive_text`).
+- Script messages in Spanish, with a `[OK]`, `[ERROR]` or `[HOOK_FATAL]` prefix.
+- Controlled errors end with exit code `2`; success with `0`.
+- Secrets are never printed: samples are redacted (`redacted`,
+  `redact_sensitive_text`).
 
 ## Commits
 
-- Conventional Commits en ingles: `type(scope): subject`.
-- `type` habitual: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
-- Asunto en imperativo y minuscula; cuerpo opcional con bullets.
-- Un commit por unidad logica de cambio; evitar cambios masivos no relacionados.
+- Conventional Commits in English: `type(scope): subject`.
+- Common `type`: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
+- Subject in imperative and lowercase; optional body with bullets.
+- One commit per logical unit of change; avoid massive unrelated changes.
 
-## Documentacion
+## Documentation
 
-- Markdown. Lineas <= 100 caracteres donde sea razonable.
-- Una idea por seccion; preferir prosa breve y tablas a parrafos largos.
-- Los resumenes generados (`docs/90-generated/`) no son fuente de verdad.
+- Markdown. Lines <= 100 characters where reasonable.
+- One idea per section; prefer brief prose and tables over long paragraphs.
+- The generated summaries (`docs/90-generated/`) are not a source of truth.

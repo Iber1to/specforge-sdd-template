@@ -1,15 +1,15 @@
-r"""Tests herméticos de la portabilidad de rutas en la evidencia Windows (F-012).
+r"""Hermetic tests for path portability in Windows evidence (F-012).
 
-Cubre AC-001..AC-008 / SCN-001..SCN-006 a dos niveles:
+Covers AC-001..AC-008 / SCN-001..SCN-006 at two levels:
 
-- Tests unitarios del helper ``_reroot_under_canonical`` y del esquema relajado.
-- Tests de integración sobre ``validate_windows_evidence`` con un ``artifact_root``
-  y ficheros reales en ``tmp_path``, variando las rutas declaradas en
-  ``log``/``artifacts`` (POSIX, UNC ``\\host\share\...``, unidad ``J:\...`` y
-  basenames inseguros) para verificar el re-enraizamiento por basename.
+- Unit tests of the ``_reroot_under_canonical`` helper and the relaxed schema.
+- Integration tests of ``validate_windows_evidence`` against an ``artifact_root``
+  with real files in ``tmp_path``, varying the paths declared in
+  ``log``/``artifacts`` (POSIX, UNC ``\\host\share\...``, drive ``J:\...`` and
+  unsafe basenames) to verify the basename re-rooting.
 
-Hermeticidad (NFR): ``artifact_root`` y ficheros en ``tmp_path``, sin red, sin
-runner Windows real y ejecutable en Linux.
+Hermeticity (NFR): ``artifact_root`` and files in ``tmp_path``, no network, no
+real Windows runner, and runnable on Linux.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ ARTIFACT_BASENAMES = ("run.log", "capture.png", "state.json")
 
 
 # ---------------------------------------------------------------------------
-# Infraestructura hermética
+# Hermetic infrastructure
 # ---------------------------------------------------------------------------
 
 
@@ -110,7 +110,7 @@ def _validate(
     )
 
 
-# Rutas nativas del runner cuyos basenames coinciden con los ficheros reales.
+# Native runner paths whose basenames match the real files.
 UNC_LOG = "\\\\192.168.1.150\\share\\data\\windows-tests\\F-200\\run.log"
 DRIVE_CAPTURE = "J:\\data\\poker-assistant\\artifacts\\windows-tests\\F-200\\capture.png"
 UNC_STATE = "\\\\192.168.1.150\\share\\windows-tests\\F-200\\state.json"
@@ -149,8 +149,8 @@ def test_reroot_extrae_basename_de_rutas_nativas(
         "",
         ".",
         "..",
-        "J:\\data\\windows-tests\\F-200\\",  # basename vacío tras separador final
-        "\\\\host\\share\\",  # solo separadores tras normalizar
+        "J:\\data\\windows-tests\\F-200\\",  # empty basename after trailing separator
+        "\\\\host\\share\\",  # only separators after normalizing
         "/srv/data/..",  # basename ".."
         "/srv/data/.",  # basename "."
     ],
@@ -166,18 +166,18 @@ def test_reroot_rechaza_basenames_inseguros(tmp_path: Path, value: str) -> None:
 def test_reroot_confina_al_directorio_canonico(tmp_path: Path) -> None:
     base = tmp_path / "windows-tests" / FEATURE_ID
     base.mkdir(parents=True)
-    # Un fichero hermano fuera del canónico que NO debe ser alcanzable.
+    # A sibling file outside the canonical dir that must NOT be reachable.
     outsider = tmp_path / "secret.txt"
     outsider.write_text("x", encoding="utf-8")
 
-    # El basename simple siempre se ancla bajo base; nunca escapa.
+    # The simple basename always anchors under base; it never escapes.
     rerooted = _reroot_under_canonical("/whatever/path/secret.txt", base)
     assert rerooted == (base.resolve() / "secret.txt")
     assert rerooted != outsider.resolve()
 
 
 # ---------------------------------------------------------------------------
-# Esquema relajado (AC-001)
+# Relaxed schema (AC-001)
 # ---------------------------------------------------------------------------
 
 
@@ -215,7 +215,7 @@ def test_esquema_rechaza_log_vacio() -> None:
 
 
 # ---------------------------------------------------------------------------
-# SCN-001 / AC-001 + AC-002: evidencia con rutas nativas valida
+# SCN-001 / AC-001 + AC-002: evidence with native paths validates
 # ---------------------------------------------------------------------------
 
 
@@ -236,7 +236,7 @@ def test_evidencia_con_rutas_posix_valida(tmp_path: Path) -> None:
     canonical = _canonical_dir(tmp_path)
     _write_real_files(canonical)
 
-    # Camino feliz POSIX preservado (como emite collect_windows_evidence.py).
+    # Happy POSIX path preserved (as emitted by collect_windows_evidence.py).
     posix_log = str(canonical / "run.log")
     posix_artifacts = [str(canonical / "capture.png"), str(canonical / "state.json")]
     evidence = _base_evidence(log=posix_log, artifacts=posix_artifacts)
@@ -248,14 +248,15 @@ def test_evidencia_con_rutas_posix_valida(tmp_path: Path) -> None:
 
 
 def test_no_resuelve_cadena_nativa_contra_fs_local(tmp_path: Path) -> None:
-    """La existencia se ancla en el canónico, no en la cadena nativa.
+    """Existence is anchored in the canonical dir, not in the native string.
 
-    Aunque exista un fichero homónimo en una ruta POSIX arbitraria distinta del
-    canónico, la validación falla porque solo cuenta el directorio canónico.
+    Even if a same-named file exists at some arbitrary POSIX path different from
+    the canonical one, validation fails because only the canonical directory
+    counts.
     """
 
     canonical = _canonical_dir(tmp_path)
-    # No escribimos run.log en el canónico, pero sí en otra ubicación.
+    # We do not write run.log in the canonical dir, but we do write it elsewhere.
     decoy_dir = tmp_path / "decoy"
     decoy_dir.mkdir()
     (decoy_dir / "run.log").write_text("decoy", encoding="utf-8")
@@ -273,13 +274,13 @@ def test_no_resuelve_cadena_nativa_contra_fs_local(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# SCN-003 / AC-004: existencia real conservada (fichero ausente)
+# SCN-003 / AC-004: real existence preserved (missing file)
 # ---------------------------------------------------------------------------
 
 
 def test_falta_artifact_falla_identificandolo(tmp_path: Path) -> None:
     canonical = _canonical_dir(tmp_path)
-    # state.json ausente.
+    # state.json missing.
     _write_real_files(canonical, basenames=("run.log", "capture.png"))
 
     evidence = _base_evidence(log=UNC_LOG, artifacts=[DRIVE_CAPTURE, UNC_STATE])
@@ -291,7 +292,7 @@ def test_falta_artifact_falla_identificandolo(tmp_path: Path) -> None:
 
 def test_falta_log_falla_identificandolo(tmp_path: Path) -> None:
     canonical = _canonical_dir(tmp_path)
-    # run.log (el log) ausente.
+    # run.log (the log) missing.
     _write_real_files(canonical, basenames=("capture.png", "state.json"))
 
     evidence = _base_evidence(log=UNC_LOG, artifacts=[DRIVE_CAPTURE, UNC_STATE])
@@ -305,7 +306,7 @@ def test_directorio_homonimo_no_cuenta_como_artifact(tmp_path: Path) -> None:
     canonical = _canonical_dir(tmp_path)
     (canonical / "run.log").write_text("x", encoding="utf-8")
     (canonical / "state.json").write_text("x", encoding="utf-8")
-    # capture.png existe como DIRECTORIO, no como fichero.
+    # capture.png exists as a DIRECTORY, not as a file.
     (canonical / "capture.png").mkdir()
 
     evidence = _base_evidence(log=UNC_LOG, artifacts=[DRIVE_CAPTURE, UNC_STATE])
@@ -316,17 +317,17 @@ def test_directorio_homonimo_no_cuenta_como_artifact(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# SCN-004 / AC-005: basenames inseguros o ambiguos en la evidencia
+# SCN-004 / AC-005: unsafe or ambiguous basenames in the evidence
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
     "bad_log",
     [
-        "J:\\data\\windows-tests\\F-200\\",  # basename vacío
+        "J:\\data\\windows-tests\\F-200\\",  # empty basename
         "/srv/data/windows-tests/F-200/..",  # basename ".."
         "/srv/data/windows-tests/F-200/.",  # basename "."
-        "\\\\host\\share\\",  # solo separadores
+        "\\\\host\\share\\",  # only separators
     ],
 )
 def test_log_con_basename_inseguro_se_rechaza(tmp_path: Path, bad_log: str) -> None:
@@ -355,7 +356,7 @@ def test_artifact_con_basename_inseguro_se_rechaza(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# SCN-005 / AC-006: comprobaciones sustantivas conservadas (con ficheros presentes)
+# SCN-005 / AC-006: substantive checks preserved (with files present)
 # ---------------------------------------------------------------------------
 
 
@@ -364,11 +365,11 @@ def test_status_fail_se_rechaza(tmp_path: Path) -> None:
     _write_real_files(canonical)
 
     evidence = _base_evidence(log=UNC_LOG, artifacts=[DRIVE_CAPTURE, UNC_STATE])
-    # FAIL global con checks en PASS evita el condicional allOf del esquema.
+    # Global FAIL with checks at PASS avoids the schema's allOf conditional.
     evidence["status"] = "FAIL"
     evidence_path = _write_evidence(canonical, evidence)
 
-    with pytest.raises(WindowsEvidenceValidationError, match="aprobada"):
+    with pytest.raises(WindowsEvidenceValidationError, match="approved"):
         _validate(tmp_path, evidence_path)
 
 
@@ -394,7 +395,7 @@ def test_checks_no_secuenciales_se_rechazan(tmp_path: Path) -> None:
     evidence["checks"][2]["id"] = "WIN-004"
     evidence_path = _write_evidence(canonical, evidence)
 
-    with pytest.raises(WindowsEvidenceValidationError, match="secuenciales"):
+    with pytest.raises(WindowsEvidenceValidationError, match="sequential"):
         _validate(tmp_path, evidence_path)
 
 
@@ -416,7 +417,7 @@ def test_feature_id_distinto_se_rechaza(tmp_path: Path) -> None:
     evidence = _base_evidence(log=UNC_LOG, artifacts=[DRIVE_CAPTURE, UNC_STATE])
     evidence_path = _write_evidence(canonical, evidence)
 
-    # La feature solicitada (F-201) no coincide con el feature_id de la evidencia.
+    # The requested feature (F-201) does not match the evidence feature_id.
     other_canonical = tmp_path / "windows-tests" / "F-201"
     other_canonical.mkdir(parents=True)
     _write_real_files(other_canonical)
@@ -430,10 +431,10 @@ def test_timestamp_sin_zona_se_rechaza(tmp_path: Path) -> None:
     _write_real_files(canonical)
 
     evidence = _base_evidence(log=UNC_LOG, artifacts=[DRIVE_CAPTURE, UNC_STATE])
-    evidence["started_at"] = "2026-06-13T12:00:00"  # sin zona horaria
+    evidence["started_at"] = "2026-06-13T12:00:00"  # no timezone
     evidence_path = _write_evidence(canonical, evidence)
 
-    with pytest.raises(WindowsEvidenceValidationError, match="zona horaria"):
+    with pytest.raises(WindowsEvidenceValidationError, match="timezone"):
         _validate(tmp_path, evidence_path)
 
 
@@ -451,15 +452,16 @@ def test_completed_anterior_a_started_se_rechaza(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# SCN-006 / AC-007: finalización Windows de extremo a extremo (nivel función)
+# SCN-006 / AC-007: end-to-end Windows finalization (function level)
 # ---------------------------------------------------------------------------
 
 
 def test_finalizacion_e2e_con_rutas_nativas_preserva_invariante9(tmp_path: Path) -> None:
-    """Reproduce la invocación de finalize_feature.py (expected_commit = reviewed_commit).
+    """Reproduces the finalize_feature.py invocation (expected_commit = reviewed_commit).
 
-    La validación pasa con rutas nativas solo porque los ficheros existen en la
-    ubicación canónica; si se eliminan, la finalización abortaría (invariante 9).
+    Validation passes with native paths only because the files exist at the
+    canonical location; if they are removed, finalization would abort
+    (invariant 9).
     """
 
     canonical = _canonical_dir(tmp_path)
@@ -469,7 +471,7 @@ def test_finalizacion_e2e_con_rutas_nativas_preserva_invariante9(tmp_path: Path)
     evidence = _base_evidence(log=UNC_LOG, artifacts=[DRIVE_CAPTURE, UNC_STATE])
     evidence_path = _write_evidence(canonical, evidence)
 
-    # Caso feliz: ficheros presentes en el canónico => valida.
+    # Happy case: files present in the canonical dir => validates.
     result = validate_windows_evidence(
         repo_root=REPO_ROOT,
         artifact_root=tmp_path,
@@ -479,7 +481,7 @@ def test_finalizacion_e2e_con_rutas_nativas_preserva_invariante9(tmp_path: Path)
     )
     assert result["status"] == "PASS"
 
-    # Invariante 9: sin ficheros reales en el canónico, no finaliza.
+    # Invariant 9: without real files in the canonical dir, it does not finalize.
     (canonical / "run.log").unlink()
     with pytest.raises(WindowsEvidenceValidationError):
         validate_windows_evidence(
@@ -492,12 +494,12 @@ def test_finalizacion_e2e_con_rutas_nativas_preserva_invariante9(tmp_path: Path)
 
 
 def test_basename_es_case_sensitive_en_linux(tmp_path: Path) -> None:
-    """No se introduce normalización de caso: el FS de Linux es case-sensitive."""
+    """No case normalization is introduced: the Linux FS is case-sensitive."""
 
     canonical = _canonical_dir(tmp_path)
     _write_real_files(canonical)
 
-    # El runner declara CAPTURE.PNG pero el fichero real es capture.png.
+    # The runner declares CAPTURE.PNG but the real file is capture.png.
     evidence = _base_evidence(
         log=UNC_LOG,
         artifacts=["J:\\data\\windows-tests\\F-200\\CAPTURE.PNG", UNC_STATE],

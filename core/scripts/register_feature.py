@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Registra una nueva feature en estado DRAFT."""
+"""Registers a new feature in DRAFT state."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def parse_arguments() -> argparse.Namespace:
         "--change-domain",
         choices=["product", "harness", "template"],
         default="product",
-        help="Dominio de cambio que controla permisos de mantenimiento.",
+        help="Change domain that controls maintenance permissions.",
     )
     parser.add_argument(
         "--capability",
@@ -47,7 +47,7 @@ def parse_arguments() -> argparse.Namespace:
             "windows-validation",
         ],
         default=[],
-        help="Capability opcional requerida por la feature.",
+        help="Optional capability required by the feature.",
     )
     parser.add_argument(
         "--windows-validation-required",
@@ -64,7 +64,7 @@ def ensure_canonical_repository() -> None:
 
     if repo_root() != canonical:
         raise ControlPlaneError(
-            "Las features solo pueden registrarse desde el repositorio canónico"
+            "Features can only be registered from the canonical repository"
         )
 
 
@@ -88,21 +88,21 @@ def main() -> int:
         validate_slug(arguments.slug)
 
         if arguments.priority < 0:
-            raise ControlPlaneError("La prioridad no puede ser negativa")
+            raise ControlPlaneError("Priority cannot be negative")
 
         windows_required = arguments.windows_validation_required
 
         if windows_required is None:
-            # Desacople capability vs obligatoriedad: instalar la capability deja la
-            # validación Windows DISPONIBLE, pero cada feature la exige solo si la
-            # declara (--capability windows-validation o --windows-validation-required).
+            # Decouple capability vs. requirement: installing the capability makes
+            # Windows validation AVAILABLE, but each feature only requires it if it
+            # declares it (--capability windows-validation or --windows-validation-required).
             windows_required = "windows-validation" in arguments.capability
 
         with queue_lock():
             queue = load_queue()
 
             if any(feature.get("slug") == arguments.slug for feature in queue["features"]):
-                raise ControlPlaneError(f"Ya existe una feature con slug '{arguments.slug}'")
+                raise ControlPlaneError(f"A feature with slug '{arguments.slug}' already exists")
 
             feature_id = next_feature_id(queue["features"])
             timestamp = utc_now()
@@ -135,8 +135,8 @@ def main() -> int:
 
             save_queue(queue)
 
-        print(f"[OK] Registrada {feature_id}: {arguments.title} (estado DRAFT)")
-        print(f"[OK] Ruta de especificación: {feature['spec_path']}")
+        print(f"[OK] Registered {feature_id}: {arguments.title} (DRAFT state)")
+        print(f"[OK] Specification path: {feature['spec_path']}")
 
         return 0
 

@@ -1,52 +1,52 @@
 # Capability: Tool Telemetry
 
-Capacidad opcional que registra cada llamada a herramienta (`PreToolUse` y
-`PostToolUse`) como una linea JSONL determinista, con scrubbing de secretos. Es
-la capa de **telemetria/evidencia** (sustrato `hooks -> JSONL`) inspirada en el
-continuous-learning de `affaan-m/ECC`. Se descarto a proposito el motor de
-"instintos" auto-aprendidos por ser contrario al determinismo del flujo SDD.
+Optional capability that records each tool call (`PreToolUse` and
+`PostToolUse`) as a deterministic JSONL line, with secret scrubbing. It is
+the **telemetry/evidence** layer (`hooks -> JSONL` substrate) inspired by the
+continuous-learning of `affaan-m/ECC`. The self-learned "instincts" engine was
+deliberately discarded as contrary to the determinism of the SDD flow.
 
-## Activacion
+## Activation
 
-Por proyecto:
+Per project:
 
 ```yaml
 capabilities: [tool-telemetry]
 ```
 
-## Cableado de hooks
+## Hook wiring
 
-- `core/.claude/settings.json` cablea `PreToolUse` (matcher `""`) y `PostToolUse`
-  a `hook_entrypoint.sh tool_telemetry`.
-- Sin la capability instalada, el hook es **no-op** (el dispatcher comprueba la
-  existencia de `scripts/tool_telemetry_hook.py` y sale con exito).
-- El hook es **fail-soft**: cualquier error devuelve exit 0 y nunca rompe la
-  llamada a la herramienta.
+- `core/.claude/settings.json` wires `PreToolUse` (matcher `""`) and `PostToolUse`
+  to `hook_entrypoint.sh tool_telemetry`.
+- Without the capability installed, the hook is a **no-op** (the dispatcher checks
+  the existence of `scripts/tool_telemetry_hook.py` and exits successfully).
+- The hook is **fail-soft**: any error returns exit 0 and never breaks the
+  tool call.
 
-## Politica
+## Policy
 
 ```text
 state/capabilities/tool-telemetry.json
 ```
 
-- `enabled`: activa o desactiva la captura (sin desinstalar el hook).
-- `scrub_secrets`: redacta `api_key`/`token`/`secret`/`password`/`authorization`,
-  claves privadas y claves AWS antes de persistir.
-- `max_value_chars`: trunca `tool_input`/`tool_response` largos.
+- `enabled`: enables or disables capture (without uninstalling the hook).
+- `scrub_secrets`: redacts `api_key`/`token`/`secret`/`password`/`authorization`,
+  private keys and AWS keys before persisting.
+- `max_value_chars`: truncates long `tool_input`/`tool_response`.
 
-## Evidencia
+## Evidence
 
 ```text
 artifact_root/capabilities/tool-telemetry/observations-<YYYYMMDD>.jsonl
 ```
 
-Cada linea: `timestamp`, `event`, `tool`, `session`, `agent` y, cuando existen,
-`tool_input`/`tool_response` redactados y truncados. Es un artefacto pesado: vive
-en `artifact_root`, fuera de Git.
+Each line: `timestamp`, `event`, `tool`, `session`, `agent` and, when present,
+redacted and truncated `tool_input`/`tool_response`. It is a heavy artifact: it lives
+in `artifact_root`, outside Git.
 
-## Alcance Actual
+## Current Scope
 
-- Captura determinista por hook, una linea por evento.
-- Scrubbing por regex (inline y JSON) de secretos comunes.
-- No hay analisis ni aprendizaje: solo registro. El consumo posterior
-  (auditoria, metricas) queda fuera de esta capability.
+- Deterministic capture per hook, one line per event.
+- Regex scrubbing (inline and JSON) of common secrets.
+- No analysis or learning: only recording. Downstream consumption
+  (auditing, metrics) is outside this capability.

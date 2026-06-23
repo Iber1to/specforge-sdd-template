@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida la política de presupuestos y su coherencia con los agentes."""
+"""Validate the budget policy and its consistency with the agents."""
 
 from __future__ import annotations
 
@@ -23,19 +23,19 @@ REQUIRED_ROLES = {
 
 
 class BudgetValidationError(RuntimeError):
-    """Política de presupuestos inválida."""
+    """Invalid budget policy."""
 
 
 def load_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise BudgetValidationError(f"No existe: {path}") from exc
+        raise BudgetValidationError(f"Does not exist: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise BudgetValidationError(f"JSON inválido en {path}: {exc}") from exc
+        raise BudgetValidationError(f"Invalid JSON in {path}: {exc}") from exc
 
     if not isinstance(value, dict):
-        raise BudgetValidationError(f"{path} debe contener un objeto JSON")
+        raise BudgetValidationError(f"{path} must contain a JSON object")
 
     return value
 
@@ -44,20 +44,20 @@ def load_agent(path: Path) -> dict[str, Any]:
     try:
         content = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
-        raise BudgetValidationError(f"No existe el agente: {path}") from exc
+        raise BudgetValidationError(f"Agent does not exist: {path}") from exc
 
     if not content.startswith("---\n"):
-        raise BudgetValidationError(f"Frontmatter inválido: {path}")
+        raise BudgetValidationError(f"Invalid frontmatter: {path}")
 
     try:
         _, frontmatter, _ = content.split("---", 2)
     except ValueError as exc:
-        raise BudgetValidationError(f"Frontmatter incompleto: {path}") from exc
+        raise BudgetValidationError(f"Incomplete frontmatter: {path}") from exc
 
     value = yaml.safe_load(frontmatter)
 
     if not isinstance(value, dict):
-        raise BudgetValidationError(f"Frontmatter inválido: {path}")
+        raise BudgetValidationError(f"Invalid frontmatter: {path}")
 
     return value
 
@@ -66,29 +66,29 @@ def validate_policy(root: Path) -> None:
     policy = load_json(root / "state" / "agent-budgets.json")
 
     if policy.get("schema_version") != 1:
-        raise BudgetValidationError("schema_version debe ser 1")
+        raise BudgetValidationError("schema_version must be 1")
 
     if policy.get("mode") != "observe":
-        raise BudgetValidationError("La política inicial debe permanecer en modo observe")
+        raise BudgetValidationError("The initial policy must remain in observe mode")
 
     roles = policy.get("roles")
 
     if not isinstance(roles, dict):
-        raise BudgetValidationError("roles debe ser un objeto")
+        raise BudgetValidationError("roles must be an object")
 
     detected_roles = set(roles)
 
     if detected_roles != REQUIRED_ROLES:
         raise BudgetValidationError(
-            f"Roles incorrectos: esperado={sorted(REQUIRED_ROLES)}, "
-            f"recibido={sorted(detected_roles)}"
+            f"Incorrect roles: expected={sorted(REQUIRED_ROLES)}, "
+            f"received={sorted(detected_roles)}"
         )
 
     for role in sorted(REQUIRED_ROLES):
         budget = roles[role]
 
         if not isinstance(budget, dict):
-            raise BudgetValidationError(f"Presupuesto inválido para {role}")
+            raise BudgetValidationError(f"Invalid budget for {role}")
 
         for field in (
             "max_turns",
@@ -98,7 +98,7 @@ def validate_policy(root: Path) -> None:
             value = budget.get(field)
 
             if not isinstance(value, int) or value <= 0:
-                raise BudgetValidationError(f"{role}.{field} debe ser un entero positivo")
+                raise BudgetValidationError(f"{role}.{field} must be a positive integer")
 
         agent = load_agent(root / ".claude" / "agents" / f"{role}.md")
 
@@ -114,7 +114,7 @@ def validate_policy(root: Path) -> None:
 
             if received != expected:
                 raise BudgetValidationError(
-                    f"{role}.{field}: esperado={expected!r}, recibido={received!r}"
+                    f"{role}.{field}: expected={expected!r}, received={received!r}"
                 )
 
         print(
@@ -140,7 +140,7 @@ def main() -> int:
 
     try:
         validate_policy(arguments.repo_root.resolve())
-        print("[OK] Política de agentes coherente")
+        print("[OK] Agent policy consistent")
         return 0
 
     except BudgetValidationError as exc:

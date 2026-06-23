@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Métricas deterministas asociadas a ejecuciones del harness."""
+"""Deterministic metrics associated with harness executions."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def next_attempt_number(
     feature_id: str,
     role: str,
 ) -> int:
-    """Calcula el siguiente intento para una combinación feature/rol."""
+    """Compute the next attempt for a feature/role combination."""
 
     previous_attempts = 0
 
@@ -50,7 +50,7 @@ def initialize_run_metrics(
     role: str,
     started_at: str,
 ) -> dict[str, Any]:
-    """Crea el bloque inicial de métricas de un nuevo run."""
+    """Create the initial metrics block for a new run."""
 
     attempt = next_attempt_number(
         runs_root=runs_root,
@@ -74,7 +74,7 @@ def record_run_heartbeat(
     run: dict[str, Any],
     timestamp: str | None = None,
 ) -> None:
-    """Registra un heartbeat dentro de las métricas del run."""
+    """Record a heartbeat within the run metrics."""
 
     heartbeat_at = timestamp or utc_now()
     metrics = run.setdefault("metrics", {})
@@ -96,7 +96,7 @@ def finalize_run_metrics(
     result: str,
     completed_at: str | None = None,
 ) -> None:
-    """Completa las métricas temporales y el resultado de un run."""
+    """Complete the timing metrics and the result of a run."""
 
     completion_timestamp = completed_at or utc_now()
     metrics = run.setdefault("metrics", {})
@@ -104,13 +104,13 @@ def finalize_run_metrics(
     started_at = metrics.get("started_at") or run.get("started_at")
 
     if not isinstance(started_at, str):
-        raise ControlPlaneError("El run no contiene un timestamp started_at válido")
+        raise ControlPlaneError("The run does not contain a valid started_at timestamp")
 
     started = parse_utc_timestamp(started_at)
     completed = parse_utc_timestamp(completion_timestamp)
 
     if completed < started:
-        raise ControlPlaneError("completed_at no puede ser anterior a started_at")
+        raise ControlPlaneError("completed_at cannot be earlier than started_at")
 
     metrics.setdefault("attempt", 1)
     metrics.setdefault("is_retry", False)

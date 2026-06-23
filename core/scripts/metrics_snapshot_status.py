@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Estado resumido del snapshot derivado de métricas por feature."""
+"""Summarized status of the derived per-feature metrics snapshot."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def summarize_metrics_snapshot(
     control_root: str | Path,
     queue: dict[str, Any],
 ) -> dict[str, Any]:
-    """Resume disponibilidad, vigencia y métricas principales."""
+    """Summarize availability, freshness, and key metrics."""
 
     path = Path(control_root).resolve() / "feature-metrics.json"
 
@@ -56,7 +56,7 @@ def summarize_metrics_snapshot(
         return {
             **base,
             "status": "invalid",
-            "error": "features no es un objeto",
+            "error": "features is not an object",
         }
 
     if not isinstance(project_metrics, dict):
@@ -103,22 +103,22 @@ def summarize_metrics_snapshot(
 
 
 def format_metrics_snapshot_status(summary: dict[str, Any]) -> str:
-    """Genera una línea legible para project_status.py."""
+    """Generate a human-readable line for project_status.py."""
 
     status = summary.get("status")
 
     if status == "missing":
-        return "no disponible"
+        return "unavailable"
 
     if status == "invalid":
-        return f"inválido ({summary.get('error', 'error desconocido')})"
+        return f"invalid ({summary.get('error', 'unknown error')})"
 
-    label = "actualizado" if status == "available" else "obsoleto"
+    label = "up to date" if status == "available" else "stale"
 
     return (
         f"{label}; "
         f"{summary['features']} features; "
-        f"{summary['agent_invocations']} invocaciones; "
+        f"{summary['agent_invocations']} invocations; "
         f"{summary['runs']} runs; "
-        f"{summary['budget_violations']} excesos"
+        f"{summary['budget_violations']} overruns"
     )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenera el indice principal de documentacion del proyecto."""
+"""Regenerate the main project documentation index."""
 
 from __future__ import annotations
 

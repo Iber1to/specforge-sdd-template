@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Valida manualmente la evidencia Windows de una feature y commit."""
+"""Manually validate the Windows evidence for a feature and commit."""
 
 from __future__ import annotations
 

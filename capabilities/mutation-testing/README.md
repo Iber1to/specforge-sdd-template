@@ -1,10 +1,10 @@
 # Capability: Mutation Testing
 
-Capacidad opcional para exigir mutation testing en features seleccionadas.
+Optional capability to require mutation testing on selected features.
 
-## Activacion
+## Activation
 
-Por feature:
+Per feature:
 
 ```bash
 python3 scripts/register_feature.py \
@@ -25,32 +25,32 @@ python3 scripts/mutation_runner.py \
   --test-command python3 -m pytest -q
 ```
 
-## Alcance Actual
+## Current Scope
 
-- Lenguaje: Python.
-- Alcance: codigo cambiado.
-- Mutaciones:
-  - booleanos
-  - comparadores
-  - operadores aritmeticos simples
-  - operadores logicos
+- Language: Python.
+- Scope: changed code.
+- Mutations:
+  - booleans
+  - comparators
+  - simple arithmetic operators
+  - logical operators
 
-## Evidencia
+## Evidence
 
-Artefacto runner:
+Runner artifact:
 
 ```text
 artifact_root/mutation-tests/<feature>/latest.json
 ```
 
-Revision:
+Review:
 
 ```text
 evidence/mutation-reviews/<feature>.json
 ```
 
-## Regla De Aprobacion
+## Approval Rule
 
-- Cero mutantes supervivientes relevantes sin justificar.
-- Cualquier `test_gap` fuerza `CHANGES_REQUESTED`.
-- La evidencia debe validar contra `specs/schemas/mutation-review.schema.json`.
+- Zero relevant surviving mutants without justification.
+- Any `test_gap` forces `CHANGES_REQUESTED`.
+- Evidence must validate against `specs/schemas/mutation-review.schema.json`.

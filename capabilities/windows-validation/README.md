@@ -1,16 +1,16 @@
 # Capability: Windows Validation
 
-Capacidad opcional para proyectos que requieren evidencia de validacion en Windows.
+Optional capability for projects that require Windows validation evidence.
 
-## Activacion
+## Activation
 
-En `project.yaml`:
+In `project.yaml`:
 
 ```yaml
 capabilities: [windows-validation]
 ```
 
-El generador marcara:
+The generator will mark:
 
 ```json
 {
@@ -18,11 +18,11 @@ El generador marcara:
 }
 ```
 
-en `state/project.json`. La obligatoriedad de evidencia Windows es por feature
-(se declara con `--capability windows-validation` o `--windows-validation-required`
-al registrar la feature); instalar la capability solo la deja disponible.
+in `state/project.json`. The mandatory nature of Windows evidence is per feature
+(declared with `--capability windows-validation` or `--windows-validation-required`
+when registering the feature); installing the capability only makes it available.
 
-## Componentes
+## Components
 
 - `scripts/collect_windows_evidence.py`
 - `scripts/windows_validation.py`
@@ -30,15 +30,15 @@ al registrar la feature); instalar la capability solo la deja disponible.
 - `specs/schemas/windows-evidence.schema.json`
 - `docs/windows-runner/evidence-contract.md`
 
-## Evidencia
+## Evidence
 
-La evidencia Windows debe seguir el contrato documentado en:
+Windows evidence must follow the contract documented in:
 
 ```text
 docs/windows-runner/evidence-contract.md
 ```
 
-Runner minimo:
+Minimal runner:
 
 ```bash
 python3 scripts/collect_windows_evidence.py \
@@ -46,7 +46,7 @@ python3 scripts/collect_windows_evidence.py \
   --commit <commit>
 ```
 
-Smoke no Windows para validar infraestructura en Jarvis:
+Non-Windows smoke to validate the infrastructure on Jarvis:
 
 ```bash
 python3 scripts/collect_windows_evidence.py \
@@ -54,6 +54,6 @@ python3 scripts/collect_windows_evidence.py \
   --allow-non-windows
 ```
 
-## Nota Operativa
+## Operational Note
 
-Windows validation no es dependencia del core. Los proyectos que no activan esta capability pueden completar features sin evidencia Windows.
+Windows validation is not a dependency of the core. Projects that do not activate this capability can complete features without Windows evidence.

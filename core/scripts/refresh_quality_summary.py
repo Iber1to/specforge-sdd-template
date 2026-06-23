@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenera el resumen de calidad en docs/90-generated."""
+"""Regenerate the quality summary in docs/90-generated."""
 
 from __future__ import annotations
 

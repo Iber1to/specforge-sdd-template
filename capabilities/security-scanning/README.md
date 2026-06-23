@@ -1,23 +1,23 @@
 # Capability: Security Scanning
 
-Capacidad opcional para detectar secretos y configuraciones sensibles con checks locales de bajo ruido.
+Optional capability to detect secrets and sensitive configurations with low-noise local checks.
 
-## Alcance MVP
+## MVP Scope
 
-- Politica versionada en `state/capabilities/security-scanning.json`.
-- Scanner determinista de secretos y ficheros sensibles.
-- Redaccion de muestras sensibles.
-- Salida normalizada con severidades.
-- Validador determinista.
-- Evidencia en `artifact_root/capabilities/security-scanning/<feature>/`.
+- Versioned policy in `state/capabilities/security-scanning.json`.
+- Deterministic scanner of secrets and sensitive files.
+- Redaction of sensitive samples.
+- Normalized output with severities.
+- Deterministic validator.
+- Evidence in `artifact_root/capabilities/security-scanning/<feature>/`.
 
-## Uso
+## Usage
 
 ```bash
 python3 scripts/run_security_scan.py --feature F-001
 ```
 
-Validacion:
+Validation:
 
 ```bash
 python3 scripts/validate_security_result.py \
@@ -26,6 +26,6 @@ python3 scripts/validate_security_result.py \
   --require-pass
 ```
 
-## Estado
+## Status
 
-Modo inicial: `observe`. Los hallazgos quedan registrados y normalizados; el bloqueo por severidad critica se activa al cambiar la politica a `enforce`.
+Initial mode: `observe`. Findings are recorded and normalized; blocking on critical severity is activated by changing the policy to `enforce`.

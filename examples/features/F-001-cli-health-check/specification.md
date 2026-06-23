@@ -1,111 +1,111 @@
-# Feature Specification — F-001 CLI local de health check
+# Feature Specification — F-001 Local health check CLI
 
 ## Problem
 
-No existe ninguna forma local, rápida y determinista de comprobar que la
-aplicación y su entorno Python arrancan correctamente. Sin una señal
-observable y estructurada, una persona operadora o un proceso automatizado no
-pueden confirmar de forma fiable que la instalación está en un estado válido
-antes de iniciar tareas posteriores. La verificación manual actual es ambigua
-y no produce una salida que pueda consumirse mediante máquinas.
+There is no local, fast and deterministic way to verify that the application
+and its Python environment start up correctly. Without an observable,
+structured signal, an operator or an automated process cannot reliably confirm
+that the installation is in a valid state before starting downstream tasks. The
+current manual verification is ambiguous and does not produce machine-consumable
+output.
 
 ## Goal
 
-Proporcionar un comando local de health check que pueda ejecutarse mediante el
-entorno `uv`, que valide que la aplicación y su entorno Python arrancan
-correctamente, que emita un documento JSON válido y estructurado por la salida
-estándar y que finalice con código de salida `0` cuando el estado sea correcto.
-El resultado debe ser observable y consumible por humanos y por automatización
-sin depender de red, base de datos ni componentes específicos de Windows.
+Provide a local health check command that can be run through the `uv`
+environment, that validates that the application and its Python environment
+start up correctly, that emits a valid, structured JSON document on standard
+output and that exits with code `0` when the state is healthy. The result must
+be observable and consumable by both humans and automation without depending on
+network, database or Windows-specific components.
 
 ## Scope
 
-- Un comando ejecutable de health check invocable a través del entorno `uv`.
-- Emisión por la salida estándar (`stdout`) de un único documento JSON válido.
-- Inclusión obligatoria en el JSON de los campos `status`, `application`,
-  `version` y `python_version`.
-- Valor `"ok"` en el campo `status` cuando la ejecución sea correcta.
-- Código de salida `0` cuando el estado de health check sea correcto.
-- Cobertura mediante tests unitarios y tests de integración que validen el
-  comportamiento observable del comando.
+- An executable health check command invocable through the `uv` environment.
+- Emission on standard output (`stdout`) of a single valid JSON document.
+- Mandatory inclusion in the JSON of the fields `status`, `application`,
+  `version` and `python_version`.
+- Value `"ok"` in the `status` field when execution is correct.
+- Exit code `0` when the health check state is healthy.
+- Coverage through unit tests and integration tests that validate the
+  observable behavior of the command.
 
 ## Out of Scope
 
-- Cualquier comprobación que requiera acceso a red.
-- Cualquier comprobación que requiera una base de datos.
-- Cualquier comportamiento o validación específicos de componentes Windows.
-- Validación Windows end-to-end (no requerida para esta feature).
-- Interfaz gráfica, overlay u otra superficie de usuario distinta de la CLI.
-- Diagnóstico avanzado del entorno más allá de confirmar el arranque correcto.
-- Definición de la arquitectura interna, nombres de módulos o decisiones de
-  diseño técnico.
+- Any check that requires network access.
+- Any check that requires a database.
+- Any behavior or validation specific to Windows components.
+- End-to-end Windows validation (not required for this feature).
+- Graphical interface, overlay or any user surface other than the CLI.
+- Advanced environment diagnostics beyond confirming correct startup.
+- Definition of the internal architecture, module names or technical design
+  decisions.
 
 ## User Scenarios
 
-- Como persona operadora, ejecuto el comando de health check mediante `uv` y
-  obtengo por `stdout` un JSON con `status` igual a `"ok"` y un código de
-  salida `0`, de modo que confirmo que la aplicación arranca correctamente.
-- Como proceso automatizado, invoco el comando, parseo el JSON de `stdout` y
-  leo los campos `status`, `application`, `version` y `python_version` para
-  decidir de forma determinista si el entorno es válido.
-- Como persona operadora en un entorno sin red ni base de datos, ejecuto el
-  comando y obtengo el mismo resultado correcto, porque el health check no
-  depende de esos recursos.
+- As an operator, I run the health check command through `uv` and obtain on
+  `stdout` a JSON with `status` equal to `"ok"` and an exit code `0`, so that I
+  confirm the application starts up correctly.
+- As an automated process, I invoke the command, parse the JSON from `stdout`
+  and read the fields `status`, `application`, `version` and `python_version`
+  to decide deterministically whether the environment is valid.
+- As an operator in an environment without network or database, I run the
+  command and obtain the same correct result, because the health check does not
+  depend on those resources.
 
 ## Functional Requirements
 
-- FR-001: El sistema debe exponer un comando de health check ejecutable a
-  través del entorno `uv`.
-- FR-002: El comando debe escribir por `stdout` un único documento JSON
-  sintácticamente válido.
-- FR-003: El documento JSON debe incluir, como mínimo, los campos `status`,
-  `application`, `version` y `python_version`.
-- FR-004: El campo `status` debe contener el valor `"ok"` cuando la ejecución
-  sea correcta.
-- FR-005: El campo `application` debe contener un identificador de la
-  aplicación como cadena no vacía.
-- FR-006: El campo `version` debe contener la versión de la aplicación como
-  cadena no vacía.
-- FR-007: El campo `python_version` debe reflejar la versión del intérprete
-  Python en ejecución como cadena no vacía.
-- FR-008: El comando debe finalizar con código de salida `0` cuando el estado
-  de health check sea correcto.
-- FR-009: El comando no debe realizar accesos a red, base de datos ni
-  componentes específicos de Windows durante su ejecución.
+- FR-001: The system must expose a health check command executable through the
+  `uv` environment.
+- FR-002: The command must write a single syntactically valid JSON document to
+  `stdout`.
+- FR-003: The JSON document must include, at minimum, the fields `status`,
+  `application`, `version` and `python_version`.
+- FR-004: The `status` field must contain the value `"ok"` when execution is
+  correct.
+- FR-005: The `application` field must contain an application identifier as a
+  non-empty string.
+- FR-006: The `version` field must contain the application version as a
+  non-empty string.
+- FR-007: The `python_version` field must reflect the version of the running
+  Python interpreter as a non-empty string.
+- FR-008: The command must exit with code `0` when the health check state is
+  healthy.
+- FR-009: The command must not access network, database or Windows-specific
+  components during its execution.
 
 ## Non-Functional Requirements
 
-- El comando debe ejecutarse de forma local y autocontenida, sin dependencias
-  externas de red ni base de datos.
-- El comando debe ser determinista: para un mismo entorno, las claves del JSON
-  y el código de salida deben ser estables entre ejecuciones.
-- La salida JSON debe ser parseable por consumidores automáticos estándar.
-- El comando debe ejecutarse en el entorno Linux del proyecto sin requerir
-  componentes Windows.
+- The command must run locally and self-contained, without external network or
+  database dependencies.
+- The command must be deterministic: for the same environment, the JSON keys
+  and the exit code must be stable across executions.
+- The JSON output must be parseable by standard automated consumers.
+- The command must run in the project's Linux environment without requiring
+  Windows components.
 
 ## Assumptions
 
-- La invocación del comando se realiza dentro del entorno gestionado por `uv`
-  definido por el proyecto.
-- Los valores de `application` y `version` proceden de los metadatos del
-  proyecto y se consideran cadenas no vacías.
-- El campo `python_version` corresponde a la versión del intérprete Python
-  activo durante la ejecución.
-- La salida JSON se emite por `stdout`; los diagnósticos o errores ajenos al
-  documento JSON, si existieran, no se mezclan con `stdout`.
-- "Estado correcto" significa que la aplicación y su entorno Python arrancan
-  sin error y que todos los campos obligatorios pueden producirse.
+- The command is invoked within the `uv`-managed environment defined by the
+  project.
+- The values of `application` and `version` come from the project metadata and
+  are considered non-empty strings.
+- The `python_version` field corresponds to the version of the Python
+  interpreter active during execution.
+- The JSON output is emitted on `stdout`; diagnostics or errors unrelated to
+  the JSON document, if any, are not mixed into `stdout`.
+- "Healthy state" means that the application and its Python environment start
+  up without error and that all mandatory fields can be produced.
 
 ## Acceptance Summary
 
-Los criterios de aceptación de `acceptance.yaml` cubren: la existencia de un
-comando ejecutable mediante `uv` (AC-001); la emisión de un JSON válido por
-`stdout` (AC-002); la presencia de los campos obligatorios `status`,
-`application`, `version` y `python_version` (AC-003); el valor `"ok"` del campo
-`status` en ejecución correcta (AC-004); el código de salida `0` en estado
-correcto (AC-005); la ausencia de dependencias de red, base de datos y
-componentes Windows (AC-006); y la cobertura mediante tests unitarios (AC-007)
-e integración (AC-008) del comportamiento observable.
+The acceptance criteria in `acceptance.yaml` cover: the existence of a command
+executable through `uv` (AC-001); the emission of a valid JSON on `stdout`
+(AC-002); the presence of the mandatory fields `status`, `application`,
+`version` and `python_version` (AC-003); the value `"ok"` of the `status` field
+on correct execution (AC-004); the exit code `0` in a healthy state (AC-005);
+the absence of network, database and Windows component dependencies (AC-006);
+and coverage through unit tests (AC-007) and integration tests (AC-008) of the
+observable behavior.
 
 ## Open Questions
 

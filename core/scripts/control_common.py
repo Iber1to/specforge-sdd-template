@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Funciones compartidas del plano de control agéntico."""
+"""Shared functions for the agentic control plane."""
 
 from __future__ import annotations
 
@@ -14,12 +14,12 @@ from typing import Any, Iterator
 
 try:  # POSIX
     import fcntl
-except ModuleNotFoundError:  # pragma: no cover - Windows u otra plataforma sin fcntl
+except ModuleNotFoundError:  # pragma: no cover - Windows or another platform without fcntl
     fcntl = None  # type: ignore[assignment]
 
 try:  # Windows
     import msvcrt
-except ModuleNotFoundError:  # pragma: no cover - plataformas POSIX
+except ModuleNotFoundError:  # pragma: no cover - POSIX platforms
     msvcrt = None  # type: ignore[assignment]
 
 FEATURE_ID_PATTERN = re.compile(r"^F-(\d{3,})$")
@@ -27,7 +27,7 @@ SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 class ControlPlaneError(RuntimeError):
-    """Error controlado del plano de control."""
+    """Controlled error from the control plane."""
 
 
 def repo_root() -> Path:
@@ -48,12 +48,12 @@ def load_json(path: Path) -> dict[str, Any]:
         with path.open("r", encoding="utf-8") as handle:
             data = json.load(handle)
     except FileNotFoundError as exc:
-        raise ControlPlaneError(f"No existe el archivo requerido: {path}") from exc
+        raise ControlPlaneError(f"Required file does not exist: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise ControlPlaneError(f"JSON inválido en {path}: {exc}") from exc
+        raise ControlPlaneError(f"Invalid JSON in {path}: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise ControlPlaneError(f"El contenido de {path} debe ser un objeto JSON")
+        raise ControlPlaneError(f"The content of {path} must be a JSON object")
 
     return data
 
@@ -114,10 +114,10 @@ def control_paths() -> dict[str, Path]:
 
 
 def _acquire_file_lock(handle: Any, *, exclusive: bool) -> None:
-    """Adquiere un bloqueo de archivo de forma portable.
+    """Acquire a file lock in a portable way.
 
-    Usa fcntl en POSIX y msvcrt en Windows. En Windows el bloqueo es siempre
-    exclusivo (msvcrt no distingue compartido), suficiente para el runner local.
+    Uses fcntl on POSIX and msvcrt on Windows. On Windows the lock is always
+    exclusive (msvcrt does not distinguish shared), which is enough for the local runner.
     """
 
     if fcntl is not None:
@@ -130,7 +130,7 @@ def _acquire_file_lock(handle: Any, *, exclusive: bool) -> None:
         msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
         return
 
-    raise ControlPlaneError("No hay mecanismo de bloqueo de archivos disponible en esta plataforma")
+    raise ControlPlaneError("No file locking mechanism is available on this platform")
 
 
 def _release_file_lock(handle: Any) -> None:
@@ -166,7 +166,7 @@ def load_queue() -> dict[str, Any]:
     features = queue.get("features")
 
     if not isinstance(features, list):
-        raise ControlPlaneError("queue.json debe contener una lista 'features'")
+        raise ControlPlaneError("queue.json must contain a 'features' list")
 
     return queue
 
@@ -186,12 +186,12 @@ def save_runtime(runtime: dict[str, Any]) -> None:
 
 def validate_feature_id(feature_id: str) -> None:
     if not FEATURE_ID_PATTERN.fullmatch(feature_id):
-        raise ControlPlaneError(f"Identificador inválido '{feature_id}'. Formato esperado: F-001")
+        raise ControlPlaneError(f"Invalid identifier '{feature_id}'. Expected format: F-001")
 
 
 def validate_slug(slug: str) -> None:
     if not SLUG_PATTERN.fullmatch(slug):
-        raise ControlPlaneError("El slug solo puede contener minúsculas, números y guiones")
+        raise ControlPlaneError("The slug may only contain lowercase letters, digits and hyphens")
 
 
 def find_feature(queue: dict[str, Any], feature_id: str) -> dict[str, Any]:
@@ -201,15 +201,15 @@ def find_feature(queue: dict[str, Any], feature_id: str) -> dict[str, Any]:
         if feature.get("id") == feature_id:
             return feature
 
-    raise ControlPlaneError(f"No existe la feature {feature_id}")
+    raise ControlPlaneError(f"Feature {feature_id} does not exist")
 
 
 def ensure_nonempty_file(path: Path, label: str) -> None:
     if not path.is_file():
-        raise ControlPlaneError(f"Falta {label}: {path}")
+        raise ControlPlaneError(f"Missing {label}: {path}")
 
     if path.stat().st_size == 0:
-        raise ControlPlaneError(f"{label} está vacío: {path}")
+        raise ControlPlaneError(f"{label} is empty: {path}")
 
 
 def mutation_testing_required(feature: dict[str, Any]) -> bool:
@@ -265,11 +265,11 @@ def validate_evidence_for_transition(
     if transition == ("IN_PROGRESS", "READY_FOR_QA"):
         evidence_path = root / "evidence" / "implementations" / f"{feature_id}.json"
 
-        ensure_nonempty_file(evidence_path, "evidencia de implementación")
+        ensure_nonempty_file(evidence_path, "implementation evidence")
         evidence = load_json(evidence_path)
 
         if evidence.get("feature_id") != feature_id:
-            raise ControlPlaneError(f"La evidencia de implementación no corresponde a {feature_id}")
+            raise ControlPlaneError(f"The implementation evidence does not match {feature_id}")
 
     if transition in {
         ("READY_FOR_QA", "APPROVED"),
@@ -288,16 +288,16 @@ def validate_evidence_for_transition(
         lease = load_json(lease_path)
 
         if lease.get("role") != "qa-reviewer":
-            raise ControlPlaneError(f"El lease activo de {feature_id} no pertenece a QA")
+            raise ControlPlaneError(f"The active lease for {feature_id} does not belong to QA")
 
         if review.get("run_id") != lease.get("run_id"):
-            raise ControlPlaneError("El informe QA no corresponde al run activo")
+            raise ControlPlaneError("The QA report does not match the active run")
 
         if review.get("reviewer_id") != lease.get("agent_id"):
-            raise ControlPlaneError("El informe QA no corresponde al revisor asignado")
+            raise ControlPlaneError("The QA report does not match the assigned reviewer")
 
         if review.get("reviewed_commit") != lease.get("reviewed_commit"):
-            raise ControlPlaneError("El informe QA no corresponde al commit asignado")
+            raise ControlPlaneError("The QA report does not match the assigned commit")
 
         if target_state == "APPROVED" and mutation_testing_required(feature):
             if __package__:
@@ -349,13 +349,13 @@ def validate_role_for_transition(
         if target_state == "BLOCKED" or current_state == "BLOCKED":
             return
 
-        raise ControlPlaneError("El leader solo puede bloquear o recuperar features bloqueadas")
+        raise ControlPlaneError("The leader can only block or recover blocked features")
 
     permitted = ROLE_TRANSITIONS.get(role, set())
 
     if (current_state, target_state) not in permitted:
         raise ControlPlaneError(
-            f"El rol '{role}' no puede realizar {current_state} -> {target_state}"
+            f"Role '{role}' cannot perform {current_state} -> {target_state}"
         )
 
 
@@ -367,14 +367,14 @@ def validate_transition(
     current_state = feature["state"]
 
     if target_state == "DONE":
-        raise ControlPlaneError("La transición a DONE está reservada a scripts/finalize_feature.py")
+        raise ControlPlaneError("Transition to DONE is reserved for scripts/finalize_feature.py")
 
     workflow = load_workflow()
     transitions = workflow.get("transitions", {})
     allowed_targets = transitions.get(current_state, [])
 
     if target_state not in allowed_targets:
-        raise ControlPlaneError(f"Transición no permitida: {current_state} -> {target_state}")
+        raise ControlPlaneError(f"Transition not allowed: {current_state} -> {target_state}")
 
     validate_role_for_transition(role, current_state, target_state)
     validate_evidence_for_transition(feature, current_state, target_state)
@@ -388,7 +388,7 @@ def apply_transition(
     role: str,
     reason: str,
 ) -> None:
-    """Aplica en memoria una transición previamente validada."""
+    """Apply a previously validated transition in memory."""
 
     validate_transition(feature, target_state, role)
 
@@ -405,7 +405,7 @@ def apply_transition(
         maximum = int(config["maximum_active_implementers"])
 
         if len(active_implementations) >= maximum:
-            raise ControlPlaneError("Se ha alcanzado el máximo de implementadores activos")
+            raise ControlPlaneError("The maximum number of active implementers has been reached")
 
     timestamp = utc_now()
 
@@ -443,25 +443,25 @@ def apply_transition(
 
 
 def parse_utc_timestamp(value: str) -> datetime:
-    """Convierte un timestamp ISO-8601 en datetime UTC."""
+    """Convert an ISO-8601 timestamp into a UTC datetime."""
 
     try:
         timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (TypeError, ValueError) as exc:
-        raise ControlPlaneError(f"Timestamp inválido: {value}") from exc
+        raise ControlPlaneError(f"Invalid timestamp: {value}") from exc
 
     if timestamp.tzinfo is None:
-        raise ControlPlaneError(f"El timestamp no contiene zona horaria: {value}")
+        raise ControlPlaneError(f"The timestamp does not contain a time zone: {value}")
 
     return timestamp.astimezone(timezone.utc)
 
 
 def lease_is_expired(lease: dict[str, Any]) -> bool:
-    """Indica si un lease ha superado su fecha de expiración."""
+    """Indicate whether a lease has passed its expiration date."""
 
     expires_at = lease.get("expires_at")
 
     if not isinstance(expires_at, str):
-        raise ControlPlaneError("El lease no contiene expires_at válido")
+        raise ControlPlaneError("The lease does not contain a valid expires_at")
 
     return parse_utc_timestamp(expires_at) <= datetime.now(timezone.utc)

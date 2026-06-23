@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recupera leases caducados y bloquea sus features."""
+"""Recovers expired leases and blocks their features."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "--reason",
-        default="Lease caducado y recuperado",
+        default="Lease expired and recovered",
     )
 
     return parser.parse_args()
@@ -50,7 +50,7 @@ def recover_feature(
     lease_path = paths["leases"] / f"{feature_id}.json"
 
     if not lease_path.exists():
-        raise ControlPlaneError(f"No existe lease para {feature_id}")
+        raise ControlPlaneError(f"No lease exists for {feature_id}")
 
     lease = load_json(lease_path)
 
@@ -59,9 +59,9 @@ def recover_feature(
 
     feature = find_feature(queue, feature_id)
 
-    # Un lease caducado puede pertenecer a un implementador (feature en
-    # IN_PROGRESS) o a un revisor QA (feature en READY_FOR_QA). En ambos casos la
-    # feature debe quedar BLOCKED para no quedar huérfana sin lease activo.
+    # An expired lease may belong to an implementer (feature in IN_PROGRESS) or
+    # to a QA reviewer (feature in READY_FOR_QA). In both cases the feature must
+    # be left BLOCKED so it is not orphaned without an active lease.
     if feature["state"] in {"IN_PROGRESS", "READY_FOR_QA"}:
         apply_transition(
             queue=queue,
@@ -133,9 +133,9 @@ def main() -> int:
 
         if recovered:
             for feature_id in recovered:
-                print(f"[OK] Lease recuperado: {feature_id}")
+                print(f"[OK] Lease recovered: {feature_id}")
         else:
-            print("[OK] No existen leases caducados.")
+            print("[OK] No expired leases exist.")
 
         return 0
 

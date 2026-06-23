@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validacion documental declarada por acceptance.yaml."""
+"""Documentation validation declared by acceptance.yaml."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from feature_validation import FeatureValidationError, load_and_validate_accepta
 
 
 class DocumentationValidationError(RuntimeError):
-    """Error controlado de validacion documental."""
+    """Controlled documentation validation error."""
 
 
 REQUIREMENTS = {
@@ -19,15 +19,15 @@ REQUIREMENTS = {
         "prefix": "docs/10-architecture/adr/",
     },
     "requires_runtime_update": {
-        "label": "documentacion runtime",
+        "label": "runtime documentation",
         "prefix": "docs/20-runtime/",
     },
     "requires_operations_update": {
-        "label": "documentacion operativa",
+        "label": "operations documentation",
         "prefix": "docs/40-operations/",
     },
     "requires_quality_update": {
-        "label": "documentacion de calidad",
+        "label": "quality documentation",
         "prefix": "docs/30-quality/",
     },
 }
@@ -53,7 +53,7 @@ def _documentation_block(acceptance: dict[str, Any]) -> dict[str, bool]:
         return {}
 
     if not isinstance(raw, dict):
-        raise DocumentationValidationError("documentation debe ser un objeto")
+        raise DocumentationValidationError("documentation must be an object")
 
     return {key: bool(raw.get(key, False)) for key in REQUIREMENTS}
 
@@ -64,7 +64,7 @@ def validate_documentation_requirements(
     *,
     changed_files: list[str],
 ) -> dict[str, Any]:
-    """Valida que los cambios revisados cubren la documentacion declarada."""
+    """Validate that the reviewed changes cover the declared documentation."""
 
     if not feature.get("spec_path"):
         return {
@@ -106,7 +106,7 @@ def validate_documentation_requirements(
 
     if missing:
         raise DocumentationValidationError(
-            "Faltan cambios documentales requeridos: " + ", ".join(missing)
+            "Missing required documentation changes: " + ", ".join(missing)
         )
 
     return {

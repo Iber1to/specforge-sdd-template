@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Hook de notificacion remota para Claude Code (Stop / Notification).
+"""Remote notification hook for Claude Code (Stop / Notification).
 
-Red de seguridad determinista: avisa por Telegram cuando la sesion principal
-del leader se detiene (turno completado o a la espera de instrucciones) o
-cuando Claude Code emite una notificacion (espera de input o de permisos).
+Deterministic safety net: notifies via Telegram when the leader's main session
+stops (turn completed or awaiting instructions) or when Claude Code emits a
+notification (awaiting input or permissions).
 
-Reglas:
-- Solo notifica si CLAUDE_HARNESS_ROLE esta en policy.roles (defecto: leader).
-- Aplica debounce para no inundar el canal.
-- Siempre termina con exit 0: un fallo de notificacion jamas bloquea la sesion.
+Rules:
+- Only notifies if CLAUDE_HARNESS_ROLE is in policy.roles (default: leader).
+- Applies debounce to avoid flooding the channel.
+- Always exits with exit 0: a notification failure never blocks the session.
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ def role_allowed(policy: dict[str, Any]) -> bool:
 
 
 def transcript_excerpt(event: dict[str, Any]) -> str:
-    """Extrae (best-effort) el ultimo mensaje del asistente del transcript."""
+    """Extract (best-effort) the last assistant message from the transcript."""
 
     raw_path = event.get("transcript_path")
 
@@ -96,7 +96,7 @@ def transcript_excerpt(event: dict[str, Any]) -> str:
 def build_message(event: dict[str, Any], hook_event: str) -> str:
     if hook_event == "Stop":
         excerpt = transcript_excerpt(event)
-        body = "Leader detenido: turno completado o a la espera de instrucciones."
+        body = "Leader stopped: turn completed or awaiting instructions."
 
         if excerpt:
             body += f"\n---\n{excerpt}"
@@ -104,7 +104,7 @@ def build_message(event: dict[str, Any], hook_event: str) -> str:
         return body
 
     notification_text = str(event.get("message", "")).strip()
-    return notification_text or "Claude Code espera intervencion humana."
+    return notification_text or "Claude Code is awaiting human intervention."
 
 
 def main() -> int:
@@ -114,7 +114,7 @@ def main() -> int:
     if hook_event not in {"Stop", "Notification"}:
         return 0
 
-    # Evita bucles si otro hook Stop ya esta forzando la continuacion.
+    # Avoid loops if another Stop hook is already forcing continuation.
     if hook_event == "Stop" and event.get("stop_hook_active") is True:
         return 0
 
@@ -138,9 +138,9 @@ def main() -> int:
         text = format_event_text(internal_event, build_message(event, hook_event))
         send_message(policy, text)
     except NotificationError as exc:
-        print(f"[ERROR] Hook de notificacion fallo (ignorado): {exc}", file=sys.stderr)
-    except Exception as exc:  # noqa: BLE001 - el hook nunca debe romper la sesion
-        print(f"[ERROR] Hook de notificacion inesperado (ignorado): {exc}", file=sys.stderr)
+        print(f"[ERROR] Notification hook failed (ignored): {exc}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 - the hook must never break the session
+        print(f"[ERROR] Unexpected notification hook error (ignored): {exc}", file=sys.stderr)
 
     return 0
 

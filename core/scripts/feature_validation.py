@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validadores deterministas de documentos Spec Driven Development."""
+"""Deterministic validators for Spec Driven Development documents."""
 
 from __future__ import annotations
 
@@ -66,13 +66,13 @@ REQUIRED_PLACEHOLDER = "<!-- REQUIRED:"
 
 
 class FeatureValidationError(RuntimeError):
-    """Documento de feature inválido."""
+    """Invalid feature document."""
 
 
 def _load_specification_policy(
     repo_root: Path,
 ) -> dict[str, Any]:
-    """Carga y valida la política declarativa del Spec Partner."""
+    """Load and validate the declarative Spec Partner policy."""
 
     policy_path = repo_root.resolve() / "state" / "specification-policy.json"
 
@@ -85,10 +85,10 @@ def _load_specification_policy(
     try:
         policy = json.loads(policy_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise FeatureValidationError(f"Política de especificación JSON inválida: {exc}") from exc
+        raise FeatureValidationError(f"Invalid specification policy JSON: {exc}") from exc
 
     if not isinstance(policy, dict):
-        raise FeatureValidationError("La política de especificación debe ser un objeto JSON")
+        raise FeatureValidationError("The specification policy must be a JSON object")
 
     default_version = policy.get(
         "default_acceptance_schema_version",
@@ -98,13 +98,13 @@ def _load_specification_policy(
 
     if not isinstance(default_version, int) or default_version < 1:
         raise FeatureValidationError(
-            "default_acceptance_schema_version debe ser un entero positivo"
+            "default_acceptance_schema_version must be a positive integer"
         )
 
     if not isinstance(legacy_features, list) or not all(
         isinstance(feature_id, str) for feature_id in legacy_features
     ):
-        raise FeatureValidationError("legacy_v1_features debe ser una lista de strings")
+        raise FeatureValidationError("legacy_v1_features must be a list of strings")
 
     return policy
 
@@ -115,7 +115,7 @@ def _resolve_spec_root(repo_root: Path, feature: dict[str, Any]) -> Path:
 
     if root not in spec_root.parents:
         raise FeatureValidationError(
-            f"La ruta de especificación queda fuera del repositorio: {spec_root}"
+            f"The specification path falls outside the repository: {spec_root}"
         )
 
     return spec_root
@@ -125,10 +125,10 @@ def _read_nonempty_text(path: Path, label: str) -> str:
     try:
         content = path.read_text(encoding="utf-8")
     except FileNotFoundError as exc:
-        raise FeatureValidationError(f"Falta {label}: {path}") from exc
+        raise FeatureValidationError(f"Missing {label}: {path}") from exc
 
     if not content.strip():
-        raise FeatureValidationError(f"{label} está vacío: {path}")
+        raise FeatureValidationError(f"{label} is empty: {path}")
 
     return content
 
@@ -145,7 +145,7 @@ def _extract_sections(content: str, path: Path) -> dict[str, str]:
         name = match.group(1).strip()
 
         if name in sections:
-            raise FeatureValidationError(f"Sección duplicada '{name}' en {path}")
+            raise FeatureValidationError(f"Duplicate section '{name}' in {path}")
 
         body_start = match.end()
         body_end = matches[index + 1].start() if index + 1 < len(matches) else len(content)
@@ -162,23 +162,23 @@ def validate_markdown_document(
     content = _read_nonempty_text(path, label)
 
     if REQUIRED_PLACEHOLDER in content:
-        raise FeatureValidationError(f"{label} conserva marcadores REQUIRED sin resolver: {path}")
+        raise FeatureValidationError(f"{label} still has unresolved REQUIRED markers: {path}")
 
     if not re.search(r"^#\s+\S", content, flags=re.MULTILINE):
-        raise FeatureValidationError(f"{label} no contiene un título H1: {path}")
+        raise FeatureValidationError(f"{label} does not contain an H1 title: {path}")
 
     sections = _extract_sections(content, path)
     missing = [section for section in required_sections if section not in sections]
 
     if missing:
         raise FeatureValidationError(
-            f"{label} no contiene las secciones obligatorias: {', '.join(missing)}"
+            f"{label} does not contain the required sections: {', '.join(missing)}"
         )
 
     empty = [section for section in required_sections if not _visible_content(sections[section])]
 
     if empty:
-        raise FeatureValidationError(f"{label} contiene secciones vacías: {', '.join(empty)}")
+        raise FeatureValidationError(f"{label} contains empty sections: {', '.join(empty)}")
 
     return sections
 
@@ -189,43 +189,43 @@ def _validate_sequential_identifiers(
     prefix: str,
     label: str,
 ) -> None:
-    """Valida identificadores secuenciales comenzando en PREFIX-001."""
+    """Validate sequential identifiers starting at PREFIX-001."""
 
     identifiers = [item["id"] for item in items]
     expected = [f"{prefix}-{index:03d}" for index in range(1, len(items) + 1)]
 
     if identifiers != expected:
         raise FeatureValidationError(
-            f"Los identificadores de {label} deben ser secuenciales "
-            f"y comenzar en {prefix}-001. "
-            f"Esperado: {expected}; recibido: {identifiers}"
+            f"The {label} identifiers must be sequential "
+            f"and start at {prefix}-001. "
+            f"Expected: {expected}; received: {identifiers}"
         )
 
 
 def _validate_acceptance_v2(acceptance: dict[str, Any]) -> None:
-    """Valida reglas semánticas adicionales del contrato v2."""
+    """Validate additional semantic rules of the v2 contract."""
 
     specification = acceptance["specification"]
 
     _validate_sequential_identifiers(
         specification["assumptions"],
         prefix="ASM",
-        label="hipótesis",
+        label="assumptions",
     )
     _validate_sequential_identifiers(
         specification["decisions"],
         prefix="DEC",
-        label="decisiones",
+        label="decisions",
     )
     _validate_sequential_identifiers(
         specification["open_questions"],
         prefix="Q",
-        label="preguntas abiertas",
+        label="open questions",
     )
     _validate_sequential_identifiers(
         acceptance["scenarios"],
         prefix="SCN",
-        label="escenarios",
+        label="scenarios",
     )
 
     blocking_questions = [
@@ -236,7 +236,7 @@ def _validate_acceptance_v2(acceptance: dict[str, Any]) -> None:
 
     if blocking_questions:
         raise FeatureValidationError(
-            "La especificación conserva preguntas críticas bloqueantes: "
+            "The specification still has blocking critical questions: "
             + ", ".join(blocking_questions)
         )
 
@@ -253,7 +253,7 @@ def _validate_acceptance_v2(acceptance: dict[str, Any]) -> None:
 
     if unknown_references:
         raise FeatureValidationError(
-            "Los escenarios referencian criterios inexistentes: " + ", ".join(unknown_references)
+            "The scenarios reference nonexistent criteria: " + ", ".join(unknown_references)
         )
 
     required_criteria = {criterion["id"] for criterion in criteria if criterion["required"] is True}
@@ -262,7 +262,7 @@ def _validate_acceptance_v2(acceptance: dict[str, Any]) -> None:
 
     if uncovered_required:
         raise FeatureValidationError(
-            "Los criterios obligatorios no están cubiertos por escenarios: "
+            "The required criteria are not covered by scenarios: "
             + ", ".join(uncovered_required)
         )
 
@@ -276,17 +276,17 @@ def load_and_validate_acceptance(
 
     acceptance_text = _read_nonempty_text(
         acceptance_path,
-        "criterios de aceptación",
+        "acceptance criteria",
     )
 
     try:
         acceptance = yaml.safe_load(acceptance_text)
     except yaml.YAMLError as exc:
-        raise FeatureValidationError(f"YAML inválido en {acceptance_path}: {exc}") from exc
+        raise FeatureValidationError(f"Invalid YAML in {acceptance_path}: {exc}") from exc
 
     if not isinstance(acceptance, dict):
         raise FeatureValidationError(
-            f"acceptance.yaml debe contener un objeto YAML: {acceptance_path}"
+            f"acceptance.yaml must contain a YAML object: {acceptance_path}"
         )
 
     schema_version = acceptance.get("schema_version")
@@ -308,9 +308,9 @@ def load_and_validate_acceptance(
         and feature["id"] not in legacy_v1_features
     ):
         raise FeatureValidationError(
-            f"{feature['id']} requiere acceptance.yaml schema_version 2. "
-            "El contrato v1 solo está permitido para features históricas "
-            "declaradas explícitamente."
+            f"{feature['id']} requires acceptance.yaml schema_version 2. "
+            "The v1 contract is only allowed for historical features "
+            "declared explicitly."
         )
 
     if schema_version == 1:
@@ -319,7 +319,7 @@ def load_and_validate_acceptance(
         schema_filename = "acceptance-v2.schema.json"
     else:
         raise FeatureValidationError(
-            f"acceptance.yaml contiene una schema_version no soportada: {schema_version!r}"
+            f"acceptance.yaml contains an unsupported schema_version: {schema_version!r}"
         )
 
     schema_path = repo_root / "specs" / "schemas" / schema_filename
@@ -327,9 +327,9 @@ def load_and_validate_acceptance(
     try:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise FeatureValidationError(f"No existe el esquema de aceptación: {schema_path}") from exc
+        raise FeatureValidationError(f"The acceptance schema does not exist: {schema_path}") from exc
     except json.JSONDecodeError as exc:
-        raise FeatureValidationError(f"Esquema JSON inválido en {schema_path}: {exc}") from exc
+        raise FeatureValidationError(f"Invalid JSON schema in {schema_path}: {exc}") from exc
 
     validator = Draft202012Validator(schema)
     errors = sorted(
@@ -342,18 +342,18 @@ def load_and_validate_acceptance(
         location = ".".join(str(part) for part in error.absolute_path) or "<root>"
 
         raise FeatureValidationError(
-            f"acceptance.yaml incumple el esquema en {location}: {error.message}"
+            f"acceptance.yaml violates the schema at {location}: {error.message}"
         )
 
     if acceptance["feature_id"] != feature["id"]:
         raise FeatureValidationError(
-            "acceptance.yaml no corresponde a la feature asignada: "
-            f"esperado {feature['id']}, recibido {acceptance['feature_id']}"
+            "acceptance.yaml does not correspond to the assigned feature: "
+            f"expected {feature['id']}, received {acceptance['feature_id']}"
         )
 
     if acceptance["title"] != feature["title"]:
         raise FeatureValidationError(
-            "El título de acceptance.yaml debe coincidir exactamente con la cola"
+            "The acceptance.yaml title must match the queue exactly"
         )
 
     criteria = acceptance["criteria"]
@@ -361,13 +361,13 @@ def load_and_validate_acceptance(
     _validate_sequential_identifiers(
         criteria,
         prefix="AC",
-        label="criterios",
+        label="criteria",
     )
 
     for criterion in criteria:
         if len(criterion["statement"].strip()) < 10:
             raise FeatureValidationError(
-                f"{criterion['id']} no contiene una declaración verificable"
+                f"{criterion['id']} does not contain a verifiable statement"
             )
 
     if schema_version == 2:
@@ -384,7 +384,7 @@ def validate_specification(
 
     validate_markdown_document(
         spec_root / "specification.md",
-        "especificación",
+        "specification",
         SPECIFICATION_SECTIONS,
     )
 
@@ -404,7 +404,7 @@ def validate_architecture(
 
     validate_markdown_document(
         spec_root / "architecture.md",
-        "arquitectura",
+        "architecture",
         required_sections,
     )
 
@@ -420,13 +420,13 @@ def validate_development_readiness(
 
     validate_markdown_document(
         spec_root / "implementation-plan.md",
-        "plan de implementación",
+        "implementation plan",
         IMPLEMENTATION_PLAN_SECTIONS,
     )
 
     test_sections = validate_markdown_document(
         spec_root / "test-plan.md",
-        "plan de pruebas",
+        "test plan",
         TEST_PLAN_SECTIONS,
     )
 
@@ -441,12 +441,12 @@ def validate_development_readiness(
 
     if missing:
         raise FeatureValidationError(
-            "El plan de pruebas no traza los criterios: " + ", ".join(missing)
+            "The test plan does not trace the criteria: " + ", ".join(missing)
         )
 
     if unknown:
         raise FeatureValidationError(
-            "El plan de pruebas referencia criterios inexistentes: " + ", ".join(unknown)
+            "The test plan references nonexistent criteria: " + ", ".join(unknown)
         )
 
     if feature.get("windows_validation_required", False):
@@ -458,8 +458,8 @@ def validate_development_readiness(
 
         if not windows_criteria:
             raise FeatureValidationError(
-                "La feature requiere validación Windows, pero ningún criterio "
-                "utiliza verification: windows_e2e"
+                "The feature requires Windows validation, but no criterion "
+                "uses verification: windows_e2e"
             )
 
     return acceptance

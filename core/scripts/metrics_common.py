@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Agregación determinista de métricas de agentes y runs."""
+"""Deterministic aggregation of agent and run metrics."""
 
 from __future__ import annotations
 
@@ -157,7 +157,7 @@ def _read_records(
 
 
 def aggregate_metrics(control_root: Path) -> dict[str, Any]:
-    """Agrega métricas sin modificar sus fuentes."""
+    """Aggregate metrics without modifying their sources."""
 
     summary: dict[str, Any] = {
         "schema_version": 1,

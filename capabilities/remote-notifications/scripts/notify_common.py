@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Helpers compartidos de la capability remote-notifications.
+"""Shared helpers for the remote-notifications capability.
 
-Carga la politica, resuelve credenciales y envia mensajes por el transporte
-configurado (telegram). Diseno fail-soft: una notificacion fallida nunca debe
-romper el harness ni bloquear al leader.
+Loads the policy, resolves credentials and sends messages through the
+configured transport (telegram). Fail-soft design: a failed notification must
+never break the harness nor block the leader.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ EVENT_PREFIXES = {
 
 
 class NotificationError(RuntimeError):
-    """Error controlado de la capability remote-notifications."""
+    """Controlled error of the remote-notifications capability."""
 
 
 def repo_root() -> Path:
@@ -54,15 +54,15 @@ def load_policy(root: Path | None = None) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise NotificationError(f"No existe la politica de notificaciones: {path}") from exc
+        raise NotificationError(f"Notifications policy does not exist: {path}") from exc
     except json.JSONDecodeError as exc:
-        raise NotificationError(f"Politica JSON invalida en {path}: {exc}") from exc
+        raise NotificationError(f"Invalid JSON policy in {path}: {exc}") from exc
 
     if not isinstance(data, dict):
-        raise NotificationError(f"La politica {path} debe contener un objeto JSON")
+        raise NotificationError(f"The policy {path} must contain a JSON object")
 
     if data.get("schema_version") != 1:
-        raise NotificationError("remote-notifications: schema_version debe ser 1")
+        raise NotificationError("remote-notifications: schema_version must be 1")
 
     return data
 
@@ -96,11 +96,11 @@ def parse_env_file(path: Path) -> dict[str, str]:
 
 
 def load_credentials(policy: dict[str, Any]) -> tuple[str, str]:
-    """Resuelve token y chat_id de Telegram.
+    """Resolve the Telegram token and chat_id.
 
-    Prioridad: variables de entorno TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID y,
-    si faltan, el archivo de credenciales declarado en la politica. El archivo
-    vive fuera del repositorio: los secretos nunca se versionan.
+    Priority: the TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID environment variables
+    and, if missing, the credentials file declared in the policy. The file
+    lives outside the repository: secrets are never versioned.
     """
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
@@ -119,8 +119,8 @@ def load_credentials(policy: dict[str, Any]) -> tuple[str, str]:
 
     if not token or not chat_id:
         raise NotificationError(
-            "Faltan credenciales Telegram: define TELEGRAM_BOT_TOKEN y "
-            f"TELEGRAM_CHAT_ID en el entorno o en {credentials_file}"
+            "Missing Telegram credentials: set TELEGRAM_BOT_TOKEN and "
+            f"TELEGRAM_CHAT_ID in the environment or in {credentials_file}"
         )
 
     return token, chat_id
@@ -168,16 +168,16 @@ def telegram_api_call(
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:300]
         raise NotificationError(
-            f"Telegram {method} fallo con HTTP {exc.code}: {redact_token(detail, token)}"
+            f"Telegram {method} failed with HTTP {exc.code}: {redact_token(detail, token)}"
         ) from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise NotificationError(
-            f"Telegram {method} inaccesible: {redact_token(str(exc), token)}"
+            f"Telegram {method} unreachable: {redact_token(str(exc), token)}"
         ) from exc
 
     if not isinstance(data, dict) or data.get("ok") is not True:
         raise NotificationError(
-            f"Telegram {method} respondio error: {redact_token(json.dumps(data)[:300], token)}"
+            f"Telegram {method} responded with error: {redact_token(json.dumps(data)[:300], token)}"
         )
 
     return data
@@ -198,7 +198,7 @@ def send_message(policy: dict[str, Any], text: str) -> None:
     transport = str(policy.get("transport", "telegram"))
 
     if transport != "telegram":
-        raise NotificationError(f"Transporte no soportado: {transport}")
+        raise NotificationError(f"Unsupported transport: {transport}")
 
     token, chat_id = load_credentials(policy)
 
@@ -241,10 +241,10 @@ def debounce_stamp_path(event: str, root: Path | None = None) -> Path:
 
 
 def should_debounce(policy: dict[str, Any], event: str, root: Path | None = None) -> bool:
-    """Devuelve True si el evento debe omitirse por haberse notificado hace poco.
+    """Return True if the event should be skipped because it was notified recently.
 
-    Aplica solo a eventos automaticos de hooks (stop, notification). Si el
-    evento procede, registra el timestamp actual.
+    Applies only to automatic hook events (stop, notification). If the event
+    proceeds, it records the current timestamp.
     """
 
     raw = policy.get("debounce_seconds", DEFAULT_DEBOUNCE_SECONDS)

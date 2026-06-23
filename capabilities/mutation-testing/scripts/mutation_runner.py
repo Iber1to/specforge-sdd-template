@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runner determinista mínimo de Mutation Testing para código Python."""
+"""Minimal deterministic Mutation Testing runner for Python code."""
 
 from __future__ import annotations
 
@@ -34,11 +34,11 @@ def utc_now() -> str:
 
 
 class MutationError(RuntimeError):
-    """Error controlado del runner de mutation testing."""
+    """Controlled error from the mutation testing runner."""
 
 
 def ensure_clean_worktree(repo_root: Path) -> None:
-    """Mutation testing solo se ejecuta sobre un arbol limpio (diff revisado)."""
+    """Mutation testing only runs against a clean tree (reviewed diff)."""
 
     result = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -49,8 +49,8 @@ def ensure_clean_worktree(repo_root: Path) -> None:
     )
     if result.stdout.strip():
         raise MutationError(
-            "El worktree tiene cambios sin commitear; mutation testing requiere un "
-            "arbol limpio para mutar solo el diff revisado."
+            "The worktree has uncommitted changes; mutation testing requires a "
+            "clean tree to mutate only the reviewed diff."
         )
 
 
@@ -67,7 +67,7 @@ def _token_pattern(token: str) -> re.Pattern[str]:
 
 
 def generate_mutants(path: str, source: str, *, max_mutants: int) -> list[dict[str, Any]]:
-    """Genera mutantes deterministas por orden de línea y patrón."""
+    """Generate deterministic mutants ordered by line and pattern."""
 
     mutants: list[dict[str, Any]] = []
 
@@ -189,7 +189,7 @@ def run_mutation_testing(
     max_duration_seconds: int,
     scope: str,
 ) -> dict[str, Any]:
-    """Genera mutantes, ejecuta tests por mutante y restaura archivos."""
+    """Generate mutants, run tests per mutant and restore files."""
 
     root = repo_root.resolve()
     ensure_clean_worktree(root)
@@ -287,8 +287,8 @@ def main() -> int:
         json.dumps(evidence, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
 
-    print(f"[OK] Mutantes generados: {evidence['summary']['generated']}")
-    print(f"[OK] Evidencia: {output_path}")
+    print(f"[OK] Mutants generated: {evidence['summary']['generated']}")
+    print(f"[OK] Evidence: {output_path}")
     return 0
 
 

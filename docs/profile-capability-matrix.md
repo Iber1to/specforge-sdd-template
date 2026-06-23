@@ -1,39 +1,39 @@
-# Matriz de Perfiles y Capabilities
+# Profile and Capability Matrix
 
-Combinaciones soportadas por `create_project.py`. `documentation-pack` esta
-activa por defecto en todos los perfiles.
+Combinations supported by `create_project.py`. `documentation-pack` is
+active by default in all profiles.
 
-| Perfil | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish | remote-notifications | eval-harness | tool-telemetry |
+| Profile | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish | remote-notifications | eval-harness | tool-telemetry |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| generic | si (defecto) | no | si | opcional | si | si | si | opcional | si | opcional |
-| python | si (defecto) | si | si | opcional | si | si | si | opcional | si | opcional |
-| node | si (defecto) | no (futuro) | si | opcional | si | si | si | opcional | si | opcional |
-| android | si (defecto) | no | si | opcional | si | si | si | opcional | si | opcional |
+| generic | yes (default) | no | yes | optional | yes | yes | yes | optional | yes | optional |
+| python | yes (default) | yes | yes | optional | yes | yes | yes | optional | yes | optional |
+| node | yes (default) | no (future) | yes | optional | yes | yes | yes | optional | yes | optional |
+| android | yes (default) | no | yes | optional | yes | yes | yes | optional | yes | optional |
 
-## Reglas aplicadas por el generador
+## Rules applied by the generator
 
-- `mutation-testing` solo es compatible con el perfil `python`. El generador
-  rechaza la combinacion con otros perfiles (`PROFILE_CAPABILITY_RULES`).
-- `documentation-pack` se incluye siempre, aunque no se declare.
-- El resto de capabilities son opcionales y validas en cualquier perfil.
-- `eval-harness` es opcional y compatible con cualquier perfil. Convierte los
-  escenarios `SCN-XXX` de cada feature en graders ejecutables; su gate
-  `EVAL-001` se instala en `qa_full` en modo `observe`.
-- `tool-telemetry` es opcional y compatible con cualquier perfil. Registra cada
-  llamada a herramienta (`PreToolUse`/`PostToolUse`) como JSONL determinista con
-  scrubbing de secretos; es telemetria/evidencia, no un gate. Sin la capability,
-  los hooks son no-op.
-- `windows-validation` deja la validacion Windows **disponible**; la
-  obligatoriedad de evidencia es por feature, no global.
-- El perfil `android` (Kotlin + Gradle) instala sus gates (`ANDROID-001`,
-  `ANDROID-002`) en modo `observe` (no bloqueante): se ejecutan via
-  `scripts/verify_android.sh` y se omiten con exito cuando Gradle o el Android
-  SDK no estan presentes. Los gates bloqueantes siguen siendo los de Python. Se
-  recomienda `external-runtime` para ejecutar el build Android real en un runner
-  provisto. `mutation-testing` sigue siendo exclusivo de `python`.
+- `mutation-testing` is only compatible with the `python` profile. The generator
+  rejects the combination with other profiles (`PROFILE_CAPABILITY_RULES`).
+- `documentation-pack` is always included, even if not declared.
+- The remaining capabilities are optional and valid in any profile.
+- `eval-harness` is optional and compatible with any profile. It converts the
+  `SCN-XXX` scenarios of each feature into executable graders; its `EVAL-001`
+  gate is installed in `qa_full` in `observe` mode.
+- `tool-telemetry` is optional and compatible with any profile. It records each
+  tool call (`PreToolUse`/`PostToolUse`) as deterministic JSONL with
+  secret scrubbing; it is telemetry/evidence, not a gate. Without the capability,
+  the hooks are no-ops.
+- `windows-validation` makes Windows validation **available**; the
+  mandatory nature of evidence is per feature, not global.
+- The `android` profile (Kotlin + Gradle) installs its gates (`ANDROID-001`,
+  `ANDROID-002`) in `observe` mode (non-blocking): they run via
+  `scripts/verify_android.sh` and are skipped successfully when Gradle or the Android
+  SDK are not present. The blocking gates remain the Python ones. It is
+  recommended to use `external-runtime` to run the real Android build on a provided
+  runner. `mutation-testing` remains exclusive to `python`.
 
-## Validacion
+## Validation
 
-`create_project.py` aborta con error si se declara una capability incompatible
-con el perfil. Cubierto por
+`create_project.py` aborts with an error if a capability incompatible
+with the profile is declared. Covered by
 `tests/test_generator.py::test_rejects_incompatible_profile_capability`.
