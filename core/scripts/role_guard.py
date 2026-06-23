@@ -101,6 +101,9 @@ IMPLEMENTER_HARNESS_SCRIPTS = {
 QA_HARNESS_SCRIPTS = {
     "heartbeat_lease.py",
     "complete_review.py",
+    # mutation-testing: QA ejecuta el runner en el worktree; la mutation-reviewer
+    # clasifica los supervivientes y QA pliega el informe en complete_review.py.
+    "mutation_runner.py",
 }
 
 PUBLISHER_HARNESS_SCRIPTS = {

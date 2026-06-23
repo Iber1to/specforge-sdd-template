@@ -14,9 +14,14 @@ finalizada.
 El commit funcional validado es `reviewed_commit`, incluido en el informe QA.
 
 Después de `reviewed_commit`, la rama de la feature solo puede contener un
-commit adicional; dicho commit debe modificar exclusivamente:
+commit adicional (el commit de evidencia de QA); dicho commit solo puede
+modificar:
 
-`evidence/reviews/<FEATURE>.json`
+- `evidence/reviews/<FEATURE>.json` (obligatorio)
+- `evidence/reviews/<FEATURE>.md`
+- `evidence/mutation-reviews/<FEATURE>.json` (solo si la feature declara la
+  capability `mutation-testing`; el informe de mutación se pliega en este mismo
+  commit, no en uno adicional)
 
 La evidencia Windows, cuando sea obligatoria, debe corresponder exactamente a
 `reviewed_commit`.

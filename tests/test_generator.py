@@ -1845,6 +1845,139 @@ terms:
         self.assertIn("[SKIP]", verifier)
         self.assertIn("exit 0", verifier)
 
+    def test_role_guard_product_write_paths_are_profile_aware(self) -> None:
+        import importlib.util
+
+        def load_role_guard(project: Path):
+            scripts_dir = project / "scripts"
+            if str(scripts_dir) not in sys.path:
+                sys.path.insert(0, str(scripts_dir))
+            spec = importlib.util.spec_from_file_location(
+                f"role_guard_{project.name}", scripts_dir / "role_guard.py"
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+
+        def implementer_lease(project: Path) -> None:
+            state = json.loads((project / "state" / "project.json").read_text(encoding="utf-8"))
+            leases = Path(state["control_root"]) / "leases"
+            leases.mkdir(parents=True, exist_ok=True)
+            (leases / "F-001.json").write_text(
+                json.dumps(
+                    {"feature_id": "F-001", "role": "implementer", "worktree": str(project)}
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        def can_write(module, project: Path, relative: str) -> bool:
+            event = {"tool_input": {"file_path": str(project / relative)}}
+            allowed, _reason = module.validate_write_edit(project, event, "implementer")
+            return allowed
+
+        # Perfil android: layout product Python + app/ + gradle + docs de feature.
+        android = self.generate("android")
+        implementer_lease(android)
+        guard = load_role_guard(android)
+        for relative in (
+            "app/build.gradle.kts",
+            "settings.gradle.kts",
+            "build.gradle.kts",
+            "gradle/wrapper/gradle-wrapper.properties",
+            "src/x.py",
+            "tests/x.py",
+            "docs/10-architecture/adr/ADR-0002-stack.md",
+            "docs/20-runtime/notes.md",
+            "docs/30-quality/plan.md",
+            "docs/40-operations/runbook-x.md",
+        ):
+            with self.subTest(profile="android", allow=relative):
+                self.assertTrue(can_write(guard, android, relative))
+        for relative in (
+            "docs/00-project/overview.md",
+            "docs/90-generated/x.md",
+            "runtime/foo.txt",
+            ".claude/settings.json",
+        ):
+            with self.subTest(profile="android", block=relative):
+                self.assertFalse(can_write(guard, android, relative))
+
+        # Perfil python: docs de feature permitidos (base); app/ y Gradle bloqueados.
+        python = self.generate("python")
+        implementer_lease(python)
+        guard_python = load_role_guard(python)
+        for relative in (
+            "src/x.py",
+            "tests/x.py",
+            "docs/10-architecture/adr/ADR-0002-x.md",
+            "docs/40-operations/runbook-x.md",
+        ):
+            with self.subTest(profile="python", allow=relative):
+                self.assertTrue(can_write(guard_python, python, relative))
+        for relative in (
+            "app/build.gradle.kts",
+            "settings.gradle.kts",
+            "docs/00-project/overview.md",
+        ):
+            with self.subTest(profile="python", block=relative):
+                self.assertFalse(can_write(guard_python, python, relative))
+
+    def test_mutation_review_builder_and_validation(self) -> None:
+        import importlib.util
+
+        project = self.generate("python", "[mutation-testing]")
+        scripts_dir = project / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        spec = importlib.util.spec_from_file_location(
+            "mutation_review_validation_under_test", scripts_dir / "mutation_review_validation.py"
+        )
+        mrv = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mrv)
+
+        feature = {"id": "F-001"}
+        review_path = project / "evidence" / "mutation-reviews" / "F-001.json"
+        review_path.parent.mkdir(parents=True, exist_ok=True)
+
+        def write_and_validate(classifications, summary):
+            review = mrv.build_mutation_review(
+                feature_id="F-001",
+                reviewer_id="mutation-reviewer-1",
+                mutation_evidence="artifacts/mutation-tests/F-001/latest.json",
+                classifications=classifications,
+                summary=summary,
+                created_at="2026-06-23T00:00:00+00:00",
+            )
+            review_path.write_text(json.dumps(review), encoding="utf-8")
+            mrv.validate_mutation_review_evidence(project, feature)
+
+        # Superviviente equivalente (sin test_gap) -> valido.
+        write_and_validate(
+            ["MUT-001=equivalent:mutante en rama imposible de alcanzar"],
+            "Un superviviente equivalente, sin huecos de test.",
+        )
+
+        # Sin supervivientes -> valido.
+        write_and_validate([], "Sin supervivientes; nada que clasificar en esta feature.")
+
+        # test_gap -> la validacion debe fallar (el arreglo es anadir tests).
+        gap = mrv.build_mutation_review(
+            feature_id="F-001",
+            reviewer_id="mutation-reviewer-1",
+            mutation_evidence="artifacts/mutation-tests/F-001/latest.json",
+            classifications=["MUT-002=test_gap:falta cobertura real del branch afectado"],
+            summary="Hay un hueco de cobertura detectado por el mutante superviviente.",
+            created_at="2026-06-23T00:00:00+00:00",
+        )
+        review_path.write_text(json.dumps(gap), encoding="utf-8")
+        with self.assertRaises(mrv.MutationReviewValidationError):
+            mrv.validate_mutation_review_evidence(project, feature)
+
+        # Formato de clasificacion invalido.
+        with self.assertRaises(mrv.MutationReviewValidationError):
+            mrv.parse_classification_arg("MUT-003 sin separador")
+
     # --- capability remote-notifications ---
 
     REMOTE_NOTIFICATION_FILES = [

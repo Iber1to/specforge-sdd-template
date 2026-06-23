@@ -18,6 +18,7 @@ from control_common import (
     load_project_config,
     load_queue,
     load_runtime,
+    mutation_testing_required,
     queue_lock,
     save_queue,
     save_runtime,
@@ -44,6 +45,21 @@ def parse_arguments() -> argparse.Namespace:
         "--required-change",
         action="append",
         default=[],
+    )
+    # Solo se usan cuando la feature declara la capability mutation-testing y el
+    # veredicto es APPROVED; el informe de mutacion se pliega en el unico commit de QA.
+    parser.add_argument("--mutation-reviewer-id", default=None)
+    parser.add_argument("--mutation-summary", default=None)
+    parser.add_argument(
+        "--mutation-evidence",
+        default=None,
+        help="Ruta a la evidencia del mutation_runner (por defecto artifact_root/mutation-tests/<F>/latest.json).",
+    )
+    parser.add_argument(
+        "--mutation-classification",
+        action="append",
+        default=[],
+        help="Clasificacion de un superviviente: MUT-XXX=equivalent|out_of_scope|invalid|test_gap:motivo.",
     )
 
     return parser.parse_args()
@@ -130,6 +146,71 @@ def render_review_report(review: dict) -> str:
     )
 
 
+def write_mutation_review_evidence(
+    worktree: Path,
+    feature: dict,
+    arguments: argparse.Namespace,
+    artifact_root: Path,
+) -> Path:
+    """Construye, escribe y valida el informe de Mutation Reviewer.
+
+    Solo se invoca cuando la feature declara mutation-testing y el veredicto es
+    APPROVED. El fichero se pliega en el unico commit de evidencia de QA.
+    """
+
+    if __package__:
+        from .mutation_review_validation import (
+            MutationReviewValidationError,
+            build_mutation_review,
+            validate_mutation_review_evidence,
+        )
+    else:
+        from mutation_review_validation import (
+            MutationReviewValidationError,
+            build_mutation_review,
+            validate_mutation_review_evidence,
+        )
+
+    reviewer_id = (arguments.mutation_reviewer_id or "").strip()
+    if len(reviewer_id) < 3:
+        raise ControlPlaneError(
+            "La feature requiere mutation-testing: indica --mutation-reviewer-id"
+        )
+
+    mutation_summary = (arguments.mutation_summary or "").strip()
+    if len(mutation_summary) < 10:
+        raise ControlPlaneError(
+            "La feature requiere mutation-testing: indica --mutation-summary (>=10 caracteres)"
+        )
+
+    evidence_ref = arguments.mutation_evidence or str(
+        artifact_root / "mutation-tests" / feature["id"] / "latest.json"
+    )
+
+    try:
+        review = build_mutation_review(
+            feature_id=feature["id"],
+            reviewer_id=reviewer_id,
+            mutation_evidence=evidence_ref,
+            classifications=arguments.mutation_classification,
+            summary=mutation_summary,
+            created_at=utc_now(),
+        )
+    except MutationReviewValidationError as exc:
+        raise ControlPlaneError(str(exc)) from exc
+
+    review_path = worktree / "evidence" / "mutation-reviews" / f"{feature['id']}.json"
+    review_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_json(review_path, review)
+
+    try:
+        validate_mutation_review_evidence(worktree, feature)
+    except MutationReviewValidationError as exc:
+        raise ControlPlaneError(str(exc)) from exc
+
+    return review_path
+
+
 def create_and_commit_review(
     worktree: Path,
     feature: dict,
@@ -140,6 +221,8 @@ def create_and_commit_review(
     verification_result: subprocess.CompletedProcess[str],
     verification_log: Path,
     verification_command: str,
+    arguments: argparse.Namespace,
+    artifact_root: Path,
 ) -> tuple[Path, str]:
     review_path = worktree / "evidence" / "reviews" / f"{feature['id']}.json"
 
@@ -165,6 +248,14 @@ def create_and_commit_review(
     report_path = worktree / "evidence" / "reviews" / f"{feature['id']}.md"
     report_path.write_text(render_review_report(review), encoding="utf-8")
 
+    # Solo features con mutation-testing y veredicto APPROVED: el informe de
+    # mutacion viaja en este mismo (unico) commit de evidencia de QA.
+    mutation_review_path: Path | None = None
+    if verdict == "APPROVED" and mutation_testing_required(feature):
+        mutation_review_path = write_mutation_review_evidence(
+            worktree, feature, arguments, artifact_root
+        )
+
     validate_review_evidence(
         worktree,
         feature,
@@ -173,6 +264,8 @@ def create_and_commit_review(
 
     run_git(worktree, "add", str(review_path.relative_to(worktree)))
     run_git(worktree, "add", str(report_path.relative_to(worktree)))
+    if mutation_review_path is not None:
+        run_git(worktree, "add", str(mutation_review_path.relative_to(worktree)))
     run_git(
         worktree,
         "commit",
@@ -248,6 +341,8 @@ def main() -> int:
             verification_result=result,
             verification_log=log_path,
             verification_command=command,
+            arguments=arguments,
+            artifact_root=Path(config["artifact_root"]).resolve(),
         )
 
         with queue_lock():

@@ -48,5 +48,21 @@ Si falta cualquiera de estos datos, responde `BLOCKED`.
 
 ## Salida
 
-Entrega un informe estructurado compatible con
-`specs/schemas/mutation-review.schema.json` para que el harness lo valide.
+Entrega, para cada mutante superviviente, una línea de clasificación en el formato
+que consume `complete_review.py`:
+
+```
+MUT-001=equivalent:motivo de al menos diez caracteres
+MUT-002=out_of_scope:motivo ...
+```
+
+Clasificaciones válidas: `equivalent`, `out_of_scope`, `invalid`, `test_gap`.
+El Leader pasa estas líneas al QA Reviewer, que las entrega a
+`complete_review.py --mutation-classification ...` junto con
+`--mutation-reviewer-id` y `--mutation-summary`. El harness construye el informe,
+lo valida contra `specs/schemas/mutation-review.schema.json` y lo pliega en el
+único commit de evidencia de QA. Si hay algún `test_gap`, la validación falla y la
+feature no puede aprobarse: el camino correcto es añadir tests, no reclasificar.
+
+Si no hay supervivientes, entrega cero líneas y un resumen indicándolo.
+

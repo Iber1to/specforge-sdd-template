@@ -74,3 +74,60 @@ def validate_mutation_review_evidence(
         )
 
     return review
+
+
+def parse_classification_arg(raw: str) -> dict[str, str]:
+    """Convierte 'MUT-001=clasificacion:motivo' en una clasificacion del informe.
+
+    El motivo puede contener ':' adicionales (solo se separa en el primero).
+    """
+
+    text = raw.strip()
+
+    if "=" not in text:
+        raise MutationReviewValidationError(
+            f"Clasificacion invalida (formato esperado MUT-XXX=clase:motivo): {raw}"
+        )
+
+    mutant_id, rest = text.split("=", 1)
+
+    if ":" not in rest:
+        raise MutationReviewValidationError(
+            f"Clasificacion invalida (falta ':motivo'): {raw}"
+        )
+
+    classification, rationale = rest.split(":", 1)
+
+    return {
+        "mutant_id": mutant_id.strip(),
+        "classification": classification.strip(),
+        "rationale": rationale.strip(),
+    }
+
+
+def build_mutation_review(
+    *,
+    feature_id: str,
+    reviewer_id: str,
+    mutation_evidence: str,
+    classifications: list[str],
+    summary: str,
+    created_at: str,
+) -> dict[str, Any]:
+    """Construye el informe de Mutation Reviewer desde las clasificaciones del revisor.
+
+    No valida contra el esquema; el llamante escribe el informe y luego usa
+    validate_mutation_review_evidence para validarlo de forma determinista.
+    """
+
+    return {
+        "schema_version": 1,
+        "feature_id": feature_id,
+        "reviewer_id": reviewer_id,
+        "mutation_evidence": mutation_evidence,
+        "survivor_classifications": [
+            parse_classification_arg(item) for item in classifications
+        ],
+        "summary": summary,
+        "created_at": created_at,
+    }

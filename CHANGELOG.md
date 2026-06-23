@@ -103,6 +103,31 @@ Harness fixes backported on 2026-06-11 from the `poker-assistant` pilot
   `profiles/android/README.md`, `docs/profile-capability-matrix.md` and a
   generated `docs/20-runtime/android-environment.md`.
 
+- Regression test `test_role_guard_product_write_paths_are_profile_aware`
+  (`tests/test_generator.py`) covering the two Role Guard write-policy gaps found
+  on the `pokecards` pilot: it loads a generated project's `role_guard.py`, creates
+  an implementer lease, and asserts that a product implementer may write `app/`,
+  the root Gradle files and the feature documentation subtrees
+  (`docs/10-architecture/adr/`, `20-runtime`, `30-quality`, `40-operations`) in an
+  `android` project, that `docs/00-project/` and `runtime/` (non-`runtime/external`)
+  stay blocked, and that a `python` project blocks the Android paths while still
+  allowing the documentation subtrees. These gaps had slipped because Role Guard
+  runs as a Claude Code hook, outside the deterministic lifecycle the E2E exercises.
+
+- `mutation-testing` is now finalizable end-to-end (closes the gap that forced
+  removing the capability on the `pokecards` pilot). The Mutation Reviewer emits
+  per-mutant classifications (`MUT-XXX=class:rationale`); QA runs `mutation_runner.py`
+  in the worktree (added to the QA harness-script allowlist) and passes the
+  classifications to `complete_review.py` via `--mutation-classification`
+  (+`--mutation-reviewer-id`/`--mutation-summary`). `complete_review.py` builds and
+  validates the report (`mutation_review_validation.build_mutation_review`), writes
+  `evidence/mutation-reviews/<F>.json` and folds it into the **single** QA evidence
+  commit; `finalize_feature.py` and the finalization contract now allow that path in
+  that commit. All of this is gated behind `mutation_testing_required(feature)`, so
+  features without the capability are unaffected. A `test_gap` classification fails
+  validation (the fix is more tests, not reclassification). Covered by
+  `test_mutation_review_builder_and_validation`.
+
 - Hermetic harness tests for the two fixes above, copied into generated
   projects from `core/tests/harness/`: `test_lease_invariant.py` and
   `test_worktree_resync.py` (unit + subprocess E2E against temporary Git

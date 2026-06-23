@@ -126,6 +126,26 @@ uv run python scripts/complete_review.py \
   --summary "<resumen concreto de aprobación>"
 ```
 
+Si la feature declara la capability `mutation-testing`, antes de aprobar ejecuta
+el runner en el worktree y pliega el informe de la Mutation Reviewer en el mismo
+comando, añadiendo las clasificaciones que te entregue el Leader:
+
+```bash
+uv run python scripts/mutation_runner.py --feature <FEATURE> \
+  --output <ARTIFACT_ROOT>/mutation-tests/<FEATURE>/latest.json
+# ...luego, en el mismo complete_review.py de APPROVED:
+uv run python scripts/complete_review.py \
+  --feature <FEATURE> --agent-id <AGENT_ID> --verdict APPROVED \
+  --summary "<resumen>" \
+  --mutation-reviewer-id <ID_REVISOR> \
+  --mutation-summary "<resumen de mutacion>" \
+  --mutation-classification MUT-001=equivalent:motivo \
+  --mutation-classification MUT-002=out_of_scope:motivo
+```
+
+Un `test_gap` hace fallar la validación: no apruebes, devuelve CHANGES_REQUESTED
+para que se añadan tests.
+
 Después responde únicamente:
 
 ```text
