@@ -92,9 +92,7 @@ def parse_classification_arg(raw: str) -> dict[str, str]:
     mutant_id, rest = text.split("=", 1)
 
     if ":" not in rest:
-        raise MutationReviewValidationError(
-            f"Clasificacion invalida (falta ':motivo'): {raw}"
-        )
+        raise MutationReviewValidationError(f"Clasificacion invalida (falta ':motivo'): {raw}")
 
     classification, rationale = rest.split(":", 1)
 
@@ -125,9 +123,7 @@ def build_mutation_review(
         "feature_id": feature_id,
         "reviewer_id": reviewer_id,
         "mutation_evidence": mutation_evidence,
-        "survivor_classifications": [
-            parse_classification_arg(item) for item in classifications
-        ],
+        "survivor_classifications": [parse_classification_arg(item) for item in classifications],
         "summary": summary,
         "created_at": created_at,
     }

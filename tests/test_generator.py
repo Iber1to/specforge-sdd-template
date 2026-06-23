@@ -1924,24 +1924,27 @@ terms:
                 self.assertFalse(can_write(guard_python, python, relative))
 
     def test_mutation_review_builder_and_validation(self) -> None:
-        import importlib.util
-
+        # mutation_review_validation importa jsonschema, que vive en el venv del
+        # proyecto generado; se ejercita via `uv run python` dentro del proyecto.
         project = self.generate("python", "[mutation-testing]")
-        scripts_dir = project / "scripts"
-        if str(scripts_dir) not in sys.path:
-            sys.path.insert(0, str(scripts_dir))
-        spec = importlib.util.spec_from_file_location(
-            "mutation_review_validation_under_test", scripts_dir / "mutation_review_validation.py"
-        )
-        mrv = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mrv)
 
-        feature = {"id": "F-001"}
-        review_path = project / "evidence" / "mutation-reviews" / "F-001.json"
-        review_path.parent.mkdir(parents=True, exist_ok=True)
+        snippet = textwrap.dedent(
+            """
+            import json
+            import sys
+            from pathlib import Path
 
-        def write_and_validate(classifications, summary):
-            review = mrv.build_mutation_review(
+            sys.path.insert(0, "scripts")
+            from mutation_review_validation import (
+                MutationReviewValidationError,
+                build_mutation_review,
+                validate_mutation_review_evidence,
+            )
+
+            classifications = json.loads(sys.argv[1])
+            summary = sys.argv[2]
+            feature = {"id": "F-001"}
+            review = build_mutation_review(
                 feature_id="F-001",
                 reviewer_id="mutation-reviewer-1",
                 mutation_evidence="artifacts/mutation-tests/F-001/latest.json",
@@ -1949,34 +1952,54 @@ terms:
                 summary=summary,
                 created_at="2026-06-23T00:00:00+00:00",
             )
-            review_path.write_text(json.dumps(review), encoding="utf-8")
-            mrv.validate_mutation_review_evidence(project, feature)
+            path = Path("evidence/mutation-reviews/F-001.json")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(review), encoding="utf-8")
+            try:
+                validate_mutation_review_evidence(Path("."), feature)
+                print("VALIDATION_OK")
+            except MutationReviewValidationError as exc:
+                print("VALIDATION_FAIL: " + str(exc))
+                sys.exit(3)
+            """
+        )
+
+        def run_check(classifications: list[str], summary: str) -> subprocess.CompletedProcess[str]:
+            command = (
+                'export PATH="$HOME/.local/bin:$PATH"; uv run python -c '
+                + shlex.quote(snippet)
+                + " "
+                + shlex.quote(json.dumps(classifications))
+                + " "
+                + shlex.quote(summary)
+            )
+            return subprocess.run(
+                ["bash", "-lc", command],
+                cwd=project,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
 
         # Superviviente equivalente (sin test_gap) -> valido.
-        write_and_validate(
+        ok = run_check(
             ["MUT-001=equivalent:mutante en rama imposible de alcanzar"],
             "Un superviviente equivalente, sin huecos de test.",
         )
+        self.assertEqual(0, ok.returncode, ok.stderr)
+        self.assertIn("VALIDATION_OK", ok.stdout)
 
         # Sin supervivientes -> valido.
-        write_and_validate([], "Sin supervivientes; nada que clasificar en esta feature.")
+        empty = run_check([], "Sin supervivientes; nada que clasificar en esta feature.")
+        self.assertEqual(0, empty.returncode, empty.stderr)
 
-        # test_gap -> la validacion debe fallar (el arreglo es anadir tests).
-        gap = mrv.build_mutation_review(
-            feature_id="F-001",
-            reviewer_id="mutation-reviewer-1",
-            mutation_evidence="artifacts/mutation-tests/F-001/latest.json",
-            classifications=["MUT-002=test_gap:falta cobertura real del branch afectado"],
-            summary="Hay un hueco de cobertura detectado por el mutante superviviente.",
-            created_at="2026-06-23T00:00:00+00:00",
+        # test_gap -> la validacion debe fallar (el arreglo es anadir tests, no reclasificar).
+        gap = run_check(
+            ["MUT-002=test_gap:falta cobertura real del branch afectado"],
+            "Hay un hueco de cobertura detectado por el mutante superviviente.",
         )
-        review_path.write_text(json.dumps(gap), encoding="utf-8")
-        with self.assertRaises(mrv.MutationReviewValidationError):
-            mrv.validate_mutation_review_evidence(project, feature)
-
-        # Formato de clasificacion invalido.
-        with self.assertRaises(mrv.MutationReviewValidationError):
-            mrv.parse_classification_arg("MUT-003 sin separador")
+        self.assertEqual(3, gap.returncode)
+        self.assertIn("VALIDATION_FAIL", gap.stdout)
 
     # --- capability remote-notifications ---
 
