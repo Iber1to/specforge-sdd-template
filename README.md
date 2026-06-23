@@ -4,11 +4,11 @@ Template reutilizable que **genera proyectos con un harness agentico de
 Spec-Driven Development** para Claude Code: roles gobernados, plano de control
 durable, Role Guard, quality gates y capabilities opcionales.
 
-![status](https://img.shields.io/badge/status-v1.0--internal-blue)
+![status](https://img.shields.io/badge/status-v2.0.0-blue)
 ![ci](https://github.com/Iber1to/specforge-sdd-template/actions/workflows/ci-cd.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.12-blue)
 ![platform](https://img.shields.io/badge/platform-linux-lightgrey)
-![tests](https://img.shields.io/badge/tests-60%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-62%20passing-brightgreen)
 ![license](https://img.shields.io/badge/license-TBD-lightgrey)
 
 > **Usa este repo como plantilla:** marcalo como *Template Repository* en
@@ -152,12 +152,12 @@ Guia completa (incluido `mosh`, observacion y recuperacion) en
 
 ## Estado
 
-`v1.0-internal` (2026-06-07). Estable: perfiles `generic`/`python`/`node`/`android`,
+`v2.0.0` (2026-06-23). Estable: perfiles `generic`/`python`/`node`/`android`,
 workflow + Role Guard + gates + plano de control, y capabilities
 `documentation-pack`, `mutation-testing` (python), `performance-testing`,
 `security-scanning`, `git-publish`, `external-runtime`. Experimental:
 `windows-validation` (codigo listo y cubierto offline; pendiente validar en
-Windows real). Nuevo (sin release): `remote-notifications` (Telegram),
+Windows real). Incorporado en v2.0.0: `remote-notifications` (Telegram),
 `eval-harness` (graders ejecutables por escenario `SCN-XXX`), `tool-telemetry`
 (telemetria de herramientas en JSONL), informe QA en Markdown, y endurecimiento
 de los agentes (defensa anti-inyeccion, guard de estado reinyectado,

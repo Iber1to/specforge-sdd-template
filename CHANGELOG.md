@@ -5,6 +5,18 @@ Changelog; the project uses Conventional Commits.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-23
+
+Cierre del harness multi-stack y del perfil `android`. Novedades mayores desde
+`v1.0-internal`: nuevo perfil **Android** (Kotlin/Gradle); **Role Guard
+profile-aware** (autoriza `app/`+Gradle para android y los subtrees de
+documentación de feature para producto); **mutation-testing finalizable**
+end-to-end (informe plegado en el commit único de QA); y las adopciones
+ECC/agency-agents (eval-harness, prompt-defense, stale-replay guard,
+iterative-retrieval, tool-telemetry, QA pre-report gate, plantillas de informe).
+Validado en un piloto real (proyectos PokeCards: app Android + backend de
+scraping, ambos al 100% de features). CI en verde.
+
 ### Added
 
 - Capability `eval-harness`: convierte los escenarios `SCN-XXX` de cada feature en
