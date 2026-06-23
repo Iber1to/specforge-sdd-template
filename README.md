@@ -8,7 +8,7 @@ durable, Role Guard, quality gates y capabilities opcionales.
 ![ci](https://github.com/Iber1to/specforge-sdd-template/actions/workflows/ci-cd.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.12-blue)
 ![platform](https://img.shields.io/badge/platform-linux-lightgrey)
-![tests](https://img.shields.io/badge/tests-48%20passing-brightgreen)
+![tests](https://img.shields.io/badge/tests-60%20passing-brightgreen)
 ![license](https://img.shields.io/badge/license-TBD-lightgrey)
 
 > **Usa este repo como plantilla:** marcalo como *Template Repository* en
@@ -75,11 +75,12 @@ Detalle completo, configuracion, primera feature y **modo semiautomatico** en
 
 ## Perfiles y capabilities
 
-| Perfil | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish | remote-notifications |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| generic | si | no | si | opcional | si | si | si | opcional |
-| python | si | si | si | opcional | si | si | si | opcional |
-| node | si | no (futuro) | si | opcional | si | si | si | opcional |
+| Perfil | documentation-pack | mutation-testing | external-runtime | windows-validation | performance-testing | security-scanning | git-publish | remote-notifications | eval-harness | tool-telemetry |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| generic | si | no | si | opcional | si | si | si | opcional | opcional | opcional |
+| python | si | si | si | opcional | si | si | si | opcional | opcional | opcional |
+| node | si | no (futuro) | si | opcional | si | si | si | opcional | opcional | opcional |
+| android | si | no | si | opcional | si | si | si | opcional | opcional | opcional |
 
 `documentation-pack` se incluye siempre. Detalle y reglas en
 [`docs/profile-capability-matrix.md`](docs/profile-capability-matrix.md).
@@ -90,7 +91,7 @@ Detalle completo, configuracion, primera feature y **modo semiautomatico** en
 
 ```text
 core/            harness comun que se copia a cada proyecto generado
-profiles/        adaptadores de stack: generic, python, node
+profiles/        adaptadores de stack: generic, python, node, android
 capabilities/    capacidades opcionales (security, performance, mutation, ...)
 generator/       notas del generador determinista
 docs/            documentacion del template
@@ -136,6 +137,8 @@ Guia completa (incluido `mosh`, observacion y recuperacion) en
 | [leader-operation.md](docs/leader-operation.md) | Operar el leader persistente y autonomo |
 | [ci-cd.md](docs/ci-cd.md) | Ciclo CI/CD, checks, release y configuracion GitHub |
 | [profile-capability-matrix.md](docs/profile-capability-matrix.md) | Combinaciones perfil x capability |
+| [quality-and-capabilities.md](docs/quality-and-capabilities.md) | Quality gates y todas las capabilities opcionales |
+| [adr-0002-eval-harness-verification-gate.md](docs/adr-0002-eval-harness-verification-gate.md) | Decision: eval-harness como puerta de verificacion trazable |
 | [real-validation-runbook.md](docs/real-validation-runbook.md) | Validacion real Windows / SSH |
 | [architecture/harness-contract.md](core/docs/architecture/harness-contract.md) | Contrato operativo del harness |
 | [architecture/role-guard.md](core/docs/architecture/role-guard.md) | Role Guard y resolucion de rol |
@@ -149,13 +152,22 @@ Guia completa (incluido `mosh`, observacion y recuperacion) en
 
 ## Estado
 
-`v1.0-internal` (2026-06-07). Estable: perfiles `generic`/`python`/`node`,
+`v1.0-internal` (2026-06-07). Estable: perfiles `generic`/`python`/`node`/`android`,
 workflow + Role Guard + gates + plano de control, y capabilities
 `documentation-pack`, `mutation-testing` (python), `performance-testing`,
 `security-scanning`, `git-publish`, `external-runtime`. Experimental:
 `windows-validation` (codigo listo y cubierto offline; pendiente validar en
-Windows real). Nuevo (sin release): `remote-notifications` (avisos Telegram y
-gateway bidireccional para el leader). Ver [`CHANGELOG.md`](CHANGELOG.md) para el historial y
+Windows real). Nuevo (sin release): `remote-notifications` (Telegram),
+`eval-harness` (graders ejecutables por escenario `SCN-XXX`), `tool-telemetry`
+(telemetria de herramientas en JSONL), informe QA en Markdown, y endurecimiento
+de los agentes (defensa anti-inyeccion, guard de estado reinyectado,
+recuperacion de contexto iterativa y QA con pre-report gate) — adoptados de
+ECC/agency-agents. El perfil `android` (Kotlin/Gradle) se valido en un piloto real
+(proyectos PokeCards): Role Guard *profile-aware* (autoriza el modulo `app/`, el
+wrapper `gradle/` y los Gradle de raiz para producto android, y los subtrees de
+documentacion de feature bajo `docs/` para cualquier perfil), build Android real
+via `external-runtime` (`android-assemble`/`android-unit-tests`) y gates Android en
+modo observe. Ver [`CHANGELOG.md`](CHANGELOG.md) para el historial y
 [`roadmap.md`](docs/roadmap.md) para lo que viene (Now / Next / Later).
 
 ---

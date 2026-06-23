@@ -51,7 +51,15 @@ Perfiles soportados:
 
 Capacidades soportadas:
 
+- `documentation-pack` (incluida por defecto)
+- `eval-harness`
+- `external-runtime`
+- `git-publish`
 - `mutation-testing`
+- `performance-testing`
+- `remote-notifications`
+- `security-scanning`
+- `tool-telemetry`
 - `windows-validation`
 
 El generador falla si recibe perfiles o capacidades desconocidos.

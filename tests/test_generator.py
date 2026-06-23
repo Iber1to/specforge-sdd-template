@@ -705,6 +705,13 @@ class GeneratorTests(unittest.TestCase):
             "--summary",
             "Deterministic lifecycle fixture approved after full gates.",
         )
+
+        review_report = worktree / "evidence" / "reviews" / "F-001.md"
+        self.assertTrue(review_report.is_file())
+        report_text = review_report.read_text(encoding="utf-8")
+        self.assertIn("# QA Review Report - F-001", report_text)
+        self.assertIn("| Veredicto | APPROVED |", report_text)
+
         self.harness_python(
             output,
             "scripts/finalize_feature.py",
@@ -1141,6 +1148,185 @@ class GeneratorTests(unittest.TestCase):
         evidence = self.read_capability_evidence(state, "security-scanning")
         self.assertIn("SEC-NODE-INSTALL-HOOK", {item["id"] for item in evidence["findings"]})
 
+    def test_generates_eval_harness_capability(self) -> None:
+        output = self.generate("generic", "[eval-harness]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        gates = json.loads((output / "state" / "quality-gates.json").read_text(encoding="utf-8"))
+        gates_by_id = {gate["id"]: gate for gate in gates["gates"]}
+
+        self.assertIn("eval-harness", state["capabilities"])
+        self.assertTrue((output / "scripts" / "run_evals.py").is_file())
+        self.assertTrue((output / "scripts" / "validate_eval_result.py").is_file())
+        self.assertTrue((output / "state" / "capabilities" / "eval-harness.json").is_file())
+        self.assertTrue(
+            (output / "specs" / "schemas" / "eval-result.schema.json").is_file()
+        )
+        self.assertEqual("observe", gates_by_id["EVAL-001"]["mode"])
+        self.assertFalse(gates_by_id["EVAL-001"]["blocking"])
+
+    def write_evals(self, output: Path, graders: list[dict]) -> None:
+        feature_dir = output / "specs" / "features" / "F-001"
+        feature_dir.mkdir(parents=True, exist_ok=True)
+        (feature_dir / "evals.json").write_text(
+            json.dumps(
+                {"schema_version": 1, "feature_id": "F-001", "graders": graders},
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    def test_eval_harness_runs_code_and_rule_graders(self) -> None:
+        output = self.generate("generic", "[eval-harness]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.write_evals(
+            output,
+            [
+                {
+                    "id": "G-001",
+                    "scenario": "SCN-001",
+                    "type": "code",
+                    "command": ["python3", "-c", "import sys; sys.exit(0)"],
+                    "gate": True,
+                    "release_critical": True,
+                },
+                {
+                    "id": "G-002",
+                    "scenario": "SCN-002",
+                    "type": "rule",
+                    "rule": {"kind": "file_exists", "path": "state/project.json"},
+                    "gate": True,
+                },
+                {
+                    "id": "G-003",
+                    "scenario": "SCN-003",
+                    "type": "model",
+                    "rubric": "La salida explica el rango.",
+                    "gate": False,
+                },
+            ],
+        )
+
+        self.harness_python(
+            output, "scripts/run_evals.py", "--feature", "F-001", "--scope", "repository"
+        )
+        evidence = self.read_capability_evidence(state, "eval-harness")
+
+        self.assertEqual("eval-harness", evidence["gate_id"])
+        self.assertEqual("PASSED", evidence["status"])
+        self.assertEqual(2, evidence["eval_summary"]["passed"])
+        self.assertEqual(1, evidence["eval_summary"]["advisory"])
+        checks = {item["id"]: item for item in evidence["checks"]}
+        self.assertTrue(checks["G-001"]["pass_caret_k"])
+        self.assertEqual("SKIPPED", checks["G-003"]["status"])
+
+    def test_eval_harness_enforce_blocks_on_failure(self) -> None:
+        output = self.generate("generic", "[eval-harness]")
+        policy_path = output / "state" / "capabilities" / "eval-harness.json"
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        policy["mode"] = "enforce"
+        policy_path.write_text(json.dumps(policy, indent=2) + "\n", encoding="utf-8")
+        self.write_evals(
+            output,
+            [
+                {
+                    "id": "G-001",
+                    "scenario": "SCN-001",
+                    "type": "code",
+                    "command": ["python3", "-c", "import sys; sys.exit(1)"],
+                    "gate": True,
+                }
+            ],
+        )
+
+        result = self.run_unchecked_harness(
+            output, "scripts/run_evals.py --feature F-001 --scope repository"
+        )
+        self.assertEqual(2, result.returncode)
+
+    def test_start_implementation_blocks_after_max_qa_attempts(self) -> None:
+        output = self.generate("generic")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+        self.assertEqual(3, state["maximum_qa_attempts"])
+
+        self.harness_python(
+            output,
+            "scripts/register_feature.py",
+            "--title",
+            "Retry Cap",
+            "--slug",
+            "retry-cap",
+            "--description",
+            "QA retry cap fixture.",
+        )
+
+        queue_path = Path(state["control_root"]) / "queue.json"
+        queue = json.loads(queue_path.read_text(encoding="utf-8"))
+        feature = next(item for item in queue["features"] if item["id"] == "F-001")
+        feature["state"] = "CHANGES_REQUESTED"
+        feature["qa_attempts"] = 3
+        queue_path.write_text(json.dumps(queue, indent=2) + "\n", encoding="utf-8")
+
+        result = self.run_unchecked_harness(
+            output, "scripts/start_implementation.py --feature F-001 --agent-id impl-cap"
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("intentos de QA", result.stderr)
+
+    def test_tool_telemetry_records_and_scrubs(self) -> None:
+        output = self.generate("generic", "[tool-telemetry]")
+        state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
+
+        self.assertIn("tool-telemetry", state["capabilities"])
+        self.assertTrue((output / "scripts" / "tool_telemetry_hook.py").is_file())
+        self.assertTrue(
+            (output / "state" / "capabilities" / "tool-telemetry.json").is_file()
+        )
+
+        payload = json.dumps(
+            {
+                "hook_event_name": "PreToolUse",
+                "tool_name": "Bash",
+                "session_id": "s1",
+                "agent_type": "implementer",
+                "tool_input": {"command": "deploy --token=SECRET123456 now"},
+            }
+        )
+        result = subprocess.run(
+            ["bash", "scripts/hook_entrypoint.sh", "tool_telemetry"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            input=payload,
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(output)},
+        )
+        self.assertEqual(0, result.returncode)
+
+        telemetry_dir = (
+            Path(state["artifact_root"]) / "capabilities" / "tool-telemetry"
+        )
+        files = list(telemetry_dir.glob("observations-*.jsonl"))
+        self.assertEqual(1, len(files))
+        content = files[0].read_text(encoding="utf-8")
+        self.assertIn('"tool": "Bash"', content)
+        self.assertIn("[REDACTED]", content)
+        self.assertNotIn("SECRET123456", content)
+
+    def test_tool_telemetry_noop_without_capability(self) -> None:
+        output = self.generate("generic")
+        self.assertFalse((output / "scripts" / "tool_telemetry_hook.py").exists())
+        result = subprocess.run(
+            ["bash", "scripts/hook_entrypoint.sh", "tool_telemetry"],
+            cwd=output,
+            check=False,
+            text=True,
+            capture_output=True,
+            input="{}",
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(output)},
+        )
+        self.assertEqual(0, result.returncode)
+
     def test_performance_gate_updates_baseline(self) -> None:
         output = self.generate("generic", "[performance-testing]")
         state = json.loads((output / "state" / "project.json").read_text(encoding="utf-8"))
@@ -1268,6 +1454,7 @@ class GeneratorTests(unittest.TestCase):
             "docs/30-quality/mutation-testing.md",
             "docs/30-quality/performance-testing.md",
             "docs/30-quality/security-scanning.md",
+            "docs/30-quality/eval-harness.md",
             "docs/30-quality/threat-model.md",
             "docs/30-quality/data-classification.md",
             "docs/40-operations/runbook.md",
@@ -1657,6 +1844,162 @@ terms:
         self.assertIn("command -v gradle", verifier)
         self.assertIn("[SKIP]", verifier)
         self.assertIn("exit 0", verifier)
+
+    def test_role_guard_product_write_paths_are_profile_aware(self) -> None:
+        import importlib.util
+
+        def load_role_guard(project: Path):
+            scripts_dir = project / "scripts"
+            if str(scripts_dir) not in sys.path:
+                sys.path.insert(0, str(scripts_dir))
+            spec = importlib.util.spec_from_file_location(
+                f"role_guard_{project.name}", scripts_dir / "role_guard.py"
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+
+        def implementer_lease(project: Path) -> None:
+            state = json.loads((project / "state" / "project.json").read_text(encoding="utf-8"))
+            leases = Path(state["control_root"]) / "leases"
+            leases.mkdir(parents=True, exist_ok=True)
+            (leases / "F-001.json").write_text(
+                json.dumps(
+                    {"feature_id": "F-001", "role": "implementer", "worktree": str(project)}
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        def can_write(module, project: Path, relative: str) -> bool:
+            event = {"tool_input": {"file_path": str(project / relative)}}
+            allowed, _reason = module.validate_write_edit(project, event, "implementer")
+            return allowed
+
+        # Perfil android: layout product Python + app/ + gradle + docs de feature.
+        android = self.generate("android")
+        implementer_lease(android)
+        guard = load_role_guard(android)
+        for relative in (
+            "app/build.gradle.kts",
+            "settings.gradle.kts",
+            "build.gradle.kts",
+            "gradle/wrapper/gradle-wrapper.properties",
+            "src/x.py",
+            "tests/x.py",
+            "docs/10-architecture/adr/ADR-0002-stack.md",
+            "docs/20-runtime/notes.md",
+            "docs/30-quality/plan.md",
+            "docs/40-operations/runbook-x.md",
+        ):
+            with self.subTest(profile="android", allow=relative):
+                self.assertTrue(can_write(guard, android, relative))
+        for relative in (
+            "docs/00-project/overview.md",
+            "docs/90-generated/x.md",
+            "runtime/foo.txt",
+            ".claude/settings.json",
+        ):
+            with self.subTest(profile="android", block=relative):
+                self.assertFalse(can_write(guard, android, relative))
+
+        # Perfil python: docs de feature permitidos (base); app/ y Gradle bloqueados.
+        python = self.generate("python")
+        implementer_lease(python)
+        guard_python = load_role_guard(python)
+        for relative in (
+            "src/x.py",
+            "tests/x.py",
+            "docs/10-architecture/adr/ADR-0002-x.md",
+            "docs/40-operations/runbook-x.md",
+        ):
+            with self.subTest(profile="python", allow=relative):
+                self.assertTrue(can_write(guard_python, python, relative))
+        for relative in (
+            "app/build.gradle.kts",
+            "settings.gradle.kts",
+            "docs/00-project/overview.md",
+        ):
+            with self.subTest(profile="python", block=relative):
+                self.assertFalse(can_write(guard_python, python, relative))
+
+    def test_mutation_review_builder_and_validation(self) -> None:
+        # mutation_review_validation importa jsonschema, que vive en el venv del
+        # proyecto generado; se ejercita via `uv run python` dentro del proyecto.
+        project = self.generate("python", "[mutation-testing]")
+
+        snippet = textwrap.dedent(
+            """
+            import json
+            import sys
+            from pathlib import Path
+
+            sys.path.insert(0, "scripts")
+            from mutation_review_validation import (
+                MutationReviewValidationError,
+                build_mutation_review,
+                validate_mutation_review_evidence,
+            )
+
+            classifications = json.loads(sys.argv[1])
+            summary = sys.argv[2]
+            feature = {"id": "F-001"}
+            review = build_mutation_review(
+                feature_id="F-001",
+                reviewer_id="mutation-reviewer-1",
+                mutation_evidence="artifacts/mutation-tests/F-001/latest.json",
+                classifications=classifications,
+                summary=summary,
+                created_at="2026-06-23T00:00:00+00:00",
+            )
+            path = Path("evidence/mutation-reviews/F-001.json")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(review), encoding="utf-8")
+            try:
+                validate_mutation_review_evidence(Path("."), feature)
+                print("VALIDATION_OK")
+            except MutationReviewValidationError as exc:
+                print("VALIDATION_FAIL: " + str(exc))
+                sys.exit(3)
+            """
+        )
+
+        def run_check(classifications: list[str], summary: str) -> subprocess.CompletedProcess[str]:
+            command = (
+                'export PATH="$HOME/.local/bin:$PATH"; uv run python -c '
+                + shlex.quote(snippet)
+                + " "
+                + shlex.quote(json.dumps(classifications))
+                + " "
+                + shlex.quote(summary)
+            )
+            return subprocess.run(
+                ["bash", "-lc", command],
+                cwd=project,
+                check=False,
+                text=True,
+                capture_output=True,
+            )
+
+        # Superviviente equivalente (sin test_gap) -> valido.
+        ok = run_check(
+            ["MUT-001=equivalent:mutante en rama imposible de alcanzar"],
+            "Un superviviente equivalente, sin huecos de test.",
+        )
+        self.assertEqual(0, ok.returncode, ok.stderr)
+        self.assertIn("VALIDATION_OK", ok.stdout)
+
+        # Sin supervivientes -> valido.
+        empty = run_check([], "Sin supervivientes; nada que clasificar en esta feature.")
+        self.assertEqual(0, empty.returncode, empty.stderr)
+
+        # test_gap -> la validacion debe fallar (el arreglo es anadir tests, no reclasificar).
+        gap = run_check(
+            ["MUT-002=test_gap:falta cobertura real del branch afectado"],
+            "Hay un hueco de cobertura detectado por el mutante superviviente.",
+        )
+        self.assertEqual(3, gap.returncode)
+        self.assertIn("VALIDATION_FAIL", gap.stdout)
 
     # --- capability remote-notifications ---
 

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "capability": "tool-telemetry",
+  "files": [
+    {
+      "source": "scripts/tool_telemetry_hook.py",
+      "target": "scripts/tool_telemetry_hook.py"
+    },
+    {
+      "source": "state/capabilities/tool-telemetry.json",
+      "target": "state/capabilities/tool-telemetry.json"
+    }
+  ]
+}

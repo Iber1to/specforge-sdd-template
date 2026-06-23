@@ -18,6 +18,7 @@ from control_common import (
     load_project_config,
     load_queue,
     load_runtime,
+    mutation_testing_required,
     queue_lock,
     save_queue,
     save_runtime,
@@ -166,14 +167,23 @@ def validate_qa_chain(
             f"se detectaron {additional_commits}"
         )
 
-    expected_review_path = f"evidence/reviews/{feature['id']}.json"
+    required_review_path = f"evidence/reviews/{feature['id']}.json"
+    allowed_review_paths = {
+        required_review_path,
+        f"evidence/reviews/{feature['id']}.md",
+    }
+    # Features con mutation-testing pliegan su informe en el mismo commit de QA.
+    if mutation_testing_required(feature):
+        allowed_review_paths.add(f"evidence/mutation-reviews/{feature['id']}.json")
     modifications = changed_files(
         worktree,
         reviewed_commit,
         branch_head,
     )
 
-    if modifications != [expected_review_path]:
+    unexpected = [path for path in modifications if path not in allowed_review_paths]
+
+    if unexpected or required_review_path not in modifications:
         raise FinalizationError(
             "La rama contiene cambios posteriores no revisados por QA: " + ", ".join(modifications)
         )

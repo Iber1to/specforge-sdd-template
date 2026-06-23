@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "capability": "eval-harness",
+  "quality_gates": [
+    {
+      "id": "EVAL-001",
+      "phase": "qa_full",
+      "command": [
+        "python3",
+        "scripts/run_evals.py",
+        "--feature",
+        "{feature_id}",
+        "--scope",
+        "repository"
+      ],
+      "blocking": false,
+      "mode": "observe",
+      "timeout_seconds": 600
+    }
+  ],
+  "files": [
+    {
+      "source": "scripts/run_evals.py",
+      "target": "scripts/run_evals.py"
+    },
+    {
+      "source": "scripts/validate_eval_result.py",
+      "target": "scripts/validate_eval_result.py"
+    },
+    {
+      "source": "specs/schemas/eval-result.schema.json",
+      "target": "specs/schemas/eval-result.schema.json"
+    },
+    {
+      "source": "state/capabilities/eval-harness.json",
+      "target": "state/capabilities/eval-harness.json"
+    }
+  ]
+}

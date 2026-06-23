@@ -101,6 +101,9 @@ IMPLEMENTER_HARNESS_SCRIPTS = {
 QA_HARNESS_SCRIPTS = {
     "heartbeat_lease.py",
     "complete_review.py",
+    # mutation-testing: QA ejecuta el runner en el worktree; la mutation-reviewer
+    # clasifica los supervivientes y QA pliega el informe en complete_review.py.
+    "mutation_runner.py",
 }
 
 PUBLISHER_HARNESS_SCRIPTS = {
@@ -187,8 +190,18 @@ HARNESS_IMPLEMENTER_FILES = {
 # es Python (src/, tests/, runtime/external/, pyproject.toml, uv.lock). Los profiles
 # no-Python que emite el generador amplian las rutas permitidas segun
 # state/project.json -> "profile".
-PRODUCT_IMPLEMENTER_ROOTS = {"src", "tests", "runtime"}
+PRODUCT_IMPLEMENTER_ROOTS = {"src", "tests", "runtime", "docs"}
 PRODUCT_IMPLEMENTER_FILES = {Path("pyproject.toml"), Path("uv.lock")}
+# Subtrees de docs que un implementer de producto puede escribir cuando la feature
+# declara requires_* (ADR, runtime, quality, operations) y documentation_validation
+# exige esa documentacion en el commit revisado. El resto de docs/ queda fuera del
+# alcance de producto (lo gestiona change_domain=harness).
+PRODUCT_IMPLEMENTER_DOC_PREFIXES = (
+    Path("docs/10-architecture/adr"),
+    Path("docs/20-runtime"),
+    Path("docs/30-quality"),
+    Path("docs/40-operations"),
+)
 PROFILE_IMPLEMENTER_ROOTS = {
     # android: modulo app/ y wrapper gradle/.
     "android": {"app", "gradle"},
@@ -562,6 +575,15 @@ def validate_write_edit(root: Path, event: dict[str, Any], role: str) -> tuple[b
                 if relative == required_prefix or required_prefix in relative.parents:
                     return True, ""
                 return False, "Solo runtime/external esta autorizado"
+
+            if relative.parts[0] == "docs":
+                for prefix in PRODUCT_IMPLEMENTER_DOC_PREFIXES:
+                    if relative == prefix or prefix in relative.parents:
+                        return True, ""
+                return False, (
+                    "Solo docs de feature autorizados para producto: "
+                    "docs/10-architecture/adr, docs/20-runtime, docs/30-quality, docs/40-operations"
+                )
 
             return True, ""
 

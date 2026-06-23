@@ -76,8 +76,18 @@ de features que estén en estado `SPEC_READY` o `DESIGN_READY`.
 
 - Debe tener exactamente un lease activo.
 - Solo puede escribir dentro del worktree asignado.
-- Sus escrituras se limitan a `src/`, `tests/`, `runtime/external/`,
-  `pyproject.toml` y `uv.lock`.
+- En `change_domain=product`, sus escrituras base son `src/`, `tests/`,
+  `runtime/external/`, `pyproject.toml` y `uv.lock`, más los subtrees de
+  documentación de feature `docs/10-architecture/adr/`, `docs/20-runtime/`,
+  `docs/30-quality/` y `docs/40-operations/` (los que exige
+  `documentation_validation` cuando la feature declara `requires_*`). El resto de
+  `docs/` queda fuera del alcance de producto.
+- La política es **profile-aware** (lee `profile` de `state/project.json`): el
+  perfil `android` añade el módulo `app/`, el wrapper `gradle/` y los ficheros
+  Gradle de raíz (`settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`).
+- En `change_domain=harness` puede escribir los subtrees del harness
+  (`.claude/`, `docs/`, `scripts/`, `specs/`, `state/`, `tests/`) y
+  `AGENTS.md`/`CLAUDE.md`/`pyproject.toml`/`uv.lock`.
 - Bash se limita al worktree y a una allowlist de comandos de desarrollo.
 - Solo puede ejecutar `heartbeat_lease.py` y `complete_implementation.py` del
   harness.

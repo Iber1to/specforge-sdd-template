@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "enabled": true,
+  "mode": "observe",
+  "scrub_secrets": true,
+  "max_value_chars": 2000
+}

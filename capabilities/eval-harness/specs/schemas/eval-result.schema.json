@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Eval Result",
+  "allOf": [
+    {
+      "$ref": "capability-evidence.schema.json"
+    }
+  ],
+  "properties": {
+    "gate_id": {
+      "const": "eval-harness"
+    },
+    "eval_summary": {
+      "type": "object"
+    },
+    "graders": {
+      "type": "array"
+    },
+    "metrics": {
+      "type": "object"
+    }
+  }
+}

@@ -192,6 +192,122 @@ python3 scripts/run_security_scan.py --feature F-001
 
 El MVP detecta secretos por regex, ficheros sensibles como `.env`, claves privadas y tokens comunes. Redacta muestras sensibles en la evidencia.
 
+## Capability: Eval Harness
+
+Activacion:
+
+```yaml
+capabilities: [eval-harness]
+```
+
+Objetivo:
+
+- convertir cada escenario `SCN-XXX` de una feature en graders ejecutables
+- cerrar la trazabilidad `AC-XXX -> SCN-XXX -> grader -> evidencia`
+- decidir el gate de calidad de forma determinista, sin depender del juicio del modelo
+
+Definicion de graders por feature:
+
+```text
+specs/features/<FEATURE>/evals.json
+```
+
+Tipos de grader:
+
+- `code`: ejecuta un comando; pasa si el exit code es `0`. Elegible para gate.
+- `rule`: restriccion determinista sobre ficheros (`file_exists`, `file_contains`, `file_absent`). Elegible para gate.
+- `model`: LLM-as-judge con rubrica. Consultivo, nunca decide el gate automatico.
+- `human`: adjudicacion manual. Consultivo.
+
+Runner:
+
+```bash
+python3 scripts/run_evals.py --feature F-001 --scope repository
+```
+
+Cada grader elegible se ejecuta `runs` veces (politica). Se calculan `pass_at_k`
+(al menos una ejecucion pasa) y `pass_caret_k` (todas pasan).
+
+Validador:
+
+```bash
+python3 scripts/validate_eval_result.py \
+  --feature F-001 \
+  --evidence <artifact_root>/capabilities/eval-harness/F-001/latest.json \
+  --require-pass
+```
+
+Politica:
+
+```text
+state/capabilities/eval-harness.json
+```
+
+Campos:
+
+- `mode`: `observe` (no bloquea) o `enforce` (bloquea en fallo).
+- `runs`: repeticiones por grader (default 1).
+- `pass_at_k_min`: ratio minimo para graders de capacidad.
+- `require_pass_caret_k_for_release_critical`: exige `pass_caret_k = 1.00` en graders `release_critical`.
+- `grader_timeout_seconds`: limite por comando `code`.
+
+Gate:
+
+- `EVAL-001` en fase `qa_full`, modo `observe` por defecto.
+- En `enforce`, cualquier grader `code`/`rule` elegible que no pase produce `FAILED`.
+- Los graders `model`/`human` se registran como `SKIPPED` consultivo y no bloquean.
+
+Schema de evidencia: `specs/schemas/eval-result.schema.json`. Decision:
+`docs/adr-0002-eval-harness-verification-gate.md`. Capability source:
+`affaan-m/ECC` (`skills/eval-harness/SKILL.md`), adaptado a ejecucion determinista.
+
+## Capability: Tool Telemetry
+
+Activacion:
+
+```yaml
+capabilities: [tool-telemetry]
+```
+
+Objetivo:
+
+- registrar cada llamada a herramienta (`PreToolUse`/`PostToolUse`) como una
+  linea JSONL determinista (telemetria/evidencia de que herramientas usa cada rol)
+- redactar secretos antes de persistir
+- alimentar auditoria y observabilidad sin alterar el comportamiento de los agentes
+
+No es un gate ni aprende patrones: es la capa de sustrato (hooks -> JSONL)
+inspirada en el continuous-learning de `affaan-m/ECC`. Se descarto a proposito el
+motor de "instintos" auto-aprendidos por ser contrario al determinismo SDD.
+
+Cableado de hooks:
+
+- `core/.claude/settings.json` cablea `PreToolUse` (matcher `""`) y `PostToolUse`
+  a `hook_entrypoint.sh tool_telemetry`.
+- Si la capability no esta instalada, el hook es **no-op** (no rompe el proyecto).
+- Script: `scripts/tool_telemetry_hook.py` (fail-soft: siempre exit 0).
+
+Politica:
+
+```text
+state/capabilities/tool-telemetry.json
+```
+
+Campos:
+
+- `enabled`: activa/desactiva la captura.
+- `scrub_secrets`: redacta api_key/token/secret/password/claves privadas/AWS.
+- `max_value_chars`: trunca `tool_input`/`tool_response` largos.
+
+Evidencia:
+
+```text
+artifact_root/capabilities/tool-telemetry/observations-<YYYYMMDD>.jsonl
+```
+
+Cada linea incluye `timestamp`, `event`, `tool`, `session`, `agent` y, si
+existen, `tool_input`/`tool_response` redactados y truncados.
+
 ## Capability: Windows Validation
 
 Activacion de proyecto:

@@ -5,6 +5,41 @@ Changelog; the project uses Conventional Commits.
 
 ## [Unreleased]
 
+### Added
+
+- Capability `eval-harness`: convierte los escenarios `SCN-XXX` de cada feature en
+  graders ejecutables (`code`/`rule` elegibles para gate; `model`/`human`
+  consultivos) con metricas `pass_at_k`/`pass_caret_k`. Runner
+  `scripts/run_evals.py`, validador, schema y politica; gate `EVAL-001` en
+  `qa_full`. Decision en `docs/adr-0002-eval-harness-verification-gate.md`.
+  Adoptado de `affaan-m/ECC`.
+- Capability `tool-telemetry`: hooks `PreToolUse`/`PostToolUse` registran cada
+  llamada a herramienta como JSONL con scrubbing de secretos
+  (`scripts/tool_telemetry_hook.py`); no-op y fail-soft sin la capability.
+- Informe QA en Markdown de campos fijos (`evidence/reviews/<feature>.md`) junto
+  al JSON, generado por `scripts/complete_review.py` (report template).
+- Endurecimiento de agentes (adoptado de ECC / agency-agents): bloque "Defensa de
+  prompt" anti-inyeccion en los 7 agentes; `qa-reviewer` con sesgo por defecto a
+  `CHANGES_REQUESTED`, disparadores de fallo automatico y pre-report gate; guard
+  stale-replay en `leader`/`implementer`; recuperacion de contexto iterativa en
+  `architect`/`implementer`.
+- Tope de reintentos de QA con escalado: `complete_review.py` cuenta los
+  `CHANGES_REQUESTED` en `qa_attempts`; `start_implementation.py` rechaza un
+  nuevo intento cuando se alcanza `maximum_qa_attempts` (default 3 en
+  `state/project.json`) y el `leader` escala a decision humana. Evita bucles
+  infinitos QA<->implementer (adoptado de agency-agents handoff-templates).
+- `implementer` con disciplina de cambio minimo y Scope Self-Check (cada linea
+  del diff justificable por `AC-XXX`, sin scope creep; adoptado de agency-agents
+  minimal-change-engineer).
+- `specifier` con seccion "Contrato de capacidad" (promesa observable vs
+  implementacion, invariantes, estados/transiciones, incertidumbre como `Q-XXX`,
+  no-goals; adoptado de ECC product-capability).
+
+### Changed
+
+- `finalize_feature.py` admite el informe QA Markdown junto al JSON en el commit
+  de evidencia posterior al commit revisado.
+
 ### Fixed
 
 - Role Guard implementer write policy is now profile-aware (`scripts/role_guard.py`).
@@ -17,6 +52,17 @@ Changelog; the project uses Conventional Commits.
   an Android layout the guard did not allow), discovered on the `pokecards-app`
   pilot. The deterministic lifecycle E2E did not catch it because Role Guard runs as
   a Claude Code hook, not inside the harness scripts the test drives.
+
+- Role Guard product implementer can now write feature documentation subtrees
+  (`scripts/role_guard.py`). For `change_domain=product` (all profiles) the
+  implementer may write under `docs/10-architecture/adr/`, `docs/20-runtime/`,
+  `docs/30-quality/` and `docs/40-operations/` — the documentation that
+  `documentation_validation.py` requires in the reviewed commit when a feature
+  declares `requires_adr` / `requires_runtime_update` / `requires_quality_update` /
+  `requires_operations_update`. The rest of `docs/` stays out of product scope
+  (owned by `change_domain=harness`). Without this, any feature with a `requires_*`
+  flag could not be finalized: the ADR/doc had to ship in the reviewed content but
+  no product role could author it (discovered finalizing `pokecards-app` F-001).
 
 
 Harness fixes backported on 2026-06-11 from the `poker-assistant` pilot
@@ -56,6 +102,31 @@ Harness fixes backported on 2026-06-11 from the `poker-assistant` pilot
   `test_generates_android_project` and an end-to-end lifecycle test; documented in
   `profiles/android/README.md`, `docs/profile-capability-matrix.md` and a
   generated `docs/20-runtime/android-environment.md`.
+
+- Regression test `test_role_guard_product_write_paths_are_profile_aware`
+  (`tests/test_generator.py`) covering the two Role Guard write-policy gaps found
+  on the `pokecards` pilot: it loads a generated project's `role_guard.py`, creates
+  an implementer lease, and asserts that a product implementer may write `app/`,
+  the root Gradle files and the feature documentation subtrees
+  (`docs/10-architecture/adr/`, `20-runtime`, `30-quality`, `40-operations`) in an
+  `android` project, that `docs/00-project/` and `runtime/` (non-`runtime/external`)
+  stay blocked, and that a `python` project blocks the Android paths while still
+  allowing the documentation subtrees. These gaps had slipped because Role Guard
+  runs as a Claude Code hook, outside the deterministic lifecycle the E2E exercises.
+
+- `mutation-testing` is now finalizable end-to-end (closes the gap that forced
+  removing the capability on the `pokecards` pilot). The Mutation Reviewer emits
+  per-mutant classifications (`MUT-XXX=class:rationale`); QA runs `mutation_runner.py`
+  in the worktree (added to the QA harness-script allowlist) and passes the
+  classifications to `complete_review.py` via `--mutation-classification`
+  (+`--mutation-reviewer-id`/`--mutation-summary`). `complete_review.py` builds and
+  validates the report (`mutation_review_validation.build_mutation_review`), writes
+  `evidence/mutation-reviews/<F>.json` and folds it into the **single** QA evidence
+  commit; `finalize_feature.py` and the finalization contract now allow that path in
+  that commit. All of this is gated behind `mutation_testing_required(feature)`, so
+  features without the capability are unaffected. A `test_gap` classification fails
+  validation (the fix is more tests, not reclassification). Covered by
+  `test_mutation_review_builder_and_validation`.
 
 - Hermetic harness tests for the two fixes above, copied into generated
   projects from `core/tests/harness/`: `test_lease_invariant.py` and

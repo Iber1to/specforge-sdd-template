@@ -38,6 +38,7 @@ def parse_arguments() -> argparse.Namespace:
         "--capability",
         action="append",
         choices=[
+            "eval-harness",
             "external-runtime",
             "git-publish",
             "mutation-testing",

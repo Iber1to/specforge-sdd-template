@@ -106,6 +106,16 @@ def main() -> int:
                     f"{feature['id']} no puede iniciarse desde el estado {feature['state']}"
                 )
 
+            max_qa_attempts = int(config.get("maximum_qa_attempts", 3))
+            qa_attempts = int(feature.get("qa_attempts", 0))
+
+            if qa_attempts >= max_qa_attempts:
+                raise ControlPlaneError(
+                    f"{feature['id']} agoto los {max_qa_attempts} intentos de QA "
+                    f"(qa_attempts={qa_attempts}). Escala a decision humana en lugar "
+                    "de reintentar: revisa alcance, especificacion o arquitectura."
+                )
+
             lease_path = paths["leases"] / f"{feature['id']}.json"
 
             if lease_path.exists():
