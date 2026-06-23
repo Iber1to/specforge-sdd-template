@@ -712,7 +712,7 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue(review_report.is_file())
         report_text = review_report.read_text(encoding="utf-8")
         self.assertIn("# QA Review Report - F-001", report_text)
-        self.assertIn("| Veredicto | APPROVED |", report_text)
+        self.assertIn("| Verdict | APPROVED |", report_text)
 
         self.harness_python(
             output,
