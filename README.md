@@ -91,7 +91,7 @@ Detalle completo, configuracion, primera feature y **modo semiautomatico** en
 
 ```text
 core/            harness comun que se copia a cada proyecto generado
-profiles/        adaptadores de stack: generic, python, node
+profiles/        adaptadores de stack: generic, python, node, android
 capabilities/    capacidades opcionales (security, performance, mutation, ...)
 generator/       notas del generador determinista
 docs/            documentacion del template
@@ -152,7 +152,7 @@ Guia completa (incluido `mosh`, observacion y recuperacion) en
 
 ## Estado
 
-`v1.0-internal` (2026-06-07). Estable: perfiles `generic`/`python`/`node`,
+`v1.0-internal` (2026-06-07). Estable: perfiles `generic`/`python`/`node`/`android`,
 workflow + Role Guard + gates + plano de control, y capabilities
 `documentation-pack`, `mutation-testing` (python), `performance-testing`,
 `security-scanning`, `git-publish`, `external-runtime`. Experimental:
@@ -162,7 +162,12 @@ Windows real). Nuevo (sin release): `remote-notifications` (Telegram),
 (telemetria de herramientas en JSONL), informe QA en Markdown, y endurecimiento
 de los agentes (defensa anti-inyeccion, guard de estado reinyectado,
 recuperacion de contexto iterativa y QA con pre-report gate) — adoptados de
-ECC/agency-agents. Ver [`CHANGELOG.md`](CHANGELOG.md) para el historial y
+ECC/agency-agents. El perfil `android` (Kotlin/Gradle) se valido en un piloto real
+(proyectos PokeCards): Role Guard *profile-aware* (autoriza el modulo `app/`, el
+wrapper `gradle/` y los Gradle de raiz para producto android, y los subtrees de
+documentacion de feature bajo `docs/` para cualquier perfil), build Android real
+via `external-runtime` (`android-assemble`/`android-unit-tests`) y gates Android en
+modo observe. Ver [`CHANGELOG.md`](CHANGELOG.md) para el historial y
 [`roadmap.md`](docs/roadmap.md) para lo que viene (Now / Next / Later).
 
 ---
