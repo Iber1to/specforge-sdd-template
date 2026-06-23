@@ -247,9 +247,7 @@ def main() -> int:
         artifact_root = Path(project["artifact_root"]).resolve()
 
         if root != canonical or Path.cwd().resolve() != canonical:
-            raise GitPublicationError(
-                "Publication must run from the canonical repository"
-            )
+            raise GitPublicationError("Publication must run from the canonical repository")
 
         ensure_clean_repository(canonical)
 

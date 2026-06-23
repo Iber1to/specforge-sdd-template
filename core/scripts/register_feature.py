@@ -63,9 +63,7 @@ def ensure_canonical_repository() -> None:
     canonical = Path(config["canonical_repository"]).resolve()
 
     if repo_root() != canonical:
-        raise ControlPlaneError(
-            "Features can only be registered from the canonical repository"
-        )
+        raise ControlPlaneError("Features can only be registered from the canonical repository")
 
 
 def next_feature_id(features: list[dict]) -> str:

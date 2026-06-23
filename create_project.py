@@ -71,9 +71,7 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
 
     project_id = str(config["project_id"])
     if not PROJECT_ID_PATTERN.fullmatch(project_id):
-        raise ValueError(
-            "project_id must match ^[a-z0-9]+(?:-[a-z0-9]+)*$: " + project_id
-        )
+        raise ValueError("project_id must match ^[a-z0-9]+(?:-[a-z0-9]+)*$: " + project_id)
 
     profile = str(config["profile"])
     if profile not in PROFILES:
@@ -95,8 +93,7 @@ def validate_config(config: dict[str, Any]) -> dict[str, Any]:
     )
     if incompatible:
         raise ValueError(
-            "Capabilities incompatible with profile "
-            f"{profile}: " + ", ".join(incompatible)
+            f"Capabilities incompatible with profile {profile}: " + ", ".join(incompatible)
         )
 
     enabled_capabilities: list[str] = []
@@ -318,7 +315,9 @@ def write_project_state(output: Path, config: dict[str, Any]) -> None:
         gates_path = output / "state" / "quality-gates.json"
         gates = json.loads(gates_path.read_text(encoding="utf-8"))
         gates.setdefault("gates", []).extend(capability_gates)
-        gates_path.write_text(json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        gates_path.write_text(
+            json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
 
 def write_python_smoke(output: Path) -> None:
@@ -413,13 +412,7 @@ def write_doc(path: Path, content: str) -> None:
     body = content.strip() + "\n"
 
     if not body.startswith("---\n"):
-        body = (
-            "---\n"
-            "owner: template\n"
-            f"last_verified: {DOCUMENT_LAST_VERIFIED}\n"
-            "---\n\n"
-            + body
-        )
+        body = f"---\nowner: template\nlast_verified: {DOCUMENT_LAST_VERIFIED}\n---\n\n" + body
 
     path.write_text(body, encoding="utf-8")
 
@@ -1320,7 +1313,9 @@ def apply_profile(output: Path, profile: str) -> None:
     if profile == "python":
         package = output.name.replace("-", "_")
         (output / "src" / package).mkdir(parents=True)
-        (output / "src" / package / "__init__.py").write_text('VERSION = "0.1.0"\n', encoding="utf-8")
+        (output / "src" / package / "__init__.py").write_text(
+            'VERSION = "0.1.0"\n', encoding="utf-8"
+        )
         (output / "tests" / "unit" / "test_profile_smoke.py").write_text(
             f"from src.{package} import VERSION\n\n\ndef test_version() -> None:\n    assert VERSION\n",
             encoding="utf-8",
@@ -1344,7 +1339,9 @@ def apply_profile(output: Path, profile: str) -> None:
             + "\n",
             encoding="utf-8",
         )
-        (output / "src" / "index.js").write_text("export const version = '0.1.0';\n", encoding="utf-8")
+        (output / "src" / "index.js").write_text(
+            "export const version = '0.1.0';\n", encoding="utf-8"
+        )
         (output / "tests" / "index.test.js").write_text(
             "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { version } from '../src/index.js';\n\ntest('exports version', () => {\n  assert.equal(version, '0.1.0');\n});\n",
             encoding="utf-8",
@@ -1383,7 +1380,9 @@ def apply_profile(output: Path, profile: str) -> None:
                 },
             ]
         )
-        gates_path.write_text(json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        gates_path.write_text(
+            json.dumps(gates, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
 
     if profile == "android":
         apply_android_profile(output)
@@ -1421,7 +1420,7 @@ def apply_android_profile(output: Path) -> None:
     test_java.mkdir(parents=True, exist_ok=True)
 
     (output / "settings.gradle.kts").write_text(
-        'pluginManagement {\n'
+        "pluginManagement {\n"
         "    repositories {\n"
         "        google()\n"
         "        mavenCentral()\n"
@@ -1449,9 +1448,7 @@ def apply_android_profile(output: Path) -> None:
     )
 
     (output / "gradle.properties").write_text(
-        "org.gradle.jvmargs=-Xmx2048m\n"
-        "android.useAndroidX=true\n"
-        "kotlin.code.style=official\n",
+        "org.gradle.jvmargs=-Xmx2048m\nandroid.useAndroidX=true\nkotlin.code.style=official\n",
         encoding="utf-8",
     )
 
@@ -1608,11 +1605,21 @@ def apply_android_profile(output: Path) -> None:
 
 
 def initialize_git(output: Path) -> None:
-    subprocess.run(["git", "init", "-b", "main"], cwd=output, check=True, text=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", "-b", "main"], cwd=output, check=True, text=True, capture_output=True
+    )
     subprocess.run(["git", "config", "user.name", "Agentic Template"], cwd=output, check=True)
-    subprocess.run(["git", "config", "user.email", "agentic-template@example.invalid"], cwd=output, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "agentic-template@example.invalid"], cwd=output, check=True
+    )
     subprocess.run(["git", "add", "."], cwd=output, check=True)
-    subprocess.run(["git", "commit", "-m", "chore: initialize generated project"], cwd=output, check=True, text=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "chore: initialize generated project"],
+        cwd=output,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
 
 
 def create_project(config: dict[str, Any]) -> Path:

@@ -80,8 +80,7 @@ def validate_policy(root: Path) -> None:
 
     if detected_roles != REQUIRED_ROLES:
         raise BudgetValidationError(
-            f"Incorrect roles: expected={sorted(REQUIRED_ROLES)}, "
-            f"received={sorted(detected_roles)}"
+            f"Incorrect roles: expected={sorted(REQUIRED_ROLES)}, received={sorted(detected_roles)}"
         )
 
     for role in sorted(REQUIRED_ROLES):

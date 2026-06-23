@@ -354,9 +354,7 @@ def validate_role_for_transition(
     permitted = ROLE_TRANSITIONS.get(role, set())
 
     if (current_state, target_state) not in permitted:
-        raise ControlPlaneError(
-            f"Role '{role}' cannot perform {current_state} -> {target_state}"
-        )
+        raise ControlPlaneError(f"Role '{role}' cannot perform {current_state} -> {target_state}")
 
 
 def validate_transition(

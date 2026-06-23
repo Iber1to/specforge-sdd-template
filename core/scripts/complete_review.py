@@ -63,8 +63,7 @@ def parse_arguments() -> argparse.Namespace:
         action="append",
         default=[],
         help=(
-            "Classification of a survivor: "
-            "MUT-XXX=equivalent|out_of_scope|invalid|test_gap:reason."
+            "Classification of a survivor: MUT-XXX=equivalent|out_of_scope|invalid|test_gap:reason."
         ),
     )
 

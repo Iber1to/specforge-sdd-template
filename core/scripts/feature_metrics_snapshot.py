@@ -62,9 +62,7 @@ def build_feature_metrics_snapshot(
     return {
         "schema_version": 1,
         "authoritative": False,
-        "description": (
-            "Derived and regenerable snapshot. Must not be used as a source of truth."
-        ),
+        "description": ("Derived and regenerable snapshot. Must not be used as a source of truth."),
         "generated_at": metrics_summary.get("generated_at"),
         "sources": {
             "queue": "queue.json",

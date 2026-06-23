@@ -519,9 +519,7 @@ def active_lease(root: Path, role: str) -> dict[str, Any]:
             matches.append(lease)
 
     if len(matches) != 1:
-        raise GuardError(
-            f"Expected exactly one active lease for {role}; found: {len(matches)}"
-        )
+        raise GuardError(f"Expected exactly one active lease for {role}; found: {len(matches)}")
 
     return matches[0]
 

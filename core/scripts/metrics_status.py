@@ -58,9 +58,7 @@ def print_scope(label: str, scope: dict[str, Any]) -> None:
         f"{runs['retries']} retries"
     )
     print(
-        "Observed runs: "
-        f"{runs['duration_seconds']} seconds; "
-        f"{runs['heartbeat_count']} heartbeats"
+        f"Observed runs: {runs['duration_seconds']} seconds; {runs['heartbeat_count']} heartbeats"
     )
 
     if runs["results"]:

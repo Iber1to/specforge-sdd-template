@@ -40,9 +40,7 @@ def ensure_canonical_repository() -> Path:
     canonical = canonical_repository()
 
     if repo_root() != canonical:
-        raise ControlPlaneError(
-            "This operation can only be executed from the canonical repository"
-        )
+        raise ControlPlaneError("This operation can only be executed from the canonical repository")
 
     return canonical
 

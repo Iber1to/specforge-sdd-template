@@ -69,9 +69,7 @@ def main() -> int:
         max_chars = 2000
 
     try:
-        project = json.loads(
-            (project_dir / "state" / "project.json").read_text(encoding="utf-8")
-        )
+        project = json.loads((project_dir / "state" / "project.json").read_text(encoding="utf-8"))
         artifact_root = Path(str(project["artifact_root"])).expanduser()
     except Exception:
         return 0

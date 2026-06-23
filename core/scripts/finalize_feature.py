@@ -425,9 +425,7 @@ def main() -> int:
             lease_path = paths["leases"] / f"{feature['id']}.json"
 
             if lease_path.exists():
-                raise FinalizationError(
-                    f"An active lease exists for {feature['id']}: {lease_path}"
-                )
+                raise FinalizationError(f"An active lease exists for {feature['id']}: {lease_path}")
 
         worktree, branch, _ = ensure_review_worktree(feature)
         ensure_clean_repository(worktree)

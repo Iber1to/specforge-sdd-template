@@ -188,9 +188,7 @@ def handle_text(text: str, policy: dict[str, Any], root: Path) -> str:
         return f"Unknown command: {stripped.split()[0]}\n\n{HELP_TEXT}"
 
     if gateway.get("allow_text_injection", True) is not True:
-        return (
-            "[ERROR] Text injection disabled by policy (gateway.allow_text_injection)."
-        )
+        return "[ERROR] Text injection disabled by policy (gateway.allow_text_injection)."
 
     if not tmux_available():
         return "[ERROR] tmux is not available on the host."

@@ -119,13 +119,9 @@ def main() -> int:
         runs = max(1, int(policy.get("runs", 1)))
         timeout = int(policy.get("grader_timeout_seconds", 300))
         pass_at_k_min = float(policy.get("pass_at_k_min", 1.0))
-        require_caret_release = bool(
-            policy.get("require_pass_caret_k_for_release_critical", True)
-        )
+        require_caret_release = bool(policy.get("require_pass_caret_k_for_release_critical", True))
 
-        evals_path = args.evals or (
-            root / "specs" / "features" / args.feature / "evals.json"
-        )
+        evals_path = args.evals or (root / "specs" / "features" / args.feature / "evals.json")
         graders = load_graders(evals_path)
 
         started_at = utc_now()
@@ -174,23 +170,17 @@ def main() -> int:
             if grader_type == "code":
                 command = grader.get("command")
                 if not isinstance(command, list) or not command:
-                    raise CapabilityError(
-                        f"{grader_id}: code grader requires 'command' as a list"
-                    )
+                    raise CapabilityError(f"{grader_id}: code grader requires 'command' as a list")
                 runs_executed = runs
                 successes = run_code_grader(command, runs, timeout, root)
             elif grader_type == "rule":
                 rule = grader.get("rule")
                 if not isinstance(rule, dict):
-                    raise CapabilityError(
-                        f"{grader_id}: rule grader requires 'rule' as an object"
-                    )
+                    raise CapabilityError(f"{grader_id}: rule grader requires 'rule' as an object")
                 runs_executed = 1
                 successes = 1 if evaluate_rule(rule, root) else 0
             else:
-                raise CapabilityError(
-                    f"{grader_id}: unsupported grader type: {grader_type}"
-                )
+                raise CapabilityError(f"{grader_id}: unsupported grader type: {grader_type}")
 
             pass_at_k = successes >= 1
             pass_caret_k = runs_executed > 0 and successes == runs_executed

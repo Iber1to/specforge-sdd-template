@@ -64,8 +64,7 @@ def main() -> int:
 
             if feature["state"] != expected_state:
                 raise ControlPlaneError(
-                    f"{feature['id']} must be in {expected_state} "
-                    f"to renew a {role} lease"
+                    f"{feature['id']} must be in {expected_state} to renew a {role} lease"
                 )
 
             if lease.get("agent_id") != arguments.agent_id:

@@ -97,9 +97,7 @@ def _load_specification_policy(
     legacy_features = policy.get("legacy_v1_features", [])
 
     if not isinstance(default_version, int) or default_version < 1:
-        raise FeatureValidationError(
-            "default_acceptance_schema_version must be a positive integer"
-        )
+        raise FeatureValidationError("default_acceptance_schema_version must be a positive integer")
 
     if not isinstance(legacy_features, list) or not all(
         isinstance(feature_id, str) for feature_id in legacy_features
@@ -262,8 +260,7 @@ def _validate_acceptance_v2(acceptance: dict[str, Any]) -> None:
 
     if uncovered_required:
         raise FeatureValidationError(
-            "The required criteria are not covered by scenarios: "
-            + ", ".join(uncovered_required)
+            "The required criteria are not covered by scenarios: " + ", ".join(uncovered_required)
         )
 
 
@@ -327,7 +324,9 @@ def load_and_validate_acceptance(
     try:
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise FeatureValidationError(f"The acceptance schema does not exist: {schema_path}") from exc
+        raise FeatureValidationError(
+            f"The acceptance schema does not exist: {schema_path}"
+        ) from exc
     except json.JSONDecodeError as exc:
         raise FeatureValidationError(f"Invalid JSON schema in {schema_path}: {exc}") from exc
 
@@ -352,9 +351,7 @@ def load_and_validate_acceptance(
         )
 
     if acceptance["title"] != feature["title"]:
-        raise FeatureValidationError(
-            "The acceptance.yaml title must match the queue exactly"
-        )
+        raise FeatureValidationError("The acceptance.yaml title must match the queue exactly")
 
     criteria = acceptance["criteria"]
 

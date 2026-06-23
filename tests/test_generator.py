@@ -548,13 +548,15 @@ class GeneratorTests(unittest.TestCase):
                 + "\n## Deterministic Lifecycle\n\nValidated by the generated-project E2E fixture.\n",
                 encoding="utf-8",
             )
-            return "docs/00-project/roadmap.md", "docs(F-001): record deterministic lifecycle marker"
+            return (
+                "docs/00-project/roadmap.md",
+                "docs(F-001): record deterministic lifecycle marker",
+            )
 
         if profile == "python":
             module_path = worktree / "src" / "test_python_project" / "__init__.py"
             module_path.write_text(
-                module_path.read_text(encoding="utf-8")
-                + 'LIFECYCLE_STATUS = "validated"\n',
+                module_path.read_text(encoding="utf-8") + 'LIFECYCLE_STATUS = "validated"\n',
                 encoding="utf-8",
             )
             return "src/test_python_project/__init__.py", "feat(F-001): add python lifecycle marker"
@@ -722,7 +724,9 @@ class GeneratorTests(unittest.TestCase):
         )
 
         queue = json.loads((Path(state["control_root"]) / "queue.json").read_text(encoding="utf-8"))
-        runtime = json.loads((Path(state["control_root"]) / "runtime.json").read_text(encoding="utf-8"))
+        runtime = json.loads(
+            (Path(state["control_root"]) / "runtime.json").read_text(encoding="utf-8")
+        )
         feature = next(item for item in queue["features"] if item["id"] == "F-001")
 
         self.assertEqual("DONE", feature["state"])
@@ -1158,9 +1162,7 @@ class GeneratorTests(unittest.TestCase):
         self.assertTrue((output / "scripts" / "run_evals.py").is_file())
         self.assertTrue((output / "scripts" / "validate_eval_result.py").is_file())
         self.assertTrue((output / "state" / "capabilities" / "eval-harness.json").is_file())
-        self.assertTrue(
-            (output / "specs" / "schemas" / "eval-result.schema.json").is_file()
-        )
+        self.assertTrue((output / "specs" / "schemas" / "eval-result.schema.json").is_file())
         self.assertEqual("observe", gates_by_id["EVAL-001"]["mode"])
         self.assertFalse(gates_by_id["EVAL-001"]["blocking"])
 
@@ -1279,9 +1281,7 @@ class GeneratorTests(unittest.TestCase):
 
         self.assertIn("tool-telemetry", state["capabilities"])
         self.assertTrue((output / "scripts" / "tool_telemetry_hook.py").is_file())
-        self.assertTrue(
-            (output / "state" / "capabilities" / "tool-telemetry.json").is_file()
-        )
+        self.assertTrue((output / "state" / "capabilities" / "tool-telemetry.json").is_file())
 
         payload = json.dumps(
             {
@@ -1303,9 +1303,7 @@ class GeneratorTests(unittest.TestCase):
         )
         self.assertEqual(0, result.returncode)
 
-        telemetry_dir = (
-            Path(state["artifact_root"]) / "capabilities" / "tool-telemetry"
-        )
+        telemetry_dir = Path(state["artifact_root"]) / "capabilities" / "tool-telemetry"
         files = list(telemetry_dir.glob("observations-*.jsonl"))
         self.assertEqual(1, len(files))
         content = files[0].read_text(encoding="utf-8")
@@ -1417,9 +1415,7 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("external-runtime", state["capabilities"])
         self.assertTrue((output / "state" / "capabilities" / "external-runtime.json").is_file())
         self.assertTrue((output / "scripts" / "run_external_runtime.py").is_file())
-        self.assertTrue(
-            (output / "state" / "capabilities" / "performance-testing.json").is_file()
-        )
+        self.assertTrue((output / "state" / "capabilities" / "performance-testing.json").is_file())
         self.assertTrue((output / "scripts" / "run_performance_gate.py").is_file())
         self.assertTrue((output / "state" / "capabilities" / "security-scanning.json").is_file())
         self.assertTrue((output / "scripts" / "run_security_scan.py").is_file())
@@ -1515,9 +1511,7 @@ terms:
 
         self.harness_python(output, "scripts/refresh_glossary.py")
 
-        glossary_md = (output / "docs" / "00-project" / "glossary.md").read_text(
-            encoding="utf-8"
-        )
+        glossary_md = (output / "docs" / "00-project" / "glossary.md").read_text(encoding="utf-8")
         self.assertIn("Domain Term", glossary_md)
         self.assertIn("domain-term", glossary_md)
 
@@ -1864,9 +1858,7 @@ terms:
             leases = Path(state["control_root"]) / "leases"
             leases.mkdir(parents=True, exist_ok=True)
             (leases / "F-001.json").write_text(
-                json.dumps(
-                    {"feature_id": "F-001", "role": "implementer", "worktree": str(project)}
-                )
+                json.dumps({"feature_id": "F-001", "role": "implementer", "worktree": str(project)})
                 + "\n",
                 encoding="utf-8",
             )

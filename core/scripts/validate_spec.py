@@ -25,9 +25,7 @@ def main() -> int:
 
         acceptance = validate_specification(repo_root(), feature)
 
-        print(
-            f"[OK] {feature['id']}: specification valid ({len(acceptance['criteria'])} criteria)"
-        )
+        print(f"[OK] {feature['id']}: specification valid ({len(acceptance['criteria'])} criteria)")
         return 0
 
     except (ControlPlaneError, FeatureValidationError) as exc:

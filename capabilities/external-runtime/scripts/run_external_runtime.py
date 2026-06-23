@@ -72,9 +72,7 @@ def resolve_command_template(target: dict, command_id: str) -> tuple[list[str], 
 
         return [str(part) for part in command], timeout
 
-    raise CapabilityError(
-        f"command-id not registered in target '{target.get('id')}': {command_id}"
-    )
+    raise CapabilityError(f"command-id not registered in target '{target.get('id')}': {command_id}")
 
 
 def resolve_command(args: argparse.Namespace, target: dict) -> tuple[list[str], int, str | None]:
